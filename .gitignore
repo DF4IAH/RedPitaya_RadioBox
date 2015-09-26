@@ -29,8 +29,15 @@ scpi-server/scpi-server
 #Eclipse
 .cproject
 .project
-*/.settings/language.settings.xml
+.settings
 
 # SCPI Server examples
 scpi-server/3rdparty/libs/scpi-parser/examples/
+
+# Editors
+*~
+
+# Mac-OS-X
+.DS_Store
+._.DS_Store
 
