@@ -66,7 +66,7 @@
   var dc_calout1_butt=0;   // toggled when DC cal button clicked for out 1
   var dc_calout2_butt=0;   // toggled when DC cal button clicked for out 2
   var req_trc_butt=0;  // toggled when Dowload trace button clicked
-  var dl_state=0;      // Download state variable
+  var dl_state=0;      // Download state variable
   var update_timer = null;
   var zoompan_timer = null;
   var downloading = false;
@@ -782,12 +782,12 @@
     sendParams(do_get);
     that.blur();
     user_editing = false;
-  }
+  }
   function startDownload()
   {
      var url='/tmp/traces.csv';
-     win=window.open(url,'Download','width=10, height=10');
-  }
+     win=window.open(url,'Download','width=10, height=10');
+  }
   function loadParams(orig_params) {
     if (dl_state>=3) { // Give RP some cycles to prepare data...
     dl_state=0;        // reset state
@@ -796,7 +796,7 @@
     if (dl_state>0)    // Count # RP response after Trace Download request
     {
      dl_state=dl_state+1;
-    }
+    }
     if(! $.isPlainObject(orig_params)) {
       return;
     }
@@ -882,12 +882,12 @@
       }
     }
     return false;
-  }
+  }
   function requestTrace() {
        dl_state=1;                   // Remember the issued Trace download request
        req_trc_butt=1-req_trc_butt;
        sendParams(true,true);        // Propagate parameter to RP
-  }
+  }
   function calibrate() {
      dc_cal_butt=1-dc_cal_butt;
      sendParams(true,true);          // Propagate parameter to RP
@@ -899,7 +899,7 @@
     function calout2() {
      dc_calout2_butt=1-dc_calout2_butt;
      sendParams(true,true);          // Propagate parameter to RP
-  }
+  }
   function sendParams(refresh_data, force_send, single_btn) {
     if(sending || (force_send !== true && !isParamChanged())) {
       send_que = sending;
