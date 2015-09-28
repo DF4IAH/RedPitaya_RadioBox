@@ -36,8 +36,9 @@ $(PDF):
 
 
 zip: $(TARGET) $(PDF)
+	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
-	cp -r $($(TARGET)) $(FPGA) info index.html Makefile target/$(APP)
+	cp -r $(TARGET) $(FPGA) bin info index.html Makefile target/$(APP)
 	cp -r src target/$(APP)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
 	find target -iname .svn -delete

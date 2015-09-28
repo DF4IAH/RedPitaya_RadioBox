@@ -3,7 +3,7 @@
  * Radio-Box utilities for transmitting and receiving signals.
  *
  * Author: Ulrich Habel, DF4IAH <espero7757@gmx.net>
- *         
+ *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
  * This part of code is written in Javascript & HTML.
@@ -27,22 +27,18 @@
   <script src="../assets/flot/jquery.flot.resize.min.js"></script>
   <script src="../assets/flot/jquery.flot.touch.js?2"></script>
   <script type="text/javascript">
-  
   // Settings which can be modified
-   
-  var app_id = 'radiobox';  
-  //var root_url = '';
+  var app_id = 'radiobox';
+  var root_url = '';
   //var root_url = 'http://10.0.1.221';      // Test local
-  var root_url = 'http://192.168.8.124';     // Test remote and local
   //var root_url = 'http://192.168.1.100';   // Default RedPitaya IP
   var start_app_url = root_url + '/bazaar?start=' + app_id;
   var stop_app_url = root_url + '/bazaar?stop=';
   var get_url = root_url + '/data';
   var post_url = root_url + '/data';
   var upload_url = root_url + '/upload_radiobox';  // Data to be transfered
-  
   var update_interval = 50;              // Update interval for PC, milliseconds
-  var update_interval_mobdev = 500;      // Update interval for mobile devices, milliseconds 
+  var update_interval_mobdev = 500;      // Update interval for mobile devices, milliseconds
   var request_timeout = 3000;            // Milliseconds
   var long_timeout = 20000;              // Milliseconds
   var meas_panel_dec = 5;                // Decimation for numerical measure panel to make it human readable
@@ -51,13 +47,10 @@
   var xdecimal_places = 2;               // Number of decimal places for the xmin/xmax values. Maximum supported are 12.
   var trigger_level_xdecimal_places = 4; // Number of decimal places for trigger level tooltip
   var range_offset = 1;                  // Percentages
-    
   var xmin = -1000000;
-  var xmax = 1000000;  
-
+  var xmax = 1000000;
   var time_range_max = [130, 1000, 8, 130, 1, 8];
   var range_steps = [0.5, 1, 2, 5, 10, 20, 50, 100];
-  
   var plot_options = {
     colors: ['#3276B1', '#D2322D', '#009900'],    // channel1, channel2, trigger line
     lines: { lineWidth: 1 },
@@ -68,17 +61,12 @@
     legend: { noColumns: 2, margin: [0, 0], backgroundColor: 'transparent' },
     touch: { autoWidth: false, autoHeight: false }
   };
-  
   // Settings which should not be modified
-  
   var dc_cal_butt=0;   // toggled when DC cal button clicked
   var dc_calout1_butt=0;   // toggled when DC cal button clicked for out 1
   var dc_calout2_butt=0;   // toggled when DC cal button clicked for out 2
   var req_trc_butt=0;  // toggled when Dowload trace button clicked
-
-  var dl_state=0;      // Download state variable
-  
-  
+  var dl_state=0;      // Download state variable
   var update_timer = null;
   var zoompan_timer = null;
   var downloading = false;
@@ -98,17 +86,13 @@
     original: null,
     local: null
   };
-  
-  // Default parameters - posted after server side app is started 
+  // Default parameters - posted after server side app is started
   var def_params = {
     en_avg_at_dec: 0
-  }; 
-    
+  };
   // On page loaded
-  
   $(function() {
-    
-    // Show different buttons on touch screens    
+    // Show different buttons on touch screens
     if(window.ontouchstart === undefined) {
       $('.btn-lg').removeClass('btn-lg');
       $('#accordion .btn, .modal .btn').addClass('btn-sm');
@@ -121,23 +105,17 @@
       $('#btn_zoomin, #btn_zoomout, #btn_pan').remove();
       $('#btn_zoompan').show();
     }
-    
     // Add application ID in the message from modal popup
     $('.app-id').text(app_id);
-    
-    // Disable all controls until the params state is loaded for the first time 
+    // Disable all controls until the params state is loaded for the first time
     $('input, select, button', '.container').prop('disabled', true);
-    
     // Events binding for trigger controls
-    
     $('#trigger_canvas').on({
       'mousedown touchstart': function(evt) {
-      
         // Ignore the event if trigger source is External or mode is not Normal
         if(!params.original || params.original.trig_mode != 1 || params.original.trig_source == 2) {
           return;
         }
-      
         trig_dragging = true;
         $('input, select', '#accordion').blur();
         mouseDownMove(this, evt);
@@ -154,22 +132,17 @@
       },
       'mouseup mouseout touchend': mouseUpOut
     });
-    
     $('input,select', '#accordion').on('focus', function() {
       user_editing = true;
     });
-    
     $('#trig_mode').on('change', function() {
       onDropdownChange($(this), 'trig_mode', true);
-      
       // Autorun if trigger mode is Auto(0) or Normal(1), stop if it is Single(2).
-      autorun = (params.local.trig_mode == 2 ? 0 : 1); 
+      autorun = (params.local.trig_mode == 2 ? 0 : 1);
       runStop();
     });
-    
     $('#trig_source').on('change', function() { onDropdownChange($(this), 'trig_source'); });
     $('#trig_edge').on('change', function() { onDropdownChange($(this), 'trig_edge'); });
-    
     $('#trig_level')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -178,7 +151,6 @@
       .on('blur', function() {
         $('#apply_trig_level').hide();
         $(this).parent().removeClass('input-group');
-        
         var tlev = parseLocalFloat($(this).val());
         var scale = (params.local.trig_source == 0 ? params.local.scale_ch1 : params.local.scale_ch2);
         if(! isNaN(tlev)) {
@@ -201,76 +173,59 @@
           $(this).blur();
         }
       });
-    
     // Events binding for range controls
-    
     $('#range_x_minus, #range_x_plus').on('click', function() {
       var nearest = $(this).data('nearest');
-      
       if(nearest && plot) {
         var options = plot.getOptions();
         var axes = plot.getAxes();
         var min = (options.xaxes[0].min !== null ? options.xaxes[0].min : axes.xaxis.min);
         var max = (options.xaxes[0].max !== null ? options.xaxes[0].max : axes.xaxis.max);
         var unit = $(this).data('unit');
-        
         // Convert nanoseconds to milliseconds.
         if(unit == 'ns') {
           nearest /= 1000;
         }
-        
         var center = (min + max) / 2;
         var half = nearest / 2;
         min = center - half;
         max = center + half;
-
         options.xaxes[0].min = min;
         options.xaxes[0].max = max;
-
         plot.setupGrid();
         plot.draw();
-        
         params.local.xmin = min;
-        params.local.xmax = max;       
-        
+        params.local.xmax = max;
         updateRanges();
         $(this).tooltip($(this).prop('disabled') === true ? 'hide' : 'show');
         sendParams(true);
       }
     });
-    
     $('#range_y_minus, #range_y_plus').on('click', function() {
       var nearest = $(this).data('nearest');
-      
       if(nearest && plot) {
         var options = plot.getOptions();
         var axes = plot.getAxes();
         var min = (options.yaxes[0].min !== null ? options.yaxes[0].min : axes.yaxis.min);
         var max = (options.yaxes[0].max !== null ? options.yaxes[0].max : axes.yaxis.max);
         var unit = $(this).data('unit');
-        
         // Convert millivolts to volts.
         if(unit == 'mV') {
           nearest /= 1000;
         }
-        
         var center = (min + max) / 2;
         var half = nearest / 2;
         min = center - half;
         max = center + half;
-        
         options.yaxes[0].min = min;
         options.yaxes[0].max = max;
-
         plot.setupGrid();
         plot.draw();
-               
         updateRanges();
         $(this).tooltip($(this).prop('disabled') === true ? 'hide' : 'show');
         updateTriggerSlider();
       }
     });
-    
     $('#offset_x_minus, #offset_x_plus').on('click', function() {
       if(plot) {
         var direction = ($(this).attr('id') == 'offset_x_minus' ? 'left' : 'right');
@@ -279,7 +234,6 @@
         var min = (options.xaxes[0].min !== null ? options.xaxes[0].min : axes.xaxis.min);
         var max = (options.xaxes[0].max !== null ? options.xaxes[0].max : axes.xaxis.max);
         var offset = (max - min) * range_offset/100;
-        
         if(direction == 'left') {
           min -= offset;
           max -= offset;
@@ -288,21 +242,16 @@
           min += offset;
           max += offset;
         }
-        
         options.xaxes[0].min = min;
         options.xaxes[0].max = max;
-
         plot.setupGrid();
         plot.draw();
-        
         params.local.xmin = min;
         params.local.xmax = max;
-               
         updateRanges();
         sendParams(true);
       }
     });
-    
     $('#offset_y_minus, #offset_y_plus').on('click', function() {
       if(plot) {
         var direction = ($(this).attr('id') == 'offset_y_minus' ? 'down' : 'up');
@@ -311,7 +260,6 @@
         var min = (options.yaxes[0].min !== null ? options.yaxes[0].min : axes.yaxis.min);
         var max = (options.yaxes[0].max !== null ? options.yaxes[0].max : axes.yaxis.max);
         var offset = (max - min) * range_offset/100;
-        
         if(direction == 'down') {
           min -= offset;
           max -= offset;
@@ -320,37 +268,28 @@
           min += offset;
           max += offset;
         }
-        
         options.yaxes[0].min = min;
         options.yaxes[0].max = max;
-
         plot.setupGrid();
         plot.draw();
-               
         updateRanges();
         updateTriggerSlider();
       }
     });
-      
     // Events binding for gain controls
-    
     $('#gain_ch1_att').on('change', function() { onDropdownChange($(this), 'prb_att_ch1'); });
     $('#gain_ch1_sett').on('change', function() { onDropdownChange($(this), 'gain_ch1'); });
     $('#gain_ch2_att').on('change', function() { onDropdownChange($(this), 'prb_att_ch2'); });
     $('#gain_ch2_sett').on('change', function() { onDropdownChange($(this), 'gain_ch2'); });
-    
     // Events binding for signal generator
-    
-    $('#gen_enable_ch1, #gen_enable_ch2').on('change', function() { 
+    $('#gen_enable_ch1, #gen_enable_ch2').on('change', function() {
       params.local[this.id] = ($(this).is(':checked') ? 1 : 0);
-      sendParams(); 
+      sendParams();
     });
-    
     $('#gen_ch1_sigtype').on('change', function() { onDropdownChange($(this), 'gen_sig_type_ch1'); });
     $('#gen_ch1_trigmode').on('change', function() { onDropdownChange($(this), 'gen_trig_mod_ch1'); });
     $('#gen_ch2_sigtype').on('change', function() { onDropdownChange($(this), 'gen_sig_type_ch2'); });
     $('#gen_ch2_trigmode').on('change', function() { onDropdownChange($(this), 'gen_trig_mod_ch2'); });
-    
     $('#gen_ch1_ampl')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -359,7 +298,6 @@
       .on('blur', function() {
         $('#apply_gen_ch1_ampl').hide();
         $(this).parent().removeClass('input-group');
-        
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_amp_ch1 = val;
@@ -378,7 +316,6 @@
           $(this).blur();
         }
       });
-      
     $('#gen_ch1_freq')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -387,7 +324,6 @@
       .on('blur', function() {
         $('#apply_gen_ch1_freq').hide();
         $(this).parent().removeClass('input-group');
-        
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_freq_ch1 = val;
@@ -406,7 +342,6 @@
           $(this).blur();
         }
       });
-      
     $('#gen_ch1_dc')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -415,7 +350,6 @@
       .on('blur', function() {
         $('#apply_gen_ch1_dc').hide();
         $(this).parent().removeClass('input-group');
-        
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_dcoff_ch1 = val;
@@ -434,7 +368,6 @@
           $(this).blur();
         }
       });
-      
     $('#gen_ch2_ampl')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -443,7 +376,6 @@
       .on('blur', function() {
         $('#apply_gen_ch2_ampl').hide();
         $(this).parent().removeClass('input-group');
-        
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_amp_ch2 = val;
@@ -462,7 +394,6 @@
           $(this).blur();
         }
       });
-      
     $('#gen_ch2_freq')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -471,7 +402,6 @@
       .on('blur', function() {
         $('#apply_gen_ch2_freq').hide();
         $(this).parent().removeClass('input-group');
-        
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_freq_ch2 = val;
@@ -490,7 +420,6 @@
           $(this).blur();
         }
       });
-      
     $('#gen_ch2_dc')
       .on('focus paste', function() {
         $(this).parent().addClass('input-group');
@@ -499,7 +428,6 @@
       .on('blur', function() {
         $('#apply_gen_ch2_dc').hide();
         $(this).parent().removeClass('input-group');
-                
         var val = parseLocalFloat($(this).val());
         if(! isNaN(val)) {
           params.local.gen_sig_dcoff_ch2 = val;
@@ -518,76 +446,113 @@
           $(this).blur();
         }
       });
-      
+    // DF4IAH  v
+    $('#rb_add_a')
+    .on('focus paste', function() {
+      $(this).parent().addClass('input-group');
+      $('#apply_rb_add_a').show();
+    })
+    .on('blur', function() {
+      $('#apply_rb_add_a').hide();
+      $(this).parent().removeClass('input-group');
+      var val = parseLocalFloat($(this).val());
+      if(! isNaN(val)) {
+        params.local.rb_add_a = val;
+        sendParams();
+      }
+      else {
+        $(this).val(params.local.rb_add_a)
+      }
+      user_editing = false;
+    })
+    .on('change', function() {
+      $(this).blur();
+    })
+    .on('keypress', function(e) {
+      if(e.keyCode == 13) {
+        $(this).blur();
+      }
+    });
+    $('#rb_add_b')
+    .on('focus paste', function() {
+      $(this).parent().addClass('input-group');
+      $('#apply_rb_add_b').show();
+    })
+    .on('blur', function() {
+      $('#apply_rb_add_b').hide();
+      $(this).parent().removeClass('input-group');
+      var val = parseLocalFloat($(this).val());
+      if(! isNaN(val)) {
+        params.local.rb_add_b = val;
+        sendParams();
+      }
+      else {
+        $(this).val(params.local.rb_add_b)
+      }
+      user_editing = false;
+    })
+    .on('change', function() {
+      $(this).blur();
+    })
+    .on('keypress', function(e) {
+      if(e.keyCode == 13) {
+        $(this).blur();
+      }
+    });
+    // DF4IAH  ^
     // Modals
-    
     $('#modal_err, #modal_app').modal({ show: false, backdrop: 'static', keyboard: false });
     $('#modal_upload').modal({ show: false });
-    
     $('#btn_switch_app').on('click', function() {
       var newapp_id = $('#new_app_id').text();
       if(newapp_id.length) {
         location.href = location.href.replace(app_id, newapp_id);
       }
     });
-    
     $('.btn-app-restart').on('click', function() {
       location.reload();
     });
-    
     $('#btn_retry_get').on('click', function() {
       $('#modal_err').modal('hide');
       updateGraphData();
     });
-    
     $('.btn-close-modal').on('click', function() {
       $(this).closest('.modal').modal('hide');
     });
-    
     // Reset the upload form to prevent browser caching of the uploaded file name
     $('#upload_form')[0].reset();
-      
     // Other event bindings
-    
     $('#trigger_tooltip').tooltip({
       title: '',
       trigger: 'manual',
       placement: 'auto left',
       animation: false
     });
-    
     $('.btn').on('click', function() {
       var btn = $(this);
       setTimeout(function() { btn.blur(); }, 10);
     });
-    
     $('#btn_toolbar .btn').on('blur', function() {
       $(this).removeClass('active');
     });
-    
     $(document).on('click', '#accordion > .panel > .panel-heading', function(event) {
       $(this).next('.panel-collapse').collapse('toggle');
       event.stopImmediatePropagation();
     });
-    
     // Tooltips for range buttons
     $('#range_x_minus, #range_x_plus, #range_y_minus, #range_y_plus').tooltip({
       container: 'body'
     });
-    
     // Load first data
     updateGraphData();
-    
     // Stop the application when page is unloaded
-    window.onbeforeunload = function() { 
+    window.onbeforeunload = function() {
       $.ajax({
         url: stop_app_url,
         async: false
       });
     };
-            
   });
-  
   function startApp() {
     $.get(
       start_app_url
@@ -598,12 +563,12 @@
       }
       else {
         $.post(
-          post_url, 
+          post_url,
           JSON.stringify({ datasets: { params: def_params } })
         )
         .done(function(dresult) {
           app_started = true;
-          updateGraphData();      
+          updateGraphData();
         })
         .fail(function() {
           showModalError('Could not initialize the application with default parameters.', false, true);
@@ -614,17 +579,14 @@
       showModalError('Could not start the application.', true);
     });
   }
-  
   function showModalError(err_msg, retry_btn, restart_btn, ignore_btn) {
     var err_modal = $('#modal_err');
-    
     err_modal.find('#btn_retry_get')[retry_btn ? 'show' : 'hide']();
     err_modal.find('.btn-app-restart')[restart_btn ? 'show' : 'hide']();
     err_modal.find('#btn_ignore')[ignore_btn ? 'show' : 'hide']();
     err_modal.find('.modal-body').html(err_msg);
     err_modal.modal('show');
-  }   
-  
+  }
   function updateGraphData() {
     if(downloading) {
       return;
@@ -634,13 +596,10 @@
       update_timer = null;
     }
     downloading = true;
-    
     // Send params if there are any unsent changes
     sendParams();
-    
     var arun_before_ajax = autorun;
     var long_timeout_used = use_long_timeout;
-    
     $.ajax({
       url: get_url,
       timeout: (use_long_timeout ? long_timeout : request_timeout),
@@ -648,7 +607,6 @@
     })
     .done(function(dresult) {
       last_get_failed = false;
-      
       if(dresult.status === 'ERROR') {
         if(! app_started) {
           startApp();
@@ -669,19 +627,15 @@
           }
           return;
         }
-        
         app_started = true;
-      
         // Check if trigger mode (which may switch autorun) was changed during ajax request
         var arun_after_ajax = autorun;
-        
         datasets = [];
         for(var i=0; i<dresult.datasets.g1.length; i++) {
           dresult.datasets.g1[i].color = i;
-          dresult.datasets.g1[i].label = 'Channel ' + (i+1);          
+          dresult.datasets.g1[i].label = 'Channel ' + (i+1);
           datasets.push(dresult.datasets.g1[i]);
         }
-        
         if(! plot) {
           initPlot(dresult.datasets.params);
         }
@@ -689,36 +643,30 @@
           // Apply the params state received from server if not in edit mode
           if(! user_editing) {
             loadParams(dresult.datasets.params);
-            
-            // Restore the autorun value modified by loadParams 
+            // Restore the autorun value modified by loadParams
             if(arun_before_ajax != arun_after_ajax) {
-              autorun = arun_after_ajax; 
+              autorun = arun_after_ajax;
             }
           }
           // Time units must be always updated
           else {
             updateTimeUnits(dresult.datasets.params);
           }
-          
           // Force X min/max
           if(dresult.datasets.params.forcex_flag == 1) {
             var options = plot.getOptions();
             options.xaxes[0].min = dresult.datasets.params.xmin;
             options.xaxes[0].max = dresult.datasets.params.xmax;
           }
-          
           // Redraw the plot using new datasets
           plot.setData(filterData(datasets, plot.width()));
           plot.setupGrid();
           plot.draw();
         }
-        
         if(! trig_dragging) {
           updateTriggerSlider();
         }
-        
         updateRanges();
-
         if(autorun || dresult.status === 'AGAIN') {
           if(autorun) {
             $('#btn_single').prop('disabled', true);
@@ -749,7 +697,6 @@
     .always(function() {
       if(! last_get_failed) {
         downloading = false;
-        
         if(params.local) {
           // Disable trigger level input if trigger source is External or mode is not Normal
           if(params.original.trig_mode != 1 || params.original.trig_source == 2) {
@@ -762,46 +709,37 @@
           else {
             $('#trig_level').prop('disabled', false);
           }
-          
           // Manage the state of other components
           $('#accordion').find('input,select').not('#trig_level').prop('disabled', false);
           $('.btn').not('#btn_single, #range_y_plus, #range_y_minus, #range_x_plus, #range_x_minus, #gen_ch1_single, #gen_ch2_single').prop('disabled', false);
         }
       }
-      
       if(long_timeout_used) {
         use_long_timeout = false;
       }
     });
   }
-  
   function initPlot(init_params) {
     var plot_holder = $('#plot_holder');
     var ymax = init_params.gui_reset_y_range / 2;
     var ymin = ymax * -1;
-    
     // Load received params
     loadParams(init_params);
-    
     // When xmin/xmax are null, the min/max values of received data will be used. For ymin/ymax use the gui_reset_y_range param.
     $.extend(true, plot_options, {
       xaxis: { min: null, max: null },
       yaxis: { min: ymin, max: ymax }
     });
-    
-    // Local optimization    
+    // Local optimization
     var filtered_data = filterData(datasets, plot_holder.width());
-  
     // Plot first creation and drawing
     plot = $.plot(
-      plot_holder, 
+      plot_holder,
       filtered_data,
       plot_options
     );
-    
     // Selection
     plot_holder.on('plotselected', function(event, ranges) {
-    
       // Clamp the zooming to prevent eternal zoom
       if(ranges.xaxis.to - ranges.xaxis.from < 0.00001) {
         ranges.xaxis.to = ranges.xaxis.from + 0.00001;
@@ -809,83 +747,60 @@
       if(ranges.yaxis.to - ranges.yaxis.from < 0.00001) {
         ranges.yaxis.to = ranges.yaxis.from + 0.00001;
       }
-  
       // Do the zooming
       plot = $.plot(
-        plot_holder, 
+        plot_holder,
         getData(ranges.xaxis.from, ranges.xaxis.to),
         $.extend(true, plot_options, {
           xaxis: { min: ranges.xaxis.from, max: ranges.xaxis.to },
           yaxis: { min: ranges.yaxis.from, max: ranges.yaxis.to }
         })
       );
-      
       params.local.xmin = parseFloat(ranges.xaxis.from.toFixed(xdecimal_places));
       params.local.xmax = parseFloat(ranges.xaxis.to.toFixed(xdecimal_places));
-      
       updateTriggerSlider();
       sendParams(true);
     });
-    
     // Zoom / Pan
     plot_holder.on('plotzoom plotpan touchmove touchend', function(event) {
-      
       if(zoompan_timer) {
         clearTimeout(zoompan_timer);
         zoompan_timer = null;
       }
-      
       zoompan_timer = setTimeout(function() {
         zoompan_timer = null;
-        
         var xaxis = plot.getAxes().xaxis;
         params.local.xmin = parseFloat(xaxis.min.toFixed(xdecimal_places));
         params.local.xmax = parseFloat(xaxis.max.toFixed(xdecimal_places));
-        
         updateTriggerSlider();
         sendParams(true);
-                
       }, 250);
     });
   }
-  
   function onDropdownChange(that, param_name, do_get) {
     params.local[param_name] = parseInt(that.val());
     sendParams(do_get);
     that.blur();
     user_editing = false;
-  }
-  
-  
-  function startDownload()  
-  {  
-     var url='/tmp/traces.csv';  
-  
-     win=window.open(url,'Download','width=10, height=10');    
-     
-     
-  }  
-
-  
-  
+  }
+  function startDownload()
+  {
+     var url='/tmp/traces.csv';
+     win=window.open(url,'Download','width=10, height=10');
+  }
   function loadParams(orig_params) {
-     
     if (dl_state>=3) { // Give RP some cycles to prepare data...
     dl_state=0;        // reset state
     startDownload();   // Download file
     }
-   
     if (dl_state>0)    // Count # RP response after Trace Download request
     {
      dl_state=dl_state+1;
-    }
-  
-  
+    }
     if(! $.isPlainObject(orig_params)) {
       return;
     }
-    
-    // Ignore xmin/xmax values received from server. That values must be used only on AUTO button click 
+    // Ignore xmin/xmax values received from server. That values must be used only on AUTO button click
     // and on ForceX flag, but that is done before the sendParams() function is called.
     if(plot) {
       var options = plot.getOptions();
@@ -894,23 +809,21 @@
         orig_params.xmax = options.xaxes[0].max;
       }
     }
-    
     // Same data in local and original params
     params.original = $.extend({}, orig_params);
     params.local = $.extend({}, params.original);
-
     // Autorun if trigger mode is Auto(0) or Normal(1), stop if it is Single(2)
     autorun = (params.original.trig_mode == 2 ? 0 : 1);
-    
     // Enable the Single button when not in autorun mode
     $('#btn_single').prop('disabled', autorun);
-    
     $('#trig_mode').val(params.original.trig_mode);
     $('#trig_source').val(params.original.trig_source);
     $('#trig_edge').val(params.original.trig_edge);
     var scale = (params.original.trig_source == 0 ? params.original.scale_ch1 : params.original.scale_ch2);
     $('#trig_level').val(floatToLocalString(params.original.trig_level * scale));
-    
+    // DF4IAH  v
+    $('#rb_add_res').val(floatToLocalString(shortenFloat(params.original.rb_add_res)));
+    // DF4IAH  ^
     if ((refresh_counter++ % meas_panel_dec) == 0) {
         $('#info_ch1_min').html(floatToLocalString(shortenFloat(params.original.meas_min_ch1)));
         $('#info_ch1_max').html(floatToLocalString(shortenFloat(params.original.meas_max_ch1)));
@@ -918,7 +831,6 @@
         $('#info_ch1_avg').html(floatToLocalString(shortenFloat(params.original.meas_avg_ch1)));
         $('#info_ch1_freq').html(convertHz(params.original.meas_freq_ch1));
         $('#info_ch1_period').html(convertSec(params.original.meas_per_ch1));
-
         $('#info_ch2_min').html(floatToLocalString(shortenFloat(params.original.meas_min_ch2)));
         $('#info_ch2_max').html(floatToLocalString(shortenFloat(params.original.meas_max_ch2)));
         $('#info_ch2_amp').html(floatToLocalString(shortenFloat(params.original.meas_amp_ch2)));
@@ -926,52 +838,41 @@
         $('#info_ch2_freq').html(convertHz(params.original.meas_freq_ch2));
         $('#info_ch2_period').html(convertSec(params.original.meas_per_ch2));
     }
-    
     $('#gain_ch1_att').val(params.original.prb_att_ch1);
     $('#gain_ch1_sett').val(params.original.gain_ch1);
     $('#gain_ch2_att').val(params.original.prb_att_ch2);
     $('#gain_ch2_sett').val(params.original.gain_ch2);
-    
     $('#gen_enable_ch1').prop('checked', (params.original.gen_enable_ch1 ? true : false));
     $('#gen_enable_ch2').prop('checked', (params.original.gen_enable_ch2 ? true : false));
-    
     $('#gen_ch1_sigtype').val(params.original.gen_sig_type_ch1);
     $('#gen_ch1_ampl').val(floatToLocalString(params.original.gen_sig_amp_ch1));
     $('#gen_ch1_freq').val(floatToLocalString(params.original.gen_sig_freq_ch1));
     $('#gen_ch1_dc').val(floatToLocalString(params.original.gen_sig_dcoff_ch1));
     $('#gen_ch1_trigmode').val(params.original.gen_trig_mod_ch1);
-    
     $('#gen_ch2_sigtype').val(params.original.gen_sig_type_ch2);
     $('#gen_ch2_ampl').val(floatToLocalString(params.original.gen_sig_amp_ch2));
     $('#gen_ch2_freq').val(floatToLocalString(params.original.gen_sig_freq_ch2));
     $('#gen_ch2_dc').val(floatToLocalString(params.original.gen_sig_dcoff_ch2));
     $('#gen_ch2_trigmode').val(params.original.gen_trig_mod_ch2);
-    
     $('#gen_ch1_single').prop('disabled', (params.original.gen_trig_mod_ch1 == 1 ? false : true));
-    $('#gen_ch2_single').prop('disabled', (params.original.gen_trig_mod_ch2 == 1 ? false : true));    
-    
+    $('#gen_ch2_single').prop('disabled', (params.original.gen_trig_mod_ch2 == 1 ? false : true));
     if(params.original.en_avg_at_dec) {
       $('#btn_avg').removeClass('btn-default').addClass('btn-primary');
     }
     else {
       $('#btn_avg').removeClass('btn-primary').addClass('btn-default');
     }
-    
     updateTimeUnits(orig_params);
     $('#ytitle').show();
   }
-  
   function updateTimeUnits(new_params) {
     if(! $.isPlainObject(new_params)) {
       return;
-    } 
-    
+    }
     params.original.time_units = params.local.time_units = new_params.time_units;
-
     var timeu_lbl = (params.original.time_units == 0 ? 'μs' : (params.original.time_units == 1 ? 'ms' : 's'));
     $('#xtitle').text('Time [ ' + timeu_lbl + ' ]');
   }
-  
   function isParamChanged() {
     if(params.original) {
       for(var key in params.original) {
@@ -981,52 +882,37 @@
       }
     }
     return false;
-  }
-  
-  
-  
+  }
   function requestTrace() {
-       dl_state=1;                   // Remember the issued Trace download request 
-       req_trc_butt=1-req_trc_butt;  
+       dl_state=1;                   // Remember the issued Trace download request
+       req_trc_butt=1-req_trc_butt;
        sendParams(true,true);        // Propagate parameter to RP
-      
-  }
-
-  
+  }
   function calibrate() {
      dc_cal_butt=1-dc_cal_butt;
      sendParams(true,true);          // Propagate parameter to RP
   }
- 
   function calout1() {
      dc_calout1_butt=1-dc_calout1_butt;
      sendParams(true,true);          // Propagate parameter to RP
   }
-  
     function calout2() {
      dc_calout2_butt=1-dc_calout2_butt;
      sendParams(true,true);          // Propagate parameter to RP
-  }
- 
- 
- 
-  
+  }
   function sendParams(refresh_data, force_send, single_btn) {
     if(sending || (force_send !== true && !isParamChanged())) {
       send_que = sending;
       return;
     }
-    
     var auto_flag = params.local.auto_flag;  // Keep the value of auto_flag, because in POST response it is always 0
     sending = true;
     params.local.single_btn = (single_btn === true ? 1 : 0);
     use_long_timeout = !!auto_flag;
-  
     params.local.req_trc=req_trc_butt;
     params.local.dc_cal=dc_cal_butt;
     params.local.dc_calout1=dc_calout1_butt;
-    params.local.dc_calout2=dc_calout2_butt;    
-  
+    params.local.dc_calout2=dc_calout2_butt;
     $.ajax({
       type: 'POST',
       url: post_url,
@@ -1037,16 +923,13 @@
     .done(function(dresult) {
       // OK: Load the params received as POST result
       if(dresult.datasets !== undefined && dresult.datasets.params !== undefined) {
-      
         // Use the provided min/max values only once after AUTO button was clicked
         if(auto_flag == 1 && dresult.datasets.params.min_y !== dresult.datasets.params.max_y) {
           var options = plot.getOptions();
-          
           options.xaxes[0].min = dresult.datasets.params.xmin;
           options.xaxes[0].max = dresult.datasets.params.xmax;
           options.yaxes[0].min = dresult.datasets.params.min_y;
           options.yaxes[0].max = dresult.datasets.params.max_y;
-          
           // Enable both channels after click on AUTO button
           if(!$('#btn_ch1').data('checked') || !$('#btn_ch2').data('checked')) {
             $('#btn_ch1').data('checked', true).removeClass('btn-default').addClass('btn-primary');
@@ -1059,23 +942,18 @@
             plot.draw();
           }
         }
-      
         if(auto_flag == 0 && dresult.datasets.params.forcex_flag == 1) {
           var options = plot.getOptions();
-          
           options.xaxes[0].min = dresult.datasets.params.xmin;
           options.xaxes[0].max = dresult.datasets.params.xmax;
-         
           plot.setupGrid();
           plot.draw();
-        }      
-      
+        }
         loadParams(dresult.datasets.params);
         updateTriggerSlider();
-        
         if(refresh_data && !downloading) {
           updateGraphData();
-        } 
+        }
       }
       else if(dresult.status == 'ERROR') {
         showModalError((dresult.reason ? dresult.reason : 'Error while sending data (E1).'), false, true, true);
@@ -1091,7 +969,6 @@
     .always(function() {
       sending = false;
       user_editing = false;
-      
       if(send_que) {
         send_que = false;
         setTimeout(function(refresh_data) {
@@ -1100,7 +977,6 @@
       }
     });
   }
-  
   function getData(from, to) {
     var rangedata = new Array();
     for(var i=0; i<datasets.length; i++) {
@@ -1120,22 +996,17 @@
     rangedata = filterData(rangedata, (plot ? plot.width() : $('plot_holder').width()));
     return rangedata;
   }
-  
-  // Use only data for selected channels and do downsamling (data decimation), which is required for 
-  // better performance. On the canvas cannot be shown too much graph points. 
+  // Use only data for selected channels and do downsamling (data decimation), which is required for
+  // better performance. On the canvas cannot be shown too much graph points.
   function filterData(dsets, points) {
     var filtered = [];
     var num_of_channels = 2;
-
     for(var l=0; l<num_of_channels; l++) {
       if(! $('#btn_ch' + (l+1)).data('checked')) {
         continue;
       }
-
       i = Math.min(l, dsets.length - 1);
-
       filtered.push({ color: dsets[i].color, label: dsets[i].label, data: [] });
-      
       if(points_per_px === null || dsets[i].data.length > points * points_per_px) {
         var step = Math.ceil(dsets[i].data.length / (points * points_per_px));
         var k = 0;
@@ -1151,18 +1022,14 @@
         filtered[filtered.length - 1].data = dsets[i].data.slice(0);
       }
     }
-    
     filtered = addTriggerDataSet(filtered);
     return filtered;
   }
-  
   // Add a data series for the trigger level line
   function addTriggerDataSet(dsets) {
-
     // Transform trigger level to real values
     var scale = (params.local.trig_source == 0 ? params.local.scale_ch1 : params.local.scale_ch2);
     var tlev = params.local.trig_level * scale;
-  
     // Don't add trigger dataset if trigger level is outside the visible area...
     if(plot) {
       var yaxis = plot.getAxes().yaxis;
@@ -1179,7 +1046,7 @@
       return dsets;
     }
     // ...or outside of received data for Y axis
-    var ch1ymin = null, 
+    var ch1ymin = null,
         ch1ymax = null;
     // Find Y min/max values from data for first visible channel
     for(var i=0; i<dsets[0].data.length; i++) {
@@ -1187,7 +1054,7 @@
       ch1ymax = (ch1ymax === null || ch1ymax < dsets[0].data[i][1] ? dsets[0].data[i][1] : ch1ymax);
     }
     if(dsets.length > 1) {
-      var ch2ymin = null, 
+      var ch2ymin = null,
           ch2ymax = null;
       // Find Y min/max values from data for second visible channel
       for(var i=0; i<dsets[1].data.length; i++) {
@@ -1205,22 +1072,17 @@
         return dsets;
       }
     }
-  
     var index = 0;
     var dxmin = 0;
     var dxmax = 1;
-    
     if(dsets.length && dsets[0].data[0]) {
       index = dsets.length;
-      
       dxmin = dsets[0].data[0][0];
       dxmax = dsets[0].data[dsets[0].data.length - 1][0];
     }
     dsets[index] = { color: 2, data: [[dxmin, tlev], [dxmax, tlev]], shadowSize: 1 };
-    
     return dsets;
   }
-  
   function runStop() {
     if(autorun) {
       $('#btn_single').prop('disabled', true);
@@ -1234,13 +1096,11 @@
       }
     }
   }
-  
   function singleUpdate() {
     if(! autorun) {
       sendParams(true, true, true);
     }
   }
-  
   function redrawPlot() {
     if(! downloading) {
       if(! plot) {
@@ -1249,124 +1109,96 @@
       else {
         var options = plot.getOptions();
         plot = $.plot(
-          plot.getPlaceholder(), 
+          plot.getPlaceholder(),
           filterData(datasets, plot.width()),
           $.extend(true, plot_options, {
             xaxis: { min: options.xaxes[0].min, max: options.xaxes[0].max },
             yaxis: { min: options.yaxes[0].min, max: options.yaxes[0].max }
           })
         );
-        updateTriggerSlider();        
+        updateTriggerSlider();
       }
     }
   }
-  
   function setVisibleChannels(btn) {
     var other_btn = $(btn.id == 'btn_ch1' ? '#btn_ch2' : '#btn_ch1');
     var btn = $(btn);
     var checked = !btn.data('checked');
-    
     btn.data('checked', checked).toggleClass('btn-default btn-primary');
-    
     // At least one button must be checked, so that at least one graph will be visible.
     if(! checked) {
       other_btn.data('checked', true).removeClass('btn-default').addClass('btn-primary');
     }
     redrawPlot();
   }
-  
   function autoscaleY() {
     if(! plot) {
       return;
     }
-    
     var options = plot.getOptions();
     var axes = plot.getAxes();
-    
     // Set Y scale to data min/max + 10%
-    options.yaxes[0].min = (axes.yaxis.datamin < 0 ? axes.yaxis.datamin * 1.1 : axes.yaxis.datamin - axes.yaxis.datamin * 0.1); 
+    options.yaxes[0].min = (axes.yaxis.datamin < 0 ? axes.yaxis.datamin * 1.1 : axes.yaxis.datamin - axes.yaxis.datamin * 0.1);
     options.yaxes[0].max = (axes.yaxis.datamax > 0 ? axes.yaxis.datamax * 1.1 : axes.yaxis.datamax + axes.yaxis.datamax * 0.1);
-
     plot.setupGrid();
     plot.draw();
-    
     updateRanges();
     updateTriggerSlider();
   }
-  
   function setAvgAtDec() {
     if(! plot) {
       return;
     }
-    
     $('#btn_avg').toggleClass('btn-default btn-primary');
-
     if($('#btn_avg').hasClass('btn-primary')) {
       params.local.en_avg_at_dec = 1;
     }
     else{
       params.local.en_avg_at_dec = 0;
     }
-
     sendParams(true, true);
   }
-
   function resetZoom() {
     if(! plot) {
       return;
     }
-    
     $('#btn_ch1, #btn_ch2').data('checked', true).removeClass('btn-default').addClass('btn-primary');
-    
     var ymax = params.original.gui_reset_y_range / 2;
     var ymin = ymax * -1;
-    
     $.extend(true, plot_options, {
       xaxis: { min: null, max: null },
       yaxis: { min: ymin, max: ymax }
     });
-         
     var options = plot.getOptions();
     options.xaxes[0].min = null;
     options.xaxes[0].max = null;
     options.yaxes[0].min = ymin;
     options.yaxes[0].max = ymax;
-    
     plot.setupGrid();
     plot.draw();
-    
     params.local.xmin = xmin;
     params.local.xmax = xmax;
-    
     sendParams(true, true);
   }
-
   function updateZoom() {
     if(! plot) {
       return;
     }
-    
     params.local.xmin = 0;
     params.local.xmax = time_range_max[params.local.time_range];
-  
     var axes = plot.getAxes();
     var options = plot.getOptions();
-    
     options.xaxes[0].min = params.local.xmin;
     options.xaxes[0].max = params.local.xmax;
     options.yaxes[0].min = axes.yaxis.min;
     options.yaxes[0].max = axes.yaxis.max;
-    
     plot.setupGrid();
     plot.draw();
-
     sendParams(true, true);
   }
-  
   function selectTool(toolname) {
     $('#selzoompan .btn').removeClass('btn-primary').addClass('btn-default');
     $(this).toggleClass('btn-default btn-primary');
-  
     if(toolname == 'zoomin') {
       enableZoomInSelection();
     }
@@ -1377,23 +1209,18 @@
       enablePanning();
     }
   }
-
   function enableZoomInSelection() {
     if(plot_options.hasOwnProperty('selection')) {
       return;
     }
-    
     var plot_pholder = plot.getPlaceholder();
-
     // Disable panning and zoom out
     delete plot_options.pan;
     plot_pholder.off('click.rp');
-    
     // Get current min/max for both axes to use them to fix the current view
     var axes = plot.getAxes();
-    
     plot = $.plot(
-      plot_pholder, 
+      plot_pholder,
       plot.getData(),
       $.extend(true, plot_options, {
         selection: { mode: 'xy' },
@@ -1402,28 +1229,22 @@
       })
     );
   }
-  
   function enableZoomOut() {
     var plot_pholder = plot.getPlaceholder();
-    
     plot_pholder.on('click.rp', function(event) {
       var offset = $(event.target).offset();
-      
       plot.zoomOut({
         center: { left: event.pageX - offset.left, top: event.pageY - offset.top },
         amount: 1.2
       });
     });
-    
     // Disable zoom in selection and panning
     delete plot_options.selection;
     delete plot_options.pan;
-    
     // Get current min/max for both axes to use them to fix the current view
     var axes = plot.getAxes();
-    
     plot = $.plot(
-      plot_pholder, 
+      plot_pholder,
       plot.getData(),
       $.extend(true, plot_options, {
         xaxis: { min: axes.xaxis.min, max: axes.xaxis.max },
@@ -1431,23 +1252,18 @@
       })
     );
   }
-  
   function enablePanning() {
     if(plot_options.hasOwnProperty('pan')) {
       return;
     }
-    
     var plot_pholder = plot.getPlaceholder();
-    
     // Disable selection zooming and zoom out
     delete plot_options.selection;
     plot_pholder.off('click.rp');
-    
     // Get current min/max for both axes to use them to fix the current view
     var axes = plot.getAxes();
-    
     plot = $.plot(
-      plot_pholder, 
+      plot_pholder,
       plot.getData(),
       $.extend(true, plot_options, {
         pan: { interactive: true },
@@ -1456,11 +1272,9 @@
       })
     );
   }
-  
   function mouseDownMove(that, evt) {
     var y;
     user_editing = true;
-    
     if(evt.type.indexOf('touch') > -1) {
       y = evt.originalEvent.touches[0].clientY - that.getBoundingClientRect().top - plot.getPlotOffset().top;
       touch_last_y = y;
@@ -1469,15 +1283,12 @@
       y = evt.clientY - that.getBoundingClientRect().top - plot.getPlotOffset().top;
     }
     updateTriggerSlider(y);
-    
     $('#trigger_tooltip').data('bs.tooltip').options.title = plot.getAxes().yaxis.c2p(y).toFixed(trigger_level_xdecimal_places);
     $('#trigger_tooltip').tooltip('show');
   }
-
   function mouseUpOut(evt) {
     if(trig_dragging) {
       trig_dragging = false;
-      
       var y;
       if(evt.type.indexOf('touch') > -1) {
         //y = evt.originalEvent.touches[0].clientY - this.getBoundingClientRect().top - plot.getPlotOffset().top;
@@ -1486,10 +1297,8 @@
       else {
         y = evt.clientY - this.getBoundingClientRect().top - plot.getPlotOffset().top;
       }
-      
       var scale = (params.local.trig_source == 0 ? params.local.scale_ch1 : params.local.scale_ch2);
-      params.local.trig_level = parseFloat(plot.getAxes().yaxis.c2p(y).toFixed(trigger_level_xdecimal_places)) / scale;           
-      
+      params.local.trig_level = parseFloat(plot.getAxes().yaxis.c2p(y).toFixed(trigger_level_xdecimal_places)) / scale;
       updateTriggerSlider();
       redrawPlot();
       sendParams();
@@ -1499,41 +1308,34 @@
     }
     $('#trigger_tooltip').tooltip('hide');
   }
-  
   function updateTriggerSlider(y, update_input) {
     if(! plot) {
       return;
     }
-    
     var canvas = $('#trigger_canvas')[0];
     var context = canvas.getContext('2d');
     var plot_offset = plot.getPlotOffset();
     var ymax = params.original.gui_reset_y_range / 2;
     var ymin = ymax * -1;
-    
     // Transform trigger level to real values
     // TODO: local or original params?
     var scale = (params.local.trig_source == 0 ? params.local.scale_ch1 : params.local.scale_ch2);
     var tlev = params.local.trig_level * scale;
-
     // If trigger level is outside the predefined ymin/ymax, change the level
-    
     if(tlev < ymin) {
       tlev = ymin;
     }
     else if(tlev > ymax) {
       tlev = ymax;
     }
-    
     if(y === undefined) {
       if(update_input !== false) {
         $('#trig_level').not(':focus').val(floatToLocalString(tlev));
       }
       y = plot.getAxes().yaxis.p2c(tlev);
     }
-    
     // If trigger source is External or mode is not Normal or trigger level is not in visible area, do not show the trigger slider and paint the vertical line with gray
-    context.clearRect(0, 0, canvas.width, canvas.height); 
+    context.clearRect(0, 0, canvas.width, canvas.height);
     var yaxis = plot.getAxes().yaxis;
     if(params.original.trig_mode != 1 || tlev < yaxis.min || tlev > yaxis.max || params.original.trig_source == 2) {
       context.lineWidth = 1;
@@ -1557,9 +1359,8 @@
       context.lineTo(10, canvas.height - plot_offset.bottom + 1);
       context.stroke();
     }
-    $('#trigger_tooltip').css({ top: y + plot_offset.top });  
+    $('#trigger_tooltip').css({ top: y + plot_offset.top });
   }
-  
   function updateRanges() {
     var xunit = (params.local.time_units == 0 ? 'μs' : (params.local.time_units == 1 ? 'ms' : 's'));
     var yunit = 'V';
@@ -1571,7 +1372,6 @@
     var xmaxrange = 10.0;  // seconds
     var xminrange = 20e-9; // seconds
     var decimals = 0;
-
     if(xunit == 'μs' && xrange < 1) {
       xrange *= 1000;
       xunit = 'ns';
@@ -1580,21 +1380,17 @@
       decimals = 1;
     }
     var seconds = (xunit == 'ns' ? 1e-9 : ( xunit == 'μs' ? 1e-6 : (xunit == 'ms' ? 1e-3 : 1)));
-    
     if(yrange < 1) {
       yunit = 'mV';
       yrange *= 1000;
       ymaxrange *= 1000;
       yminrange *= 1000;
     }
-
     $('#range_x').html(+(Math.round(xrange + "e+" + decimals) + "e-" + decimals) + ' ' + xunit);
     $('#range_y').html(Math.floor(yrange) + ' ' + yunit);
-    
     var nearest_x = getNearestRanges(xrange);
     var nearest_y = getNearestRanges(yrange);
-        
-    // X limitations 
+    // X limitations
     if(nearest_x.next * seconds > xmaxrange) {
       nearest_x.next = null;
       $('#range_x_plus').prop('disabled', true);
@@ -1609,10 +1405,8 @@
     else {
       $('#range_x_minus').prop('disabled', false);
     }
-    
     $('#range_x_minus').data({ nearest: nearest_x.prev, unit: xunit }).data('bs.tooltip').options.title = nearest_x.prev;
     $('#range_x_plus').data({ nearest: nearest_x.next, unit: xunit }).data('bs.tooltip').options.title = nearest_x.next;
-    
     // Y limitations
     if(nearest_y.next - nearest_y.prev >= ymaxrange) {
       nearest_y.next = null;
@@ -1628,18 +1422,15 @@
     else {
       $('#range_y_minus').prop('disabled', false);
     }
-    
     $('#range_y_minus').data({ nearest: nearest_y.prev, unit: yunit }).data('bs.tooltip').options.title = nearest_y.prev;
     $('#range_y_plus').data({ nearest: nearest_y.next, unit: yunit }).data('bs.tooltip').options.title = nearest_y.next;
   }
-  
   function getNearestRanges(number) {
-    var log10 = Math.floor(Math.log(number) / Math.LN10); 
-    var normalized = number / Math.pow(10, log10);    
+    var log10 = Math.floor(Math.log(number) / Math.LN10);
+    var normalized = number / Math.pow(10, log10);
     var i = 0;
     var prev = null;
     var next = null;
-    
     while(i < range_steps.length - 1) {
       var ratio = range_steps[i+1] / normalized;
       if(ratio > 0.99 && ratio < 1.01) {
@@ -1654,18 +1445,15 @@
       }
       i++;
     }
-
-    return { 
-      prev: prev * Math.pow(10, log10), 
-      next: next * Math.pow(10, log10) 
+    return {
+      prev: prev * Math.pow(10, log10),
+      next: next * Math.pow(10, log10)
     };
   }
-  
   function serverAutoScale() {
     params.local.auto_flag = 1;
     sendParams(true);
   }
-  
   function postGenSingle(channel) {
     if(params.local['gen_trig_mod_ch' + channel] == 1) {
       params.local['gen_single_ch' + channel] = 1;
@@ -1676,17 +1464,14 @@
     }
     return false;
   }
-  
   function showUploadForm(channel) {
     var file_elem = $('#uploaded_file');
     var fcontent_elem = $('#uploaded_file_content');
     var hint_elem = $('#upload_form .help-block');
-    
     fcontent_elem.val('');
     hint_elem.html('Select the CSV file to upload.');
     $('#upload_form')[0].reset();
     $('#modal_upload_label span').text(channel);
-    
     if(file_elem[0].files === undefined) {
       file_elem.hide().parent().addClass('has-error');
       hint_elem.html('Your browser is too old and do not support this feature.');
@@ -1696,7 +1481,6 @@
       file_elem.off('change').on('change', function() {
         var file = this.files[0];
         var freader = new FileReader();
-        
         // File validation
         //var size = file.size;
         var type = file.type;
@@ -1715,38 +1499,30 @@
         }
       });
     }
-    
     $('#modal_upload').modal('show');
-    
     return false;
   }
-  
   function startUpload() {
     var mbody = $('#modal_upload .modal-body');
     var file_elem = $('#uploaded_file');
     var hint_elem = $('#upload_form .help-block');
     var channel = $('#modal_upload_label span').text();
-    
     if(mbody.data('errtimer')) {
       clearTimeout(mbody.data('errtimer'));
       mbody.removeData('errtimer');
     }
-    
     if(! $('#uploaded_file').val().length) {
-      mbody.addClass('alert-danger').data('errtimer', setTimeout(function() { 
-        $('#modal_upload .modal-body').removeClass('alert-danger'); 
+      mbody.addClass('alert-danger').data('errtimer', setTimeout(function() {
+        $('#modal_upload .modal-body').removeClass('alert-danger');
       }, 1000));
       return;
     }
-    
     file_elem.hide();
     hint_elem.html('Uploading file...');
-    
     $.post(upload_url + channel, $('#uploaded_file_content').val(), function(dresult) {
       if($.type(dresult) == 'string' && dresult.trim() == 'OK') {
         $('#upload_form')[0].reset();
         $('#modal_upload').modal('hide');
-        
         user_editing = true;
         params.local.gen_awg_refresh = parseInt(channel);
         sendParams();
@@ -1763,30 +1539,24 @@
       file_elem.parent().addClass('has-error');
     });
   }
-  
   function getLocalDecimalSeparator() {
     var n = 1.1;
     return n.toLocaleString().substring(1,2);
   }
-  
   function parseLocalFloat(num) {
     return +(num.replace(getLocalDecimalSeparator(), '.'));
   }
-  
   function floatToLocalString(num) {
     // Workaround for a bug in Safari 6 (reference: https://github.com/mleibman/SlickGrid/pull/472)
     //return num.toString().replace('.', getLocalDecimalSeparator());
     return (num + '').replace('.', getLocalDecimalSeparator());
   }
-  
   function shortenFloat(value) {
     return value.toFixed(Math.abs(value) >= 10 ? 1 : 3);
   }
-
   function convertHz(value) {
     var unit = '';
     var decsep = getLocalDecimalSeparator();
-    
     if(value >= 1e6) {
       value /= 1e6;
       unit = '<span class="unit">MHz</span>';
@@ -1798,7 +1568,6 @@
     else {
       unit = '<span class="unit">Hz</span>';
     }
-
     // Fix to 4 decimal digits in total regardless of the decimal point placement
     var eps = 1e-2;
     if (value >= 100 - eps) {
@@ -1810,15 +1579,12 @@
     else {
       value = value.toFixed(3);
     }
-    
     value = (value == 0 ? '---' + decsep + '-' : floatToLocalString(value));
     return value + unit;
   }
-  
   function convertSec(value) {
     var unit = '';
     var decsep = getLocalDecimalSeparator();
-    
     if(value < 1e-6) {
       value *= 1e9;
       unit = '<span class="unit">ns</span>';
@@ -1834,7 +1600,6 @@
     else {
       unit = '<span class="unit">s</span>';
     }
-
     // Fix to 4 decimal digits in total regardless of the decimal point placement
     var eps = 1e-2;
     if (value >= 100 - eps) {
@@ -1846,11 +1611,9 @@
     else {
       value = value.toFixed(3);
     }
-    
     value = (value == 0 ? '---' + decsep + '-' : floatToLocalString(value));
     return value + unit;
   }
-  
   </script>
   <script src="../assets/redpitaya.custom.js"></script>
 </head>
@@ -1859,7 +1622,7 @@
     <div class="container">
       <a id="btn_exit" class="pull-left" href="/index.html"><span class="glyphicon glyphicon-chevron-left" title="Exit" alt="Exit"></span></a>
       <img class="logo pull-left" src="../assets/images/logo_white.png">
-      <h2 class="page-title">RadioBox: generation &amp; detection of radio signals (DF4IAH)</h2>
+      <h2 class="page-title">RadioBox: generation &amp; detection of radio signals<br/>(DF4IAH, DD8UU)</h2>
     </div>
   </div>
   <div class="container">
@@ -1870,7 +1633,7 @@
         </button>
         <button class="btn btn-primary btn-lg" onclick="resetZoom()">
           <span class="glyphicon glyphicon-retweet"></span> Reset zoom
-        </button>  
+        </button>
         <div id="selzoompan" class="btn-group" data-toggle="buttons">
           <button id="btn_zoomin" class="btn btn-primary" onclick="selectTool.call(this, 'zoomin')" style="display: none">
             <span class="glyphicon glyphicon-zoom-in"></span>
@@ -1954,6 +1717,22 @@
                   </div>
                   <div id="trig_lev_units" class="col-xs-3" style="padding: 7px 0 0;">V</div>
                 </div>
+                <!-- DF4IAH  v  -->
+                <div class="form-group">
+                  <label style="white-space: nowrap;"> ADD-A:</label>
+                  <input type="text" autocomplete="off" class="form-control" value="0" id="rb_add_a">
+                  <span style="display: none;" class="input-group-btn" id="apply_rb_add_a">
+                    <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                  </span>
+                  <label style="white-space: nowrap;"> ADD-B:</label>
+                  <input type="text" autocomplete="off" class="form-control" value="0" id="rb_add_b">
+                  <span style="display: none;" class="input-group-btn" id="apply_rb_add_b">
+                    <button type="button" class="btn btn-primary btn-lg"><span class="glyphicon glyphicon-ok-circle"></span></button>
+                  </span>
+                  <label style="white-space: nowrap;"> ADD-SUM:</label>
+                  <input type="text" autocomplete="off" class="form-control" value="0" id="rb_add_res">
+                </div>
+                <!-- DF4IAH  ^  -->
               </form>
               <div class="row">
                 <div class="col-xs-4"> </div>
@@ -2096,7 +1875,7 @@
               <div class="row">
                <div class="col-xs-4 txt-right"></div>
                 <button class="btn btn-primary btn-lg" onclick="requestTrace()">Download data traces</button>
-	      </div>              
+	      </div>
             </div>
           </div>
         </div>
@@ -2152,9 +1931,9 @@
                 <div class="form-group">
                   <label for="calbutt" class="col-xs-4 col-sm-6 control-label"></label>
                   <div class="col-xs-4 col-sm-5">
-                  <button class="btn btn-primary btn-lg" onclick="calibrate()" title="Disconnect signals on IN1 and IN2 before calibration.">Cal DC offset on inputs</button> 
+                  <button class="btn btn-primary btn-lg" onclick="calibrate()" title="Disconnect signals on IN1 and IN2 before calibration.">Cal DC offset on inputs</button>
                   </div>
-                </div>                
+                </div>
               </form>
             </div>
           </div>
@@ -2250,20 +2029,20 @@
                 </div>
               </form>
                <form class="form-horizontal" role="form" onsubmit="return false;">
-                <div class="row">                
+                <div class="row">
 		 <div class="form-group">
                   <label for="calbutt2" class="col-xs-4 col-sm-6 control-label"></label>
-                  <div class="col-xs-4 col-sm-5">                  
+                  <div class="col-xs-4 col-sm-5">
                   </div>
-                </div> 
+                </div>
                 <div class="form-group">
                   <label for="calbutt3" class="col-xs-4 col-sm-6 control-label"></label>
                   <div class="col-xs-8 col-md-12 col-lg-8 col-sm-offset-4 col-md-offset-0 col-lg-offset-4">
-                  <button class="btn btn-primary btn-lg" onclick="calout1()" title="Make sure IN1 calibrated, connect OUT1 to IN1, then start output calibration.">Calibrate DC offset (OUT1)</button> 
+                  <button class="btn btn-primary btn-lg" onclick="calout1()" title="Make sure IN1 calibrated, connect OUT1 to IN1, then start output calibration.">Calibrate DC offset (OUT1)</button>
                   </div>
-                </div>  
                 </div>
-              </form>             
+                </div>
+              </form>
               <form class="form-horizontal" role="form" onsubmit="return false;">
                 <div class="checkbox" style="padding-top: 15px; padding-bottom: 12px;">
                   <label class="group-label">
@@ -2341,22 +2120,22 @@
                     <button id="gen_ch2_upload" class="btn btn-primary" onclick="return showUploadForm(2)">
                       <span class="glyphicon glyphicon-upload"></span> File upload
                     </button>
-                  </div>                
+                  </div>
                 </div>
-              </form>         
+              </form>
                <form class="form-horizontal" role="form" onsubmit="return false;">
-                <div class="row">                
+                <div class="row">
 		 <div class="form-group">
                   <label for="calbutt4" class="col-xs-4 col-sm-6 control-label"></label>
-                  <div class="col-xs-4 col-sm-5">                  
+                  <div class="col-xs-4 col-sm-5">
                   </div>
-                </div> 
+                </div>
                 <div class="form-group">
                   <label for="calbutt5" class="col-xs-4 col-sm-6 control-label"></label>
                   <div class="col-xs-8 col-md-12 col-lg-8 col-sm-offset-4 col-md-offset-0 col-lg-offset-4">
-                  <button class="btn btn-primary btn-lg" onclick="calout2()"  title="Make sure IN1 calibrated, connect OUT2 to IN2, then start output calibration.">Calibrate DC offset (OUT2)</button> 
+                  <button class="btn btn-primary btn-lg" onclick="calout2()"  title="Make sure IN1 calibrated, connect OUT2 to IN2, then start output calibration.">Calibrate DC offset (OUT2)</button>
                   </div>
-                </div>  
+                </div>
                 </div>
               </form>
             </div>
@@ -2365,7 +2144,7 @@
       </div>
     </div>
     <div class="footer clearfix">
-      <p class="pull-right" style="margin: 4px 0 0">&copy; 2014 - Red Pitaya</p>
+      <p class="pull-right" style="margin: 4px 0 0">&copy; 2015 - Red Pitaya</p>
     </div>
   </div>
   <div id="modal_err" class="modal" tabindex="-1" role="dialog" aria-labelledby="modal_err_label" aria-hidden="true">
@@ -2407,7 +2186,7 @@
         <div class="modal-header">
           <h4 class="modal-title" id="modal_upload_label">File upload for channel <span></span></h4>
         </div>
-        <div class="modal-body"> 
+        <div class="modal-body">
           <form id="upload_form" role="form">
             <div class="form-group">
               <input type="file" name="file_select" id="uploaded_file">
@@ -2419,9 +2198,9 @@
         <div class="modal-footer" style="margin-top: 0;">
           <button type="button" class="btn btn-default btn-close-modal">Close</button>
           <button type="button" class="btn btn-primary" onclick="startUpload()">Upload</button>
-        </div>            
+        </div>
       </div>
     </div>
-  </div>  
+  </div>
 </body>
-</html>
+</html>

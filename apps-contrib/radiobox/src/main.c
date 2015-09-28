@@ -4,7 +4,7 @@
  * @brief Red Pitaya Oscilloscope main module.
  *
  * @Author Jure Menart <juremenart@gmail.com>
- *         
+ *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
  * This part of code is written in C programming language.
@@ -49,10 +49,10 @@ static hk_fpga_reg_mem_t *g_hk_fpga_reg_mem = NULL;
 /* Describe app. parameters with some info/limitations */
 pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
-    { /* min_gui_time   */ 
+    { /* min_gui_time   */
         //"xmin", -1000000, 1, 0, -10000000, +10000000 },
         "xmin", 0, 1, 0, -10000000, +10000000 },
-    { /* max_gui_time   */ 
+    { /* max_gui_time   */
         //"xmax", +1000000, 1, 0, -10000000, +10000000 },
         "xmax", 131, 1, 0, -10000000, +10000000 },
     { /* trig_mode:
@@ -74,7 +74,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { /* trig_level : Trigger level, expressed in normalized 1V  */
         "trig_level", 0, 1, 0,     -2,     +2 },
     { /* single_button:
-       *    0 - ignore 
+       *    0 - ignore
        *    1 - trigger */
         "single_btn", 0, 1, 0,         0,         1 },
     { /* time_range:
@@ -95,7 +95,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
            *    0 - disable
            *    1 - enable */
         "en_avg_at_dec", 0, 1, 0,      0,         1 },
-    { /* auto_flag: 
+    { /* auto_flag:
        * Puts the controller to auto mode - the algorithm which detects input
        * signal and changes the parameters to most fit the input:
        *    0 - normal operation
@@ -107,12 +107,12 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { /* min_y, max_y - Controller defined Y range when using auto-set or after
        * gain change y range */
         "max_y", 0, 0, 0, -1000, +1000 },
-    { /* forcex_flag: 
+    { /* forcex_flag:
        * Server sets this flag when X axis time units change
-       * Client checks this flag, when set the server's xmin:xmax define the visualization range 
+       * Client checks this flag, when set the server's xmin:xmax define the visualization range
        *    0 - normal operation
        *    1 - Server forces xmin, xmax  */
-        "forcex_flag", 0, 0, 0, 0, 1 },	
+        "forcex_flag", 0, 0, 0, 0, 1 },
       /* Measurement parameters for both channels. All are read-only and they
        * are calculated on FPGA buffer (non decimated in SW):
        * min, max [V] - minimum and maximum value in the buffer (non-decimated)
@@ -154,10 +154,10 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
        * client.
        */
         "gui_reset_y_range", 28, 0, 1, 0, 2000 },
-    { /* gen_DC_offs_1 - DC offset for channel 1 expressed in [V] requested by 
+    { /* gen_DC_offs_1 - DC offset for channel 1 expressed in [V] requested by
        * GUI */
         "gen_DC_offs_1", 0, 1, 0, -100, 100 },
-    { /* gen_DC_offs_2 - DC offset for channel 2 expressed in [V] requested by 
+    { /* gen_DC_offs_2 - DC offset for channel 2 expressed in [V] requested by
        * GUI */
         "gen_DC_offs_2", 0, 1, 0, -100, 100 },
     { /* gui_xmin - Xmin as specified by GUI - not rounded to sampling engine quanta. */
@@ -177,18 +177,18 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { /* scale_ch2 - Jumper & probe attenuation dependent Y scaling factor for Channel 2 */
         "scale_ch2", 0, 0, 1, -1000, 1000 },
     { /* dc_cal - DC offset calibration button (toggled) */
-        "dc_cal", 0, 1, 0, 0, 1 },	
+        "dc_cal", 0, 1, 0, 0, 1 },
     { /* req_trc - Data trace download button (toggled) */
-        "req_trc", 0, 1, 0, 0, 1 }, 
+        "req_trc", 0, 1, 0, 0, 1 },
     { /* dc_calout1 - DC offset calibration button for out 1 (toggled) */
-        "dc_calout1", 0, 1, 0, 0, 1 },		
+        "dc_calout1", 0, 1, 0, 0, 1 },
     { /* dc_calout2 - DC offset calibration button for out 2 (toggled) */
-        "dc_calout2", 0, 1, 0, 0, 1 },			
+        "dc_calout2", 0, 1, 0, 0, 1 },
     /* Arbitrary Waveform Generator parameters from here on */
 
     { /* gen_trig_mod_ch1 - Selects the trigger mode for channel 1:
        *    0 - continuous
-       *    1 - single 
+       *    1 - single
        *    2 - external */
         "gen_trig_mod_ch1", 0, 1, 0, 0, 2 },
     { /* gen_sig_type_ch1 - Selects the type of signal for channel 1:
@@ -213,7 +213,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
         "gen_sig_dcoff_ch1", 0, 1, 0, -1, 1 },
     { /* gen_trig_mod_ch2 - Selects the trigger mode for channel 2:
        *    0 - continuous
-       *    1 - single 
+       *    1 - single
        *    2 - external */
         "gen_trig_mod_ch2", 0, 1, 0, 0, 2 },
     { /* gen_sig_type_ch2 - Selects the type of signal for channel 2:
@@ -249,7 +249,7 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
 	{ /* calculator sum result register */
 		"rb_add_res", 0, 0, 1, 0, 10000 },
     { /* Must be last! */
-        NULL, 0.0, -1, -1, 0.0, 0.0 }     
+        NULL, 0.0, -1, -1, 0.0, 0.0 }
 };
 /* params initialized */
 static int params_init = 0;
@@ -276,14 +276,14 @@ int rp_app_init(void)
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
 
     // Debugging
-    set_leds(0xff);
+    set_leds(0, 0xff, 0x02);
 
     rp_default_calib_params(&rp_main_calib_params);
     if(rp_read_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_read_calib_params() failed, using default"
                 " parameters\n");
     }
-    if(rp_osc_worker_init(&rp_main_params[0], PARAMS_NUM, 
+    if(rp_osc_worker_init(&rp_main_params[0], PARAMS_NUM,
                           &rp_main_calib_params) < 0) {
         return -1;
     }
@@ -305,7 +305,7 @@ int rp_app_exit(void)
     generate_exit();
 
     // Debugging
-    set_leds(0x00);
+    set_leds(0, 0xff, 0x00);
 
     return 0;
 }
@@ -313,7 +313,7 @@ int rp_app_exit(void)
 int time_range_to_time_unit(int range)
 {
     int unit = 2;
-    
+
     switch (range) {
     case 0:
     case 1:
@@ -563,7 +563,7 @@ void transform_from_iface_units(rp_app_params_t *p)
     p[GEN_DC_NORM_1].value = p[GEN_DC_OFFS_1].value / scale1;
     p[GEN_DC_NORM_2].value = p[GEN_DC_OFFS_2].value / scale2;
 }
-                                      
+
 int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
 {                            // This "internal_flag" tells who is requesting param. set (0 client, 1 app. on server)
     int i;
@@ -575,7 +575,7 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
     TRACE("%s()\n", __FUNCTION__);
 
     // Debugging
-    set_leds(0xaa);
+    set_leds(1, 0x04, 0);
 
     if(len > PARAMS_NUM) {
         fprintf(stderr, "Too many parameters, max=%d\n", PARAMS_NUM);
@@ -657,8 +657,8 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
         float t_unit_factor = 1; /* to convert to seconds */
 
         /* Our time window with current settings:
-         *   - time_delay is added later, when we check if it is correct 
-         *     setting 
+         *   - time_delay is added later, when we check if it is correct
+         *     setting
          */
         float t_min = 0;
         float t_max = ((OSC_FPGA_SIG_LEN-1) * smpl_period);
@@ -679,18 +679,18 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
             rp_osc_clean_signals();
             rp_osc_worker_change_state(rp_osc_auto_set_state);
             /* AUTO_FLAG_PARAM is cleared when Auto-set algorithm finishes */
-            
+
             /* Wait for auto-set algorithm to finish or timeout */
             int timeout = 10000000; // [us]
             const int step = 50000; // [us]
             rp_osc_worker_state_t state;
             while (timeout > 0) {
-         
+
                 rp_osc_worker_get_state(&state);
                 if (state != rp_osc_auto_set_state) {
                     break;
                 }
-                
+
                 usleep(step);
                 timeout -= step;
             }
@@ -705,7 +705,7 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
         }
 
         /* If AUTO trigger mode, reset trigger delay */
-        if(mode == 0) 
+        if(mode == 0)
             t_delay = 0;
 
         if(dec_factor < 0) {
@@ -750,7 +750,7 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
          * time window is defined from:
          *  ([ 0 - 16k ] * smpl_period) + trig_delay */
         /* round to correct/possible values - convert to nearest index
-         * and back 
+         * and back
          */
         t_start_idx = round(t_start / smpl_period);
         t_stop_idx  = round(t_stop / smpl_period);
@@ -758,7 +758,7 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
         t_start = (t_start_idx * smpl_period);
         t_stop  = (t_stop_idx * smpl_period);
 
-        if(t_start < t_min) 
+        if(t_start < t_min)
             t_start = t_min;
         if(t_stop > t_max)
             t_stop = t_max;
@@ -787,7 +787,7 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
         rp_main_params[MIN_GUI_PARAM].value = t_start;
         rp_main_params[MAX_GUI_PARAM].value = t_stop;
 
-        rp_osc_worker_update_params((rp_app_params_t *)&rp_main_params[0], 
+        rp_osc_worker_update_params((rp_app_params_t *)&rp_main_params[0],
                                     fpga_update);
 
         /* check if we need to change state */
@@ -819,10 +819,10 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
     if(awg_params_change || (internal_flag==1)) {
 
         /* Correct frequencies if needed */
-        rp_main_params[GEN_SIG_FREQ_CH1].value = 
+        rp_main_params[GEN_SIG_FREQ_CH1].value =
             rp_gen_limit_freq(rp_main_params[GEN_SIG_FREQ_CH1].value,
                               rp_main_params[GEN_SIG_TYPE_CH1].value);
-        rp_main_params[GEN_SIG_FREQ_CH2].value = 
+        rp_main_params[GEN_SIG_FREQ_CH2].value =
             rp_gen_limit_freq(rp_main_params[GEN_SIG_FREQ_CH2].value,
                               rp_main_params[GEN_SIG_TYPE_CH2].value);
         if(generate_update(&rp_main_params[0]) < 0) {
@@ -830,11 +830,16 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
         }
     }
 
+    // DF4IAH  v
     if(rb_params_change || (params_init == 0)) {
+        // Debugging
+        set_leds(1, 0x08, 0);
+
     	rb_set_fpga(0x00, rp_main_params[RB_SUM_A].value);
     	rb_set_fpga(0x04, rp_main_params[RB_SUM_B].value);
-    	rp_main_params[RB_SUM_B].value = rb_get_fpga(0x08);
+    	rp_main_params[RB_SUM_RES].value = rb_get_fpga(0x08);
     }
+    // DF4IAH  ^
 
     return 0;
 }
@@ -845,9 +850,6 @@ int rp_get_params(rp_app_params_t **p)
     rp_app_params_t *p_copy = NULL;
     int i;
 
-    // Debugging
-    set_leds(0x55);
-
     p_copy = (rp_app_params_t *)malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
     if(p_copy == NULL)
         return -1;
@@ -856,7 +858,7 @@ int rp_get_params(rp_app_params_t **p)
     for(i = 0; i < PARAMS_NUM; i++) {
         int p_strlen = strlen(rp_main_params[i].name);
         p_copy[i].name = (char *)malloc(p_strlen+1);
-        strncpy((char *)&p_copy[i].name[0], &rp_main_params[i].name[0], 
+        strncpy((char *)&p_copy[i].name[0], &rp_main_params[i].name[0],
                 p_strlen);
         p_copy[i].name[p_strlen]='\0';
 
@@ -885,7 +887,7 @@ int rp_get_signals(float ***s, int *sig_num, int *sig_len)
     int sig_idx;
 
     // Debugging
-    set_leds(0xf0);
+    set_leds(1, 0x10, 0);
 
     if(*s == NULL)
         return -1;
@@ -913,7 +915,7 @@ int rp_create_signals(float ***a_signals)
     float **s;
 
     // Debugging
-    set_leds(0x0f);
+    set_leds(1, 0x20, 0);
 
     s = (float **)malloc(SIGNALS_NUM * sizeof(float *));
     if(s == NULL) {
@@ -941,7 +943,7 @@ void rp_cleanup_signals(float ***a_signals)
     float **s = *a_signals;
 
     // Debugging
-    set_leds(0x18);
+    set_leds(1, 0x40, 0);
 
     if(s) {
         for(i = 0; i < SIGNALS_NUM; i++) {
@@ -1027,7 +1029,7 @@ int rp_copy_params(rp_app_params_t *src, rp_app_params_t **dst)
             p_new[i].value = src[i].value;
             i++;
         }
-        
+
     }
 
     *dst = p_new;
@@ -1104,8 +1106,8 @@ int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas)
 // This function enables direct signal generator FPGA register access from worker.c
 
 void dir_gen_set(int ch, int param, int value)
-{ 
-  dir_gen_fpga_set(ch, param, value); 
+{
+  dir_gen_fpga_set(ch, param, value);
 }
 
 
@@ -1147,7 +1149,7 @@ float rp_gen_limit_freq(float freq, float gen_type)
     return freq;
 }
 
-void set_leds(unsigned char leds)
+void set_leds(unsigned char doToggle, unsigned char mask, unsigned char leds)
 {
     // constructor - part
 	g_hk_fpga_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
@@ -1169,10 +1171,12 @@ void set_leds(unsigned char leds)
     }
     g_hk_fpga_reg_mem = page_ptr + page_off;
 
-
     // setting LEDs
-    g_hk_fpga_reg_mem->leds = leds & 0xfe;
-
+    if (doToggle) {
+    	g_hk_fpga_reg_mem->leds = (g_hk_fpga_reg_mem->leds          ^ (mask & 0xfe));
+    } else {
+    	g_hk_fpga_reg_mem->leds = (g_hk_fpga_reg_mem->leds & ~mask) | (mask & 0xfe & leds);
+    }
 
     // destructor - part
     if (munmap(g_hk_fpga_reg_mem, HK_FPGA_BASE_SIZE) < 0) {
