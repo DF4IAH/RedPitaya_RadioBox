@@ -1,9 +1,9 @@
 #
-# $Id: red_pitaya.xdc 961 2014-01-21 11:40:39Z matej.oblak $
+# red-pitaya_radio-box.xdc 2015-09-28 18:30:00Z espero7757@gmx.net $
 #
 # @brief Red Pitaya location constraints.
 #
-# @Author Matej Oblak
+# @Author Matej Oblak, Ulrich Habel (DF4IAH)
 #
 # (c) Red Pitaya  http://www.redpitaya.com
 #
@@ -16,7 +16,9 @@
 
 # ADC A data
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_a_i[*]}]
-set_property IOB        TRUE     [get_ports {adc_dat_a_i[*]}]
+#set_property IOB        TRUE     [get_ports {adc_dat_a_i[*]}]
+#set_property IOB TRUE [all_fanin -only_cells -startpoints_only -flat [get_ports {adc_dat_a_i[*]}]]
+set_property IOB TRUE [all_fanout -only_cells -endpoints_only -flat [get_ports {adc_dat_a_i[*]}]]
 #set_property PACKAGE_PIN V17     [get_ports {adc_dat_a_i[0]}]
 #set_property PACKAGE_PIN U17     [get_ports {adc_dat_a_i[1]}]
 set_property PACKAGE_PIN Y17     [get_ports {adc_dat_a_i[2]}]
@@ -36,7 +38,9 @@ set_property PACKAGE_PIN V16     [get_ports {adc_dat_a_i[15]}]
 
 # ADC B data
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_dat_b_i[*]}]
-set_property IOB        TRUE     [get_ports {adc_dat_b_i[*]}]
+#set_property IOB        TRUE     [get_ports {adc_dat_b_i[*]}]
+#set_property IOB TRUE [all_fanin -only_cells -startpoints_only -flat [get_ports {adc_dat_b_i[*]}]]
+set_property IOB TRUE [all_fanout -only_cells -endpoints_only -flat [get_ports {adc_dat_b_i[*]}]]
 #set_property PACKAGE_PIN T17     [get_ports {adc_dat_b_i[0]}]
 #set_property PACKAGE_PIN R16     [get_ports {adc_dat_b_i[1]}]
 set_property PACKAGE_PIN R18     [get_ports {adc_dat_b_i[2]}]
@@ -202,8 +206,11 @@ set_property PACKAGE_PIN J14     [get_ports {led_o[7]}]
 
 create_clock -period 8.000 -name adc_clk [get_ports adc_clk_p_i]
 
-set_input_delay -clock adc_clk 3.400 [get_ports adc_dat_a_i[*]]
-set_input_delay -clock adc_clk 3.400 [get_ports adc_dat_b_i[*]]
+set_input_delay -clock adc_clk -min 1.000 [get_ports adc_dat_a_i[*]]
+set_input_delay -clock adc_clk -max 3.400 [get_ports adc_dat_a_i[*]]
+
+set_input_delay -clock adc_clk -min 1.000 [get_ports adc_dat_b_i[*]]
+set_input_delay -clock adc_clk -max 3.400 [get_ports adc_dat_b_i[*]]
 
 create_clock -period 4.000 -name rx_clk  [get_ports daisy_p_i[1]]
 
@@ -214,4 +221,3 @@ set_false_path -from [get_clocks clk_fpga_0]  -to [get_clocks adc_clk]
 set_false_path -from [get_clocks clk_fpga_0]  -to [get_clocks par_clk]
 set_false_path -from [get_clocks dac_clk_out] -to [get_clocks dac_2clk_out]
 set_false_path -from [get_clocks dac_clk_out] -to [get_clocks dac_2ph_out]
-
