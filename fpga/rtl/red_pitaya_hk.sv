@@ -140,7 +140,7 @@ assign id_value[ 3: 0] =  4'h1; // board type   1 - release 1
  *    for setting that new FPGA configuration.
  */
 wire [32-1: 0] id_git_sha1;
-assign id_git_sha1 = /*GIT_SHA1*/ 32'h0cbf8aef;
+assign id_git_sha1 = /*GIT_SHA1*/ 32'h6e698a0f;
 
 
 //---------------------------------------------------------------------------------
