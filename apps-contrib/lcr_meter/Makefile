@@ -26,7 +26,7 @@ $(CONTROLLERHF):
 	$(MAKE) -C src clean
 	$(MAKE) -C src all OUT_NAME=$(CONTROLLERHF)
 
-zip: $(CONTROLLER)
+zip: $(CONTROLLER) $(CONTROLLERHF)
 	-$(RM) target -rf
 	mkdir -p target/$(APP)
 	cp -r $(CONTROLLER) $(CONTROLLERHF) fpga.conf info index.html Makefile target/$(APP)
