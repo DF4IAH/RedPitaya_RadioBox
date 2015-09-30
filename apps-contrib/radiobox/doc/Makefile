@@ -12,7 +12,9 @@ DOXYPDF_FILENAME := RedPitaya_RadioBox_Development_Manual.pdf
 FPGAPDF_FILENAME := RedPitaya_RadioBox_FPGA-Register-Allocation_Manual.pdf
 
 
-all: doxypdf fpgapdf
+#all: doxypdf fpgapdf
+
+all: doxypdf
 
 
 doxypdf $(DOXYPDF_FILENAME):
