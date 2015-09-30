@@ -3,7 +3,7 @@
 #
 
 #List of applications to build
-APPS = lti teslameter scope+istsensor lcr_meter bode_plotter
+APPS = bode_plotter lcr_meter lti radiobox scope+istsensor teslameter
 
 all: zips
 
