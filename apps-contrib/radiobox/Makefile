@@ -6,7 +6,8 @@
 
 APP=$(notdir $(CURDIR:%/=%))
 
-FPGA=fpga.bit
+FPGA=fpga_rb_0.94.bit
+FPGACFG=fpga.conf
 TARGET=controller.so
 PDF=doc/RedPitaya_RadioBox_Development_Manual.pdf
 
@@ -38,13 +39,14 @@ $(PDF):
 zip: $(TARGET) $(PDF)
 	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
-	cp -r $(TARGET) $(FPGA) bin info index.html Makefile target/$(APP)
+	cp -r $(TARGET) $(FPGA) $(FPGACFG) bin info index.html Makefile target/$(APP)
 	cp -r src target/$(APP)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
 	find target -iname .svn -delete
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
 	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VERSION)-$(REVISION).zip *
+	cd ..
 	$(RM) -r target
 
 

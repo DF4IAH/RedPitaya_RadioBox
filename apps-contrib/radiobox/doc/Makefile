@@ -5,23 +5,30 @@
 # $Id: Makefile 1200 2014-02-20 12:52:27Z ales.bardorfer $
 #
 
-.PHONY : all pdf clean
+.PHONY : all doxypdf fpgapdf clean
 
 PLANTUML_JAR ?= /usr/share/java/plantuml.jar
-#PLANTUML_JAR ?= C:/Users/espero/Packages/java/plantuml.jar
-PDF_FILENAME := RedPitaya_RadioBox_Development_Manual.pdf
+DOXYPDF_FILENAME := RedPitaya_RadioBox_Development_Manual.pdf
+FPGAPDF_FILENAME := RedPitaya_RadioBox_FPGA-Register-Allocation_Manual.pdf
 
-all: pdf
 
-pdf $(PDF_FILENAME):
-	@echo "PLANTUML_JAR = $(PLANTUML_JAR)"
+all: doxypdf fpgapdf
+
+
+doxypdf $(DOXYPDF_FILENAME):
 	java -jar '$(PLANTUML_JAR)' -forcecairo -o img *.dox
 	java -jar '$(PLANTUML_JAR)' -forcecairo -o ./img ../src/*.c
 	java -jar '$(PLANTUML_JAR)' -forcecairo -o ./img ../src/*.h
 	doxygen
 	make -C latex pdf
-	cp latex/refman.pdf $(PDF_FILENAME)
+	cp latex/refman.pdf $(DOXYPDF_FILENAME)
+
+fpgapdf $(FPGAPDF_FILENAME):
+	make -C fpga_rb_addresses pdf
+	cp fpga_rb_addresses/fpga_rb_addresses.pdf $(FPGAPDF_FILENAME)
+
 
 clean:
+	make -C fpga_rb_addresses clean
 	$(RM) -r img html latex
-	$(RM) $(PDF_FILENAME)
+	$(RM) $(DOXYPDF_FILENAME) $(FPGAPDF_FILENAME)
