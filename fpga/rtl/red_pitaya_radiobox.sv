@@ -1,12 +1,14 @@
 /**
- * $Id: red_pitaya_scope.v 965 2014-01-24 13:39:56Z matej.oblak $
+ * $Id: red_pitaya_radiobox.v 001 2015-09-11 18:10:00Z DF4IAH $
  *
- * @brief Red Pitaya oscilloscope application, used for capturing ADC data
- *        into BRAMs, which can be later read by SW.
+ * @brief Red Pitaya RadioBox application, used to expand RedPitaya for
+ * radio ham operators. Transmitter as well as receiver components are
+ * included like modulators/demodulators, filters, (R)FFT transformations
+ * and that like.
  *
- * @Author Matej Oblak
+ * @Author Ulrich Habel, DF4IAH
  *
- * (c) Red Pitaya  http://www.redpitaya.com
+ * (c) Ulrich Habel / GitHub.com open source  http://df4iah.github.io/RedPitaya_RadioBox/
  *
  * This part of code is written in Verilog hardware description language (HDL).
  * Please visit http://en.wikipedia.org/wiki/Verilog
@@ -16,9 +18,9 @@
 /**
  * GENERAL DESCRIPTION:
  *
- * This is simple data aquisition module, primerly used for scilloscope 
- * application. It consists from three main parts.
+ * TODO: explanations.
  *
+ * TODO: graphics - exmaple by red_pitaya_scope.v
  *
  *                /--------\      /-----------\            /-----\
  *   ADC CHA ---> | DFILT1 | ---> | AVG & DEC | ---------> | BUF | --->  SW
@@ -33,70 +35,76 @@
  *                \--------/      \-----------/            \-----/ 
  *
  *
- * Input data is optionaly averaged and decimated via average filter.
- *
- * Trigger section makes triggers from input ADC data or external digital 
- * signal. To make trigger from analog signal schmitt trigger is used, external
- * trigger goes first over debouncer, which is separate for pos. and neg. edge.
- *
- * Data capture buffer is realized with BRAM. Writing into ram is done with 
- * arm/trig logic. With adc_arm_do signal (SW) writing is enabled, this is active
- * until trigger arrives and adc_dly_cnt counts to zero. Value adc_wp_trig
- * serves as pointer which shows when trigger arrived. This is used to show
- * pre-trigger data.
+ * TODO: detailed information
  * 
  */
 
-module red_pitaya_scope #(
-  parameter RSZ = 14  // RAM size 2^RSZ
+
+`timescale 1ns / 1ps
+
+module red_pitaya_radiobox #(
+  // parameter RSZ = 14  // RAM size 2^RSZ
 )(
    // ADC
-   input                 adc_clk_i       ,  // ADC clock
-   input                 adc_rstn_i      ,  // ADC reset - active low
-   input      [ 14-1: 0] adc_a_i         ,  // ADC data CHA
-   input      [ 14-1: 0] adc_b_i         ,  // ADC data CHB
-   // trigger sources
-   input                 trig_ext_i      ,  // external trigger
-   input                 trig_asg_i      ,  // ASG trigger
-
-   // two AXI masters
-   output [1:0][  1-1: 0] axi_clk_o      ,  // global clock
-   output [1:0][  1-1: 0] axi_rstn_o     ,  // global reset
-   output [1:0][ 32-1: 0] axi_waddr_o    ,  // system write address
-   output [1:0][ 64-1: 0] axi_wdata_o    ,  // system write data
-   output [1:0][  8-1: 0] axi_wsel_o     ,  // system write byte select
-   output [1:0][  1-1: 0] axi_wvalid_o   ,  // system write data valid
-   output [1:0][  4-1: 0] axi_wlen_o     ,  // system write burst length
-   output [1:0][  1-1: 0] axi_wfixed_o   ,  // system write burst type (fixed / incremental)
-   input  [1:0][  1-1: 0] axi_werr_i     ,  // system write error
-   input  [1:0][  1-1: 0] axi_wrdy_i     ,  // system write ready
-
-   // System bus
-   input      [ 32-1: 0] sys_addr        ,  // bus saddress
-   input      [ 32-1: 0] sys_wdata       ,  // bus write data
-   input      [  4-1: 0] sys_sel         ,  // bus write byte select
-   input                 sys_wen         ,  // bus write enable
-   input                 sys_ren         ,  // bus read enable
-   output reg [ 32-1: 0] sys_rdata       ,  // bus read data
-   output reg            sys_err         ,  // bus error indicator
-   output reg            sys_ack            // bus acknowledge signal
-);
-
-reg             adc_arm_do   ;
-reg             adc_rst_do   ;
+   input                 adc_clk_i     ,  // ADC clock
+   input                 adc_rstn_i    ,  // ADC reset - active low
 /*
-wire [  1-1: 0]   axi_clk_o            [1:0] ;
-wire [  1-1: 0]   axi_rstn_o           [1:0] ;
-wire [ 32-1: 0]   axi_waddr_o          [1:0] ;
-wire [ 64-1: 0]   axi_wdata_o          [1:0] ;
-wire [  8-1: 0]   axi_wsel_o           [1:0] ;
-wire [  1-1: 0]   axi_wvalid_o         [1:0] ;
-wire [  4-1: 0]   axi_wlen_o           [1:0] ;
-wire [  1-1: 0]   axi_wfixed_o         [1:0] ;
-wire [  1-1: 0]   axi_werr_i           [1:0] ;
-wire [  1-1: 0]   axi_wrdy_i           [1:0] ;
+   input      [ 14-1: 0] adc_a_i       ,  // ADC data CHA
+   input      [ 14-1: 0] adc_b_i       ,  // ADC data CHB
 */
 
+/*
+   // trigger sources
+   input                 trig_ext_i    ,  // external trigger
+   input                 trig_asg_i    ,  // ASG trigger
+*/
+
+/*
+   // AXI0 master
+   output                axi0_clk_o    ,  // global clock
+   output                axi0_rstn_o   ,  // global reset
+   output     [ 32-1: 0] axi0_waddr_o  ,  // system write address
+   output     [ 64-1: 0] axi0_wdata_o  ,  // system write data
+   output     [  8-1: 0] axi0_wsel_o   ,  // system write byte select
+   output                axi0_wvalid_o ,  // system write data valid
+   output     [  4-1: 0] axi0_wlen_o   ,  // system write burst length
+   output                axi0_wfixed_o ,  // system write burst type (fixed / incremental)
+   input                 axi0_werr_i   ,  // system write error
+   input                 axi0_wrdy_i   ,  // system write ready
+
+   // AXI1 master
+   output                axi1_clk_o    ,  // global clock
+   output                axi1_rstn_o   ,  // global reset
+   output     [ 32-1: 0] axi1_waddr_o  ,  // system write address
+   output     [ 64-1: 0] axi1_wdata_o  ,  // system write data
+   output     [  8-1: 0] axi1_wsel_o   ,  // system write byte select
+   output                axi1_wvalid_o ,  // system write data valid
+   output     [  4-1: 0] axi1_wlen_o   ,  // system write burst length
+   output                axi1_wfixed_o ,  // system write burst type (fixed / incremental)
+   input                 axi1_werr_i   ,  // system write error
+   input                 axi1_wrdy_i   ,  // system write ready
+*/
+
+   // System bus - slave
+   input      [ 32-1: 0] sys_addr      ,  // bus saddress
+   input      [ 32-1: 0] sys_wdata     ,  // bus write data
+   input      [  4-1: 0] sys_sel       ,  // bus write byte select
+   input                 sys_wen       ,  // bus write enable
+   input                 sys_ren       ,  // bus read enable
+   output reg [ 32-1: 0] sys_rdata     ,  // bus read data
+   output reg            sys_err       ,  // bus error indicator
+   output reg            sys_ack          // bus acknowledge signal
+);
+
+
+//---------------------------------------------------------------------------------
+//  Registers accessed by the system bus
+
+reg  [32-1: 0]  reg_rw_add_a   ;
+reg  [32-1: 0]  reg_rw_add_b   ;
+reg  [32-1: 0]  reg_rd_add_res ;
+
+/*
 //---------------------------------------------------------------------------------
 //  Input filtering
 
@@ -122,6 +130,7 @@ red_pitaya_dfilt1 i_dfilt1_cha (
   .adc_rstn_i  ( adc_rstn_i      ),  // ADC reset - active low
   .adc_dat_i   ( adc_a_filt_in   ),  // ADC data
   .adc_dat_o   ( adc_a_filt_out  ),  // ADC data
+
    // configuration
   .cfg_aa_i    ( set_a_filt_aa   ),  // config AA coefficient
   .cfg_bb_i    ( set_a_filt_bb   ),  // config BB coefficient
@@ -135,13 +144,16 @@ red_pitaya_dfilt1 i_dfilt1_chb (
   .adc_rstn_i  ( adc_rstn_i      ),  // ADC reset - active low
   .adc_dat_i   ( adc_b_filt_in   ),  // ADC data
   .adc_dat_o   ( adc_b_filt_out  ),  // ADC data
+
    // configuration
   .cfg_aa_i    ( set_b_filt_aa   ),  // config AA coefficient
   .cfg_bb_i    ( set_b_filt_bb   ),  // config BB coefficient
   .cfg_kk_i    ( set_b_filt_kk   ),  // config KK coefficient
   .cfg_pp_i    ( set_b_filt_pp   )   // config PP coefficient
 );
+*/
 
+/*
 //---------------------------------------------------------------------------------
 //  Decimate input data
 
@@ -184,7 +196,9 @@ end else begin
       default   : begin adc_a_dat <= adc_a_sum[15+0 :  0];      adc_b_dat <= adc_b_sum[15+0 :  0];  end
    endcase
 end
+*/
 
+/*
 //---------------------------------------------------------------------------------
 //  ADC buffer RAM
 
@@ -199,7 +213,6 @@ reg   [ RSZ-1: 0] adc_b_raddr   ;
 reg   [   4-1: 0] adc_rval      ;
 wire              adc_rd_dv     ;
 reg               adc_we        ;
-reg               adc_we_keep   ;
 reg               adc_trig      ;
 
 reg   [ RSZ-1: 0] adc_wp_trig   ;
@@ -224,7 +237,7 @@ always @(posedge adc_clk_i) begin
    else begin
       if (adc_arm_do)
          adc_we <= 1'b1 ;
-      else if (((adc_dly_do || adc_trig) && (adc_dly_cnt == 32'h0) && ~adc_we_keep) || adc_rst_do) //delayed reached or reset
+      else if (((adc_dly_do || adc_trig) && (adc_dly_cnt == 32'h0)) || adc_rst_do) //delayed reached or reset
          adc_we <= 1'b0 ;
 
       // count how much data was written into the buffer before trigger
@@ -285,10 +298,9 @@ always @(posedge adc_clk_i) begin
    adc_a_rd    <= adc_a_buf[adc_a_raddr] ;
    adc_b_rd    <= adc_b_buf[adc_b_raddr] ;
 end
+*/
 
-
-
-
+/*
 //---------------------------------------------------------------------------------
 //
 //  AXI CHA connection
@@ -311,8 +323,8 @@ wire [ 32-1: 0] axi_a_cur_addr     ;
 assign axi_a_clr = adc_rst_do ;
 
 
-always @(posedge axi_clk_o[0]) begin
-   if (axi_rstn_o[0] == 1'b0) begin
+always @(posedge axi0_clk_o) begin
+   if (axi0_rstn_o == 1'b0) begin
       axi_a_dat_sel <=  2'h0 ;
       axi_a_dat_dv  <=  1'b0 ;
       axi_a_dly_cnt <= 32'h0 ;
@@ -356,7 +368,7 @@ always @(posedge axi_clk_o[0]) begin
 
    if (axi_a_clr)
       set_a_axi_cur <= set_a_axi_start ;
-   else if (axi_wvalid_o[0])
+   else if (axi0_wvalid_o)
       set_a_axi_cur <= axi_a_cur_addr ;
 end
 
@@ -366,34 +378,35 @@ axi_wr_fifo #(
   .FW  (   8    )  // address width of FIFO pointers
 ) i_wr0 (
    // global signals
-  .axi_clk_i          (  axi_clk_o     [0] ),  // global clock
-  .axi_rstn_i         (  axi_rstn_o    [0] ),  // global reset
+  .axi_clk_i          (  axi0_clk_o        ), // global clock
+  .axi_rstn_i         (  axi0_rstn_o       ), // global reset
 
-   // Connection to AXI0 master
-  .axi_waddr_o        (  axi_waddr_o   [0] ),  // write address
-  .axi_wdata_o        (  axi_wdata_o   [0] ),  // write data
-  .axi_wsel_o         (  axi_wsel_o    [0] ),  // write byte select
-  .axi_wvalid_o       (  axi_wvalid_o  [0] ),  // write data valid
-  .axi_wlen_o         (  axi_wlen_o    [0] ),  // write burst length
-  .axi_wfixed_o       (  axi_wfixed_o  [0] ),  // write burst type (fixed / incremental)
-  .axi_werr_i         (  axi_werr_i    [0] ),  // write error
-  .axi_wrdy_i         (  axi_wrdy_i    [0] ),  // write ready
+   // Connection to AXI master
+  .axi_waddr_o        (  axi0_waddr_o      ), // write address
+  .axi_wdata_o        (  axi0_wdata_o      ), // write data
+  .axi_wsel_o         (  axi0_wsel_o       ), // write byte select
+  .axi_wvalid_o       (  axi0_wvalid_o     ), // write data valid
+  .axi_wlen_o         (  axi0_wlen_o       ), // write burst length
+  .axi_wfixed_o       (  axi0_wfixed_o     ), // write burst type (fixed / incremental)
+  .axi_werr_i         (  axi0_werr_i       ), // write error
+  .axi_wrdy_i         (  axi0_wrdy_i       ), // write ready
 
    // data and configuration
-  .wr_data_i          (  axi_a_dat         ),  // write data
-  .wr_val_i           (  axi_a_dat_dv      ),  // write data valid
-  .ctrl_start_addr_i  (  set_a_axi_start   ),  // range start address
-  .ctrl_stop_addr_i   (  set_a_axi_stop    ),  // range stop address
-  .ctrl_trig_size_i   (  4'hF              ),  // trigger level
-  .ctrl_wrap_i        (  1'b1              ),  // start from begining when reached stop
-  .ctrl_clr_i         (  axi_a_clr         ),  // clear / flush
-  .stat_overflow_o    (                    ),  // overflow indicator
-  .stat_cur_addr_o    (  axi_a_cur_addr    ),  // current write address
-  .stat_write_data_o  (                    )   // write data indicator
+  .wr_data_i          (  axi_a_dat         ), // write data
+  .wr_val_i           (  axi_a_dat_dv      ), // write data valid
+  .ctrl_start_addr_i  (  set_a_axi_start   ), // range start address
+  .ctrl_stop_addr_i   (  set_a_axi_stop    ), // range stop address
+  .ctrl_trig_size_i   (  4'hF              ), // trigger level
+  .ctrl_wrap_i        (  1'b1              ), // start from begining when reached stop
+  .ctrl_clr_i         (  axi_a_clr         ), // clear / flush
+  .stat_overflow_o    (                    ), // overflow indicator
+  .stat_cur_addr_o    (  axi_a_cur_addr    ), // current write address
+  .stat_write_data_o  (                    )  // write data indicator
 );
 
-assign axi_clk_o[0]  = adc_clk_i ;
-assign axi_rstn_o[0] = adc_rstn_i ;
+assign axi0_clk_o  = adc_clk_i ;
+assign axi0_rstn_o = adc_rstn_i;
+
 
 //---------------------------------------------------------------------------------
 //
@@ -417,8 +430,8 @@ wire [ 32-1: 0] axi_b_cur_addr     ;
 assign axi_b_clr = adc_rst_do ;
 
 
-always @(posedge axi_clk_o[1]) begin
-   if (axi_rstn_o[1] == 1'b0) begin
+always @(posedge axi1_clk_o) begin
+   if (axi1_rstn_o == 1'b0) begin
       axi_b_dat_sel <=  2'h0 ;
       axi_b_dat_dv  <=  1'b0 ;
       axi_b_dly_cnt <= 32'h0 ;
@@ -462,7 +475,7 @@ always @(posedge axi_clk_o[1]) begin
 
    if (axi_b_clr)
       set_b_axi_cur <= set_b_axi_start ;
-   else if (axi_wvalid_o[1])
+   else if (axi1_wvalid_o)
       set_b_axi_cur <= axi_b_cur_addr ;
 end
 
@@ -472,18 +485,18 @@ axi_wr_fifo #(
   .FW  (   8    )  // address width of FIFO pointers
 ) i_wr1 (
    // global signals
-  .axi_clk_i          (  axi_clk_o     [1] ),  // global clock
-  .axi_rstn_i         (  axi_rstn_o    [1] ),  // global reset
+  .axi_clk_i          (  axi1_clk_o        ), // global clock
+  .axi_rstn_i         (  axi1_rstn_o       ), // global reset
 
-   // Connection to AXI1 master
-  .axi_waddr_o        (  axi_waddr_o   [1] ),  // write address
-  .axi_wdata_o        (  axi_wdata_o   [1] ),  // write data
-  .axi_wsel_o         (  axi_wsel_o    [1] ),  // write byte select
-  .axi_wvalid_o       (  axi_wvalid_o  [1] ),  // write data valid
-  .axi_wlen_o         (  axi_wlen_o    [1] ),  // write burst length
-  .axi_wfixed_o       (  axi_wfixed_o  [1] ),  // write burst type (fixed / incremental)
-  .axi_werr_i         (  axi_werr_i    [1] ),  // write error
-  .axi_wrdy_i         (  axi_wrdy_i    [1] ),  // write ready
+   // Connection to AXI master
+  .axi_waddr_o        (  axi1_waddr_o      ), // write address
+  .axi_wdata_o        (  axi1_wdata_o      ), // write data
+  .axi_wsel_o         (  axi1_wsel_o       ), // write byte select
+  .axi_wvalid_o       (  axi1_wvalid_o     ), // write data valid
+  .axi_wlen_o         (  axi1_wlen_o       ), // write burst length
+  .axi_wfixed_o       (  axi1_wfixed_o     ), // write burst type (fixed / incremental)
+  .axi_werr_i         (  axi1_werr_i       ), // write error
+  .axi_wrdy_i         (  axi1_wrdy_i       ), // write ready
 
    // data and configuration
   .wr_data_i          (  axi_b_dat         ), // write data
@@ -498,9 +511,12 @@ axi_wr_fifo #(
   .stat_write_data_o  (                    )  // write data indicator
 );
 
-assign axi_clk_o[1]  = adc_clk_i ;
-assign axi_rstn_o[1] = adc_rstn_i ;
+assign axi1_clk_o  = adc_clk_i ;
+assign axi1_rstn_o = adc_rstn_i;
+*/
 
+
+/*
 //---------------------------------------------------------------------------------
 //  Trigger source selector
 
@@ -545,6 +561,7 @@ end else begin
     default : adc_trig <= 1'b0          ;
    endcase
 end
+
 
 //---------------------------------------------------------------------------------
 //  Trigger created from input signal
@@ -600,6 +617,7 @@ end else begin
    adc_trig_bp <= adc_scht_bp[0] && !adc_scht_bp[1] ;
    adc_trig_bn <= adc_scht_bn[0] && !adc_scht_bn[1] ;
 end
+
 
 //---------------------------------------------------------------------------------
 //  External trigger
@@ -681,129 +699,78 @@ assign ext_trig_p = (ext_trig_dp == 2'b01) ;
 assign ext_trig_n = (ext_trig_dn == 2'b10) ;
 assign asg_trig_p = (asg_trig_dp == 2'b01) ;
 assign asg_trig_n = (asg_trig_dn == 2'b10) ;
+*/
+
 
 //---------------------------------------------------------------------------------
 //  System bus connection
 
+// write access to the registers
 always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
-   adc_we_keep   <=   1'b0      ;
-   set_a_tresh   <=  14'd5000   ;
-   set_b_tresh   <= -14'd5000   ;
-   set_dly       <=  32'd0      ;
-   set_dec       <=  17'd1      ;
-   set_a_hyst    <=  14'd20     ;
-   set_b_hyst    <=  14'd20     ;
-   set_avg_en    <=   1'b1      ;
-   set_a_filt_aa <=  18'h0      ;
-   set_a_filt_bb <=  25'h0      ;
-   set_a_filt_kk <=  25'hFFFFFF ;
-   set_a_filt_pp <=  25'h0      ;
-   set_b_filt_aa <=  18'h0      ;
-   set_b_filt_bb <=  25'h0      ;
-   set_b_filt_kk <=  25'hFFFFFF ;
-   set_b_filt_pp <=  25'h0      ;
-   set_deb_len   <=  20'd62500  ;
-   set_a_axi_en  <=   1'b0      ;
-   set_b_axi_en  <=   1'b0      ;
-end else begin
+if (!adc_rstn_i) begin
+   reg_rw_add_a   <= 32'd0 ;
+   reg_rw_add_b   <= 32'd0 ;
+   reg_rd_add_res <= 32'd0 ;
+   end
+
+else begin
    if (sys_wen) begin
-      if (sys_addr[19:0]==20'h00)   adc_we_keep   <= sys_wdata[     3] ;
-
-      if (sys_addr[19:0]==20'h08)   set_a_tresh   <= sys_wdata[14-1:0] ;
-      if (sys_addr[19:0]==20'h0C)   set_b_tresh   <= sys_wdata[14-1:0] ;
-      if (sys_addr[19:0]==20'h10)   set_dly       <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h14)   set_dec       <= sys_wdata[17-1:0] ;
-      if (sys_addr[19:0]==20'h20)   set_a_hyst    <= sys_wdata[14-1:0] ;
-      if (sys_addr[19:0]==20'h24)   set_b_hyst    <= sys_wdata[14-1:0] ;
-      if (sys_addr[19:0]==20'h28)   set_avg_en    <= sys_wdata[     0] ;
-
-      if (sys_addr[19:0]==20'h30)   set_a_filt_aa <= sys_wdata[18-1:0] ;
-      if (sys_addr[19:0]==20'h34)   set_a_filt_bb <= sys_wdata[25-1:0] ;
-      if (sys_addr[19:0]==20'h38)   set_a_filt_kk <= sys_wdata[25-1:0] ;
-      if (sys_addr[19:0]==20'h3C)   set_a_filt_pp <= sys_wdata[25-1:0] ;
-      if (sys_addr[19:0]==20'h40)   set_b_filt_aa <= sys_wdata[18-1:0] ;
-      if (sys_addr[19:0]==20'h44)   set_b_filt_bb <= sys_wdata[25-1:0] ;
-      if (sys_addr[19:0]==20'h48)   set_b_filt_kk <= sys_wdata[25-1:0] ;
-      if (sys_addr[19:0]==20'h4C)   set_b_filt_pp <= sys_wdata[25-1:0] ;
-
-      if (sys_addr[19:0]==20'h50)   set_a_axi_start <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h54)   set_a_axi_stop  <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h58)   set_a_axi_dly   <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h5C)   set_a_axi_en    <= sys_wdata[     0] ;
-
-      if (sys_addr[19:0]==20'h70)   set_b_axi_start <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h74)   set_b_axi_stop  <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h78)   set_b_axi_dly   <= sys_wdata[32-1:0] ;
-      if (sys_addr[19:0]==20'h7C)   set_b_axi_en    <= sys_wdata[     0] ;
-
-      if (sys_addr[19:0]==20'h90)   set_deb_len <= sys_wdata[20-1:0] ;
+      casez (sys_addr[19:0])
+      20'h00000 : begin
+         reg_rw_add_a   <= sys_wdata[32-1:0] ;
+         reg_rd_add_res <= sys_wdata[32-1:0] + reg_rw_add_b ;
+         end
+      20'h00004 : begin
+         reg_rw_add_b   <= sys_wdata[32-1:0] ;
+         reg_rd_add_res <= sys_wdata[32-1:0] + reg_rw_add_a ;
+         end
+//    default : begin
+//       end
+      endcase
    end
 end
 
 wire sys_en;
 assign sys_en = sys_wen | sys_ren;
 
+// read access to the registers
 always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
+if (!adc_rstn_i) begin
    sys_err <= 1'b0 ;
    sys_ack <= 1'b0 ;
-end else begin
+   sys_rdata <= 32'h0000 ;
+   end
+
+else begin
    sys_err <= 1'b0 ;
+   if (sys_ren) begin
+      casez (sys_addr[19:0])
+      20'h00000 : begin
+         sys_ack   <= sys_en ;
+         sys_rdata <= reg_rw_add_a ;
+         end
+      20'h00004 : begin
+         sys_ack   <= sys_en ;
+         sys_rdata <= reg_rw_add_b ;
+         end
+      20'h00008 : begin
+         sys_ack   <= sys_en ;
+         sys_rdata <= reg_rd_add_res ;
+         end
+      default : begin
+         sys_ack   <= sys_en ;
+         sys_rdata <= 32'h0000 ;
+         end
+      endcase
+   end
 
-   casez (sys_addr[19:0])
-     20'h00000 : begin sys_ack <= sys_en;          sys_rdata <= {{32- 4{1'b0}}, adc_we_keep               // do not disarm on 
-                                                                              , adc_dly_do                // trigger status
-                                                                              , 1'b0                      // reset
-                                                                              , adc_we}             ; end // arm
+   else if (sys_wen) begin                      // keep sys_ack assignment in this process
+      sys_ack <= sys_en ;
+   end
 
-     20'h00004 : begin sys_ack <= sys_en;          sys_rdata <= {{32- 4{1'b0}}, set_trig_src}       ; end 
-
-     20'h00008 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_a_tresh}        ; end
-     20'h0000C : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_b_tresh}        ; end
-     20'h00010 : begin sys_ack <= sys_en;          sys_rdata <= {               set_dly}            ; end
-     20'h00014 : begin sys_ack <= sys_en;          sys_rdata <= {{32-17{1'b0}}, set_dec}            ; end
-
-     20'h00018 : begin sys_ack <= sys_en;          sys_rdata <= {{32-RSZ{1'b0}}, adc_wp_cur}        ; end
-     20'h0001C : begin sys_ack <= sys_en;          sys_rdata <= {{32-RSZ{1'b0}}, adc_wp_trig}       ; end
-
-     20'h00020 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_a_hyst}         ; end
-     20'h00024 : begin sys_ack <= sys_en;          sys_rdata <= {{32-14{1'b0}}, set_b_hyst}         ; end
-
-     20'h00028 : begin sys_ack <= sys_en;          sys_rdata <= {{32- 1{1'b0}}, set_avg_en}         ; end
-
-     20'h0002C : begin sys_ack <= sys_en;          sys_rdata <=                 adc_we_cnt          ; end
-
-     20'h00030 : begin sys_ack <= sys_en;          sys_rdata <= {{32-18{1'b0}}, set_a_filt_aa}      ; end
-     20'h00034 : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_a_filt_bb}      ; end
-     20'h00038 : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_a_filt_kk}      ; end
-     20'h0003C : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_a_filt_pp}      ; end
-     20'h00040 : begin sys_ack <= sys_en;          sys_rdata <= {{32-18{1'b0}}, set_b_filt_aa}      ; end
-     20'h00044 : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_b_filt_bb}      ; end
-     20'h00048 : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_b_filt_kk}      ; end
-     20'h0004C : begin sys_ack <= sys_en;          sys_rdata <= {{32-25{1'b0}}, set_b_filt_pp}      ; end
-
-     20'h00050 : begin sys_ack <= sys_en;          sys_rdata <=                 set_a_axi_start     ; end
-     20'h00054 : begin sys_ack <= sys_en;          sys_rdata <=                 set_a_axi_stop      ; end
-     20'h00058 : begin sys_ack <= sys_en;          sys_rdata <=                 set_a_axi_dly       ; end
-     20'h0005C : begin sys_ack <= sys_en;          sys_rdata <= {{32- 1{1'b0}}, set_a_axi_en}       ; end
-     20'h00060 : begin sys_ack <= sys_en;          sys_rdata <=                 set_a_axi_trig      ; end
-     20'h00064 : begin sys_ack <= sys_en;          sys_rdata <=                 set_a_axi_cur       ; end
-
-     20'h00070 : begin sys_ack <= sys_en;          sys_rdata <=                 set_b_axi_start     ; end
-     20'h00074 : begin sys_ack <= sys_en;          sys_rdata <=                 set_b_axi_stop      ; end
-     20'h00078 : begin sys_ack <= sys_en;          sys_rdata <=                 set_b_axi_dly       ; end
-     20'h0007C : begin sys_ack <= sys_en;          sys_rdata <= {{32- 1{1'b0}}, set_b_axi_en}       ; end
-     20'h00080 : begin sys_ack <= sys_en;          sys_rdata <=                 set_b_axi_trig      ; end
-     20'h00084 : begin sys_ack <= sys_en;          sys_rdata <=                 set_b_axi_cur       ; end
-
-     20'h00090 : begin sys_ack <= sys_en;          sys_rdata <= {{32-20{1'b0}}, set_deb_len}        ; end
-
-     20'h1???? : begin sys_ack <= adc_rd_dv;       sys_rdata <= {16'h0, 2'h0,adc_a_rd}              ; end
-     20'h2???? : begin sys_ack <= adc_rd_dv;       sys_rdata <= {16'h0, 2'h0,adc_b_rd}              ; end
-
-       default : begin sys_ack <= sys_en;          sys_rdata <=  32'h0                              ; end
-   endcase
+   else begin
+      sys_ack <= 1'b0 ;
+   end
 end
 
 endmodule

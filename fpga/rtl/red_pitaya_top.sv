@@ -50,14 +50,14 @@
  *               (FREE)
  *
  *
- * Inside analog module, ADC data is translated from unsigned neg-slope into
+ * Inside the analog module, ADC data is translated from unsigned neg-slope into
  * two's complement. Similar is done on DAC data.
  *
  * Scope module stores data from ADC into RAM, arbitrary signal generator (ASG)
  * sends data from RAM to DAC. MIMO PID uses ADC ADC as input and DAC as its output.
  *
  * Daisy chain connects with other boards with fast serial link. Data which is
- * send and received is at the moment undefined. This is left for the user.
+ * sent and received is at the moment undefined. This is left for the user.
  * 
  */
 
@@ -118,43 +118,47 @@ module red_pitaya_top (
    output [ 8-1: 0] led_o       
 );
 
+
+localparam       SMC = 8                     ;  // Sub Module Count
+
 //---------------------------------------------------------------------------------
 //
 //  Connections to PS
 
-wire  [  4-1: 0] fclk               ; //[0]-125MHz, [1]-250MHz, [2]-50MHz, [3]-200MHz
-wire  [  4-1: 0] frstn              ;
+wire  [  4-1: 0] fclk                        ;  //[0]-125MHz, [1]-250MHz, [2]-50MHz, [3]-200MHz
+wire  [  4-1: 0] frstn                       ;
 
-wire             ps_sys_clk         ;
-wire             ps_sys_rstn        ;
-wire  [ 32-1: 0] ps_sys_addr        ;
-wire  [ 32-1: 0] ps_sys_wdata       ;
-wire  [  4-1: 0] ps_sys_sel         ;
-wire             ps_sys_wen         ;
-wire             ps_sys_ren         ;
-wire  [ 32-1: 0] ps_sys_rdata       ;
-wire             ps_sys_err         ;
-wire             ps_sys_ack         ;
+wire             ps_sys_clk                  ;
+wire             ps_sys_rstn                 ;
+wire  [ 32-1: 0] ps_sys_addr                 ;
+wire  [ 32-1: 0] ps_sys_wdata                ;
+wire  [  4-1: 0] ps_sys_sel                  ;
+wire             ps_sys_wen                  ;
+wire             ps_sys_ren                  ;
+wire  [ 32-1: 0] ps_sys_rdata                ;
+wire             ps_sys_err                  ;
+wire             ps_sys_ack                  ;
 
 // AXI masters
-wire             axi1_clk    , axi0_clk    ;
-wire             axi1_rstn   , axi0_rstn   ;
-wire  [ 32-1: 0] axi1_waddr  , axi0_waddr  ;
-wire  [ 64-1: 0] axi1_wdata  , axi0_wdata  ;
-wire  [  8-1: 0] axi1_wsel   , axi0_wsel   ;
-wire             axi1_wvalid , axi0_wvalid ;
-wire  [  4-1: 0] axi1_wlen   , axi0_wlen   ;
-wire             axi1_wfixed , axi0_wfixed ;
-wire             axi1_werr   , axi0_werr   ;
-wire             axi1_wrdy   , axi0_wrdy   ;
+wire             axi_clk    [1:0]            ;
+wire             axi_rstn   [1:0]            ;
+wire  [ 32-1: 0] axi_waddr  [1:0]            ;
+wire  [ 64-1: 0] axi_wdata  [1:0]            ;
+wire  [  8-1: 0] axi_wsel   [1:0]            ;
+wire             axi_wvalid [1:0]            ;
+wire  [  4-1: 0] axi_wlen   [1:0]            ;
+wire             axi_wfixed [1:0]            ;
+wire             axi_werr   [1:0]            ;
+wire             axi_wrdy   [1:0]            ;
+
 
 red_pitaya_ps i_ps (
-  .FIXED_IO_mio       (  FIXED_IO_mio                ),
-  .FIXED_IO_ps_clk    (  FIXED_IO_ps_clk             ),
-  .FIXED_IO_ps_porb   (  FIXED_IO_ps_porb            ),
-  .FIXED_IO_ps_srstb  (  FIXED_IO_ps_srstb           ),
-  .FIXED_IO_ddr_vrn   (  FIXED_IO_ddr_vrn            ),
-  .FIXED_IO_ddr_vrp   (  FIXED_IO_ddr_vrp            ),
+  .FIXED_IO_mio     (FIXED_IO_mio     ),
+  .FIXED_IO_ps_clk  (FIXED_IO_ps_clk  ),
+  .FIXED_IO_ps_porb (FIXED_IO_ps_porb ),
+  .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
+  .FIXED_IO_ddr_vrn (FIXED_IO_ddr_vrn ),
+  .FIXED_IO_ddr_vrp (FIXED_IO_ddr_vrp ),
   // DDR
   .DDR_addr      (DDR_addr    ),
   .DDR_ba        (DDR_ba      ),
@@ -188,50 +192,47 @@ red_pitaya_ps i_ps (
   .sys_rdata_i   (ps_sys_rdata),  // system read data
   .sys_err_i     (ps_sys_err  ),  // system error indicator
   .sys_ack_i     (ps_sys_ack  ),  // system acknowledge signal
-  // AXI masters
-  .axi1_clk_i    (axi1_clk    ),  .axi0_clk_i    (axi0_clk    ),  // global clock
-  .axi1_rstn_i   (axi1_rstn   ),  .axi0_rstn_i   (axi0_rstn   ),  // global reset
-  .axi1_waddr_i  (axi1_waddr  ),  .axi0_waddr_i  (axi0_waddr  ),  // system write address
-  .axi1_wdata_i  (axi1_wdata  ),  .axi0_wdata_i  (axi0_wdata  ),  // system write data
-  .axi1_wsel_i   (axi1_wsel   ),  .axi0_wsel_i   (axi0_wsel   ),  // system write byte select
-  .axi1_wvalid_i (axi1_wvalid ),  .axi0_wvalid_i (axi0_wvalid ),  // system write data valid
-  .axi1_wlen_i   (axi1_wlen   ),  .axi0_wlen_i   (axi0_wlen   ),  // system write burst length
-  .axi1_wfixed_i (axi1_wfixed ),  .axi0_wfixed_i (axi0_wfixed ),  // system write burst type (fixed / incremental)
-  .axi1_werr_o   (axi1_werr   ),  .axi0_werr_o   (axi0_werr   ),  // system write error
-  .axi1_wrdy_o   (axi1_wrdy   ),  .axi0_wrdy_o   (axi0_wrdy   )   // system write ready
+  // two AXI masters - concatenated
+  .axi_clk_i     ( {axi_clk   [1], axi_clk   [0]} ),  // global clock
+  .axi_rstn_i    ( {axi_rstn  [1], axi_rstn  [0]} ),  // global reset
+  .axi_waddr_i   ( {axi_waddr [1], axi_waddr [0]} ),  // system write address
+  .axi_wdata_i   ( {axi_wdata [1], axi_wdata [0]} ),  // system write data
+  .axi_wsel_i    ( {axi_wsel  [1], axi_wsel  [0]} ),  // system write byte select
+  .axi_wvalid_i  ( {axi_wvalid[1], axi_wvalid[0]} ),  // system write data valid
+  .axi_wlen_i    ( {axi_wlen  [1], axi_wlen  [0]} ),  // system write burst length
+  .axi_wfixed_i  ( {axi_wfixed[1], axi_wfixed[0]} ),  // system write burst type (fixed / incremental)
+  .axi_werr_o    ( {axi_werr  [1], axi_werr  [0]} ),  // system write error
+  .axi_wrdy_o    ( {axi_wrdy  [1], axi_wrdy  [0]} )    // system write ready
 );
 
-////////////////////////////////////////////////////////////////////////////////
-// system bus decoder & multiplexer (it breaks memory addresses into 8 regions)
-////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////
+// system bus decoder & multiplexer (it breaks memory addresses into SMC count regions)
+////////////////////////////////////////////////////////////////////////////////////////
 
-wire              sys_clk   = ps_sys_clk  ;
-wire              sys_rstn  = ps_sys_rstn ;
-wire  [  32-1: 0] sys_addr  = ps_sys_addr ;
-wire  [  32-1: 0] sys_wdata = ps_sys_wdata;
-wire  [   4-1: 0] sys_sel   = ps_sys_sel  ;
-wire  [8   -1: 0] sys_wen   ;
-wire  [8   -1: 0] sys_ren   ;
-wire  [8*32-1: 0] sys_rdata ;
-wire  [8* 1-1: 0] sys_err   ;
-wire  [8* 1-1: 0] sys_ack   ;
-wire  [8   -1: 0] sys_cs    ;
+wire                sys_clk   = ps_sys_clk  ;
+wire                sys_rstn  = ps_sys_rstn ;
+wire  [    32-1: 0] sys_addr  = ps_sys_addr ;
+wire  [    32-1: 0] sys_wdata = ps_sys_wdata;
+wire  [     4-1: 0] sys_sel   = ps_sys_sel  ;
+wire  [SMC   -1: 0] sys_wen                 ;
+wire  [SMC   -1: 0] sys_ren                 ;
+wire  [SMC*32-1: 0] sys_rdata               ;
+wire  [SMC* 1-1: 0] sys_err                 ;
+wire  [SMC* 1-1: 0] sys_ack                 ;
+wire  [SMC   -1: 0] sys_cs                  ;
 
-assign sys_cs = 8'h01 << sys_addr[22:20];
+assign sys_cs = { {(SMC-1){1'b0}}, 1'h1 } << sys_addr[22:20] ;  // one-hot assignment
 
-assign sys_wen = sys_cs & {8{ps_sys_wen}};
-assign sys_ren = sys_cs & {8{ps_sys_ren}};
+assign sys_wen = sys_cs & { SMC{ps_sys_wen} };
+assign sys_ren = sys_cs & { SMC{ps_sys_ren} };
 
 assign ps_sys_rdata = sys_rdata[sys_addr[22:20]*32+:32];
 
 assign ps_sys_err   = |(sys_cs & sys_err);
 assign ps_sys_ack   = |(sys_cs & sys_ack);
 
-// unused system bus slave ports
 
-assign sys_rdata[6*32+:32] = 32'h0; 
-assign sys_err  [6       ] =  1'b0;
-assign sys_ack  [6       ] =  1'b1;
+// unused system bus slave ports
 
 assign sys_rdata[7*32+:32] = 32'h0; 
 assign sys_err  [7       ] =  1'b0;
@@ -282,14 +283,15 @@ wire  signed [14-1:0] pid_a    , pid_b    ;
 // configuration
 wire                  digital_loop;
 
+
 ////////////////////////////////////////////////////////////////////////////////
-// PLL (clock and reaset)
+// PLL (clock and reset)
 ////////////////////////////////////////////////////////////////////////////////
 
-// diferential clock input
+// differential clock input
 IBUFDS i_clk (.I (adc_clk_p_i), .IB (adc_clk_n_i), .O (adc_clk_in));  // differential clock input
 
-red_pitaya_pll pll (
+red_pitaya_pll i_pll (
   // inputs
   .clk         (adc_clk_in),  // clock
   .rstn        (frstn[0]  ),  // reset - active low
@@ -298,7 +300,7 @@ red_pitaya_pll pll (
   .clk_dac_1x  (pll_dac_clk_1x),  // DAC clock 125MHz
   .clk_dac_2x  (pll_dac_clk_2x),  // DAC clock 250MHz
   .clk_dac_2p  (pll_dac_clk_2p),  // DAC clock 250MHz -45DGR
-  .clk_ser     (pll_ser_clk   ),  // fast serial clock
+  .clk_ser     (pll_ser_clk   ),  // fast serial clock 200MHz
   .clk_pwm     (pll_pwm_clk   ),  // PWM clock
   // status outputs
   .pll_locked  (pll_locked)
@@ -351,7 +353,7 @@ assign adc_b = digital_loop ? dac_b : {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
 // DAC IO
 ////////////////////////////////////////////////////////////////////////////////
 
-// Sumation of ASG and PID signal perform saturation before sending to DAC 
+// Summation of ASG and PID signal perform saturation before sending to DAC 
 assign dac_a_sum = asg_a + pid_a;
 assign dac_b_sum = asg_b + pid_b;
 
@@ -367,8 +369,8 @@ begin
 end
 
 // DDR outputs
-ODDR oddr_dac_clk          (.Q(dac_clk_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2p), .CE(1'b1), .R(1'b0   ), .S(1'b0));
-ODDR oddr_dac_wrt          (.Q(dac_wrt_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
+ODDR oddr_dac_clk          (.Q(dac_clk_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2p), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_wrt          (.Q(dac_wrt_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2x), .CE(1'b1), .R(dac_rst), .S(1'b0));
 ODDR oddr_dac_sel          (.Q(dac_sel_o), .D1(1'b1     ), .D2(1'b0     ), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
 ODDR oddr_dac_rst          (.Q(dac_rst_o), .D1(dac_rst  ), .D2(dac_rst  ), .C(dac_clk_1x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
 ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
@@ -401,7 +403,7 @@ red_pitaya_hk i_hk (
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[0]                 ),  // write enable
   .sys_ren         (  sys_ren[0]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 0*32+31: 0*32]  ),  // read data
+  .sys_rdata       (  sys_rdata[ 0*32+:32]       ),  // read data
   .sys_err         (  sys_err[0]                 ),  // error indicator
   .sys_ack         (  sys_ack[0]                 )   // acknowledge signal
 );
@@ -422,24 +424,24 @@ red_pitaya_scope i_scope (
   .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
   .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
   .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
-  // AXI0 master                 // AXI1 master
-  .axi0_clk_o    (axi0_clk   ),  .axi1_clk_o    (axi1_clk   ),
-  .axi0_rstn_o   (axi0_rstn  ),  .axi1_rstn_o   (axi1_rstn  ),
-  .axi0_waddr_o  (axi0_waddr ),  .axi1_waddr_o  (axi1_waddr ),
-  .axi0_wdata_o  (axi0_wdata ),  .axi1_wdata_o  (axi1_wdata ),
-  .axi0_wsel_o   (axi0_wsel  ),  .axi1_wsel_o   (axi1_wsel  ),
-  .axi0_wvalid_o (axi0_wvalid),  .axi1_wvalid_o (axi1_wvalid),
-  .axi0_wlen_o   (axi0_wlen  ),  .axi1_wlen_o   (axi1_wlen  ),
-  .axi0_wfixed_o (axi0_wfixed),  .axi1_wfixed_o (axi1_wfixed),
-  .axi0_werr_i   (axi0_werr  ),  .axi1_werr_i   (axi1_werr  ),
-  .axi0_wrdy_i   (axi0_wrdy  ),  .axi1_wrdy_i   (axi1_wrdy  ),
+  // two AXI masters - concatenated
+  .axi_clk_o       ( {axi_clk   [1], axi_clk   [0]} ),  // global clock
+  .axi_rstn_o      ( {axi_rstn  [1], axi_rstn  [0]} ),  // global reset
+  .axi_waddr_o     ( {axi_waddr [1], axi_waddr [0]} ),  // system write address
+  .axi_wdata_o     ( {axi_wdata [1], axi_wdata [0]} ),  // system write data
+  .axi_wsel_o      ( {axi_wsel  [1], axi_wsel  [0]} ),  // system write byte select
+  .axi_wvalid_o    ( {axi_wvalid[1], axi_wvalid[0]} ),  // system write data valid
+  .axi_wlen_o      ( {axi_wlen  [1], axi_wlen  [0]} ),  // system write burst length
+  .axi_wfixed_o    ( {axi_wfixed[1], axi_wfixed[0]} ),  // system write burst type (fixed / incremental)
+  .axi_werr_i      ( {axi_werr  [1], axi_werr  [0]} ),  // system write error
+  .axi_wrdy_i      ( {axi_wrdy  [1], axi_wrdy  [0]} ),  // system write ready
   // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[1]                 ),  // write enable
   .sys_ren         (  sys_ren[1]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 1*32+31: 1*32]  ),  // read data
+  .sys_rdata       (  sys_rdata[ 1*32+:32]       ),  // read data
   .sys_err         (  sys_err[1]                 ),  // error indicator
   .sys_ack         (  sys_ack[1]                 )   // acknowledge signal
 );
@@ -462,7 +464,7 @@ red_pitaya_asg i_asg (
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[2]                 ),  // write enable
   .sys_ren         (  sys_ren[2]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 2*32+31: 2*32]  ),  // read data
+  .sys_rdata       (  sys_rdata[ 2*32+:32]       ),  // read data
   .sys_err         (  sys_err[2]                 ),  // error indicator
   .sys_ack         (  sys_ack[2]                 )   // acknowledge signal
 );
@@ -484,7 +486,7 @@ red_pitaya_pid i_pid (
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[3]                 ),  // write enable
   .sys_ren         (  sys_ren[3]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 3*32+31: 3*32]  ),  // read data
+  .sys_rdata       (  sys_rdata[ 3*32+:32]       ),  // read data
   .sys_err         (  sys_err[3]                 ),  // error indicator
   .sys_ack         (  sys_ack[3]                 )   // acknowledge signal
 );
@@ -513,7 +515,7 @@ red_pitaya_ams i_ams (
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[4]                 ),  // write enable
   .sys_ren         (  sys_ren[4]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 4*32+31: 4*32]  ),  // read data
+  .sys_rdata       (  sys_rdata[ 4*32+:32]       ),  // read data
   .sys_err         (  sys_err[4]                 ),  // error indicator
   .sys_ack         (  sys_ack[4]                 )   // acknowledge signal
 );
@@ -566,9 +568,48 @@ red_pitaya_daisy i_daisy (
   .sys_sel_i       (  sys_sel                    ),  // write byte select
   .sys_wen_i       (  sys_wen[5]                 ),  // write enable
   .sys_ren_i       (  sys_ren[5]                 ),  // read enable
-  .sys_rdata_o     (  sys_rdata[ 5*32+31: 5*32]  ),  // read data
+  .sys_rdata_o     (  sys_rdata[ 5*32+:32]       ),  // read data
   .sys_err_o       (  sys_err[5]                 ),  // error indicator
   .sys_ack_o       (  sys_ack[5]                 )   // acknowledge signal
+);
+
+//---------------------------------------------------------------------------------
+//  RadioBox module
+
+red_pitaya_radiobox i_radiobox (
+  // ADC
+  .adc_clk_i       (  adc_clk                    ),  // clock
+  .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
+/*
+  .adc_a_i         (  adc_a                      ),  // CH 1
+  .adc_b_i         (  adc_b                      ),  // CH 2
+  .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
+  .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
+*/
+
+/*
+  // AXI1 master                         // AXI0 master
+  .axi1_clk_o      (  axi_clk   [1]  ),  .axi0_clk_o      (  axi_clk   [0]  ),
+  .axi1_rstn_o     (  axi_rstn  [1]  ),  .axi0_rstn_o     (  axi_rstn  [0]  ),
+  .axi1_waddr_o    (  axi_waddr [1]  ),  .axi0_waddr_o    (  axi_waddr [0]  ),
+  .axi1_wdata_o    (  axi_wdata [1]  ),  .axi0_wdata_o    (  axi_wdata [0]  ),
+  .axi1_wsel_o     (  axi_wsel  [1]  ),  .axi0_wsel_o     (  axi_wsel  [0]  ),
+  .axi1_wvalid_o   (  axi_wvalid[1]  ),  .axi0_wvalid_o   (  axi_wvalid[0]  ),
+  .axi1_wlen_o     (  axi_wlen  [1]  ),  .axi0_wlen_o     (  axi_wlen  [0]  ),
+  .axi1_wfixed_o   (  axi_wfixed[1]  ),  .axi0_wfixed_o   (  axi_wfixed[0]  ),
+  .axi1_werr_i     (  axi_werr  [1]  ),  .axi0_werr_i     (  axi_werr  [0]  ),
+  .axi1_wrdy_i     (  axi_wrdy  [1]  ),  .axi0_wrdy_i     (  axi_wrdy  [0]  ),
+*/
+
+  // System bus
+  .sys_addr        (  sys_addr                   ),  // address
+  .sys_wdata       (  sys_wdata                  ),  // write data
+  .sys_sel         (  sys_sel                    ),  // write byte select
+  .sys_wen         (  sys_wen[6]                 ),  // write enable
+  .sys_ren         (  sys_ren[6]                 ),  // read enable
+  .sys_rdata       (  sys_rdata[ 6*32+:32]       ),  // read data
+  .sys_err         (  sys_err[6]                 ),  // error indicator
+  .sys_ack         (  sys_ack[6]                 )   // acknowledge signal
 );
 
 endmodule
