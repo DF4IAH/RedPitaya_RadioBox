@@ -6,7 +6,7 @@
 
 APP=$(notdir $(CURDIR:%/=%))
 
-FPGA=fpga_rb_0.94.bit
+FPGA=fpga_rb-*.bit
 FPGACFG=fpga.conf
 TARGET=controller.so
 PDF=doc/RedPitaya_RadioBox_Development_Manual.pdf
