@@ -20,7 +20,7 @@ all: $(CONTROLLER) $(CONTROLLERHF)
 
 $(CONTROLLER):
 	$(MAKE) -C src clean
-	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-xilinx-linux-gnueabi-
+	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabi-
 
 $(CONTROLLERHF):
 	$(MAKE) -C src clean
