@@ -32,7 +32,7 @@ $(CONTROLLERHF):
 $(CONTROLLER):
 	cp -r $(SHARED_SRC) src
 	$(MAKE) -C src clean
-	$(MAKE) -C src OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-xilinx-linux-gnueabi-
+	$(MAKE) -C src OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabi-
 
 zip: $(CONTROLLERHF) $(CONTROLLER)
 	-$(RM) target -rf
