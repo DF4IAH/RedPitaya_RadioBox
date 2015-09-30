@@ -17,3 +17,4 @@ $(CONTROLLER): $(OBJECTS)
 
 clean:
 	-$(RM) -f $(OBJECTS)
+	-$(RM) -r src
