@@ -3,7 +3,7 @@
 #
 
 #List of applications to build
-APPS = scope scope+gen scope+pid spectrum freqanalyzer
+APPS = freqanalyzer scope scope+gen scope+pid spectrum
 
 all: zips
 
@@ -13,7 +13,7 @@ zips:
 	done
 
 install:
-	mkdir build
+	mkdir -p build
 	for APP in $(APPS); do \
 		$(MAKE) -C $$APP INSTALL_DIR=../../build zip; \
 	done
@@ -23,4 +23,4 @@ clean:
 		$(MAKE) -C $$app clean; \
 	done
 
-	-$(RM) -rf ./build/
+	-$(RM) -r ./build/
