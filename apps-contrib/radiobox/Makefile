@@ -5,10 +5,10 @@
 #
 
 APP=$(notdir $(CURDIR:%/=%))
+SHARED_OBJS = 
 
 FPGA=fpga_rb-*.bit
 FPGACFG=fpga.conf
-TARGET=controller.so
 PDF=doc/RedPitaya_RadioBox_Development_Manual.pdf
 
 # Versioning system
@@ -20,20 +20,31 @@ BUILD_NUMBER ?= $(shell git rev-list HEAD --count)
 REVISION ?= $(shell git log -n1 --pretty=%h)
 
 VER:=$(shell cat info/info.json | grep version | sed -e 's/.*:\ *\"//' | sed -e 's/-.*//' | sed -e 's/",//')
-VERSION ?= $(VER)-$(BUILD_NUMBER)
 
 
-INSTALL_DIR ?= ../
+INSTALL_DIR ?= ../../build
+
+CONTROLLERHF = controllerhf.so
+CONTROLLER   = controller.so
+
+CFLAGS += -DVERSION=\"$(VER)-$(BUILD_NUMBER)\" -DREVISION=\"$(REVISION)\"
+export CFLAGS
 
 
-all: $(TARGET) doc
-	$(MAKE) -C src all
+all:  $(CONTROLLERHF) $(CONTROLLER) doc
 
+$(CONTROLLERHF):
+	$(MAKE) -C src clean
+	$(MAKE) -C src all OUT_NAME=$(CONTROLLERHF)
 
-src: $(TARGET)
+$(CONTROLLER):
+	$(MAKE) -C src clean
+	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabihf-
 
-$(TARGET):
-	$(MAKE) -C src all
+shared_ctrl: $(CONTROLLER) $(CONTROLLERHF)
+	for obj in $(SHARED_OBJS); do \
+		cp $(CONTROLLERHF) $(CONTROLLER) ../$$obj; \
+	done
 
 
 doc: $(PDF)
@@ -42,17 +53,15 @@ $(PDF):
 	$(MAKE) -C doc all
 
 
-zip: $(TARGET) $(PDF)
+zip: $(CONTROLLERHF) $(PDF)
+	-$(RM) target -rf
 	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
-	cp -r $(TARGET) $(FPGA) $(FPGACFG) bin info index.html Makefile target/$(APP)
-	cp -r src target/$(APP)
+	cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
-	find target -iname .svn -delete
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
-	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VERSION)-$(REVISION).zip *
-	cd ..
+	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	$(RM) -r target
 
 
