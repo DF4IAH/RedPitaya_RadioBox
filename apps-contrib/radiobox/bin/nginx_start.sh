@@ -1,3 +1,3 @@
 #!/bin/sh
 
-nginx -p /opt/www &
+nginx -p /opt/redpitaya/www &

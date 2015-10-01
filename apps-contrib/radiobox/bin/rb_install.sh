@@ -3,16 +3,16 @@
 cd /tmp
 
 echo "Stopping nginx ..."
-/opt/www/apps/radiobox/bin/nginx_stop.sh
+/opt/redpitaya/www/apps/radiobox/bin/nginx_stop.sh
 
 echo "Changing mode to RW ..."
 rw
 
 echo "Removing radiobox directory ..."
-rm -rf /opt/www/apps/radiobox
+rm -rf /opt/redpitaya/www/apps/radiobox
 
 echo "Unpacking of radiobox*.zip file ..."
-cd /opt/www/apps
+cd /opt/redpitaya/www/apps
 unzip /tmp/radiobox*.zip >/dev/null
 cd /tmp
 
@@ -26,6 +26,6 @@ echo "Changing mode to RO ..."
 (sleep 1; ro)&
 
 echo "Starting nginx ..."
-/opt/www/apps/radiobox/bin/nginx_start.sh
+/opt/redpitaya/www/apps/radiobox/bin/nginx_start.sh
 
 echo "done."
