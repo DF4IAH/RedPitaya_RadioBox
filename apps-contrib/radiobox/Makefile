@@ -31,7 +31,9 @@ CFLAGS += -DVERSION=\"$(VER)-$(BUILD_NUMBER)\" -DREVISION=\"$(REVISION)\"
 export CFLAGS
 
 
-all:  $(CONTROLLERHF) $(CONTROLLER) doc
+#all:  $(CONTROLLERHF) $(CONTROLLER) doc
+
+all:  $(CONTROLLERHF) doc
 
 $(CONTROLLERHF):
 	$(MAKE) -C src clean
@@ -41,9 +43,14 @@ $(CONTROLLER):
 	$(MAKE) -C src clean
 	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabihf-
 
-shared_ctrl: $(CONTROLLER) $(CONTROLLERHF)
-	for obj in $(SHARED_OBJS); do \
+#shared_ctrl: $(CONTROLLERHF) $(CONTROLLER)
+
+shared_ctrl: $(CONTROLLERHF)
+	#for obj in $(SHARED_OBJS); do \
 		cp $(CONTROLLERHF) $(CONTROLLER) ../$$obj; \
+	done
+	for obj in $(SHARED_OBJS); do \
+		cp $(CONTROLLERHF) ../$$obj; \
 	done
 
 
@@ -53,11 +60,14 @@ $(PDF):
 	$(MAKE) -C doc all
 
 
+#zip: $(CONTROLLERHF) $(CONTROLLER) $(PDF)
+
 zip: $(CONTROLLERHF) $(PDF)
 	-$(RM) target -rf
 	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
-	cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
+	#cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
+	cp -r $(CONTROLLERHF) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
@@ -69,4 +79,5 @@ clean:
 	-$(MAKE) -C src clean
 	-$(MAKE) -C doc clean
 	-$(RM) -r target
+	-$(RM) $(CONTROLLERHF) $(CONTROLLER)
 	-$(RM) *.zip
