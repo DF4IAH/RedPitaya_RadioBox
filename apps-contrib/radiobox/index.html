@@ -787,7 +787,7 @@
   {
      var url='/tmp/traces.csv';
      win=window.open(url,'Download','width=10, height=10');
-  }
+  }
   function loadParams(orig_params) {
     if (dl_state>=3) { // Give RP some cycles to prepare data...
     dl_state=0;        // reset state
@@ -882,7 +882,7 @@
       }
     }
     return false;
-  }
+  }
   function requestTrace() {
        dl_state=1;                   // Remember the issued Trace download request
        req_trc_butt=1-req_trc_butt;
@@ -899,7 +899,7 @@
     function calout2() {
      dc_calout2_butt=1-dc_calout2_butt;
      sendParams(true,true);          // Propagate parameter to RP
-  }
+  }
   function sendParams(refresh_data, force_send, single_btn) {
     if(sending || (force_send !== true && !isParamChanged())) {
       send_que = sending;
