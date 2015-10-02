@@ -1,3 +1,4 @@
+CROSS_COMPILE ?= arm-linux-gnueabihf-
 CC=$(CROSS_COMPILE)gcc
 RM=rm
 

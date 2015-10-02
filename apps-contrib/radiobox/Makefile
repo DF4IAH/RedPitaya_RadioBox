@@ -41,7 +41,7 @@ $(CONTROLLERHF):
 
 $(CONTROLLER):
 	$(MAKE) -C src clean
-	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabihf-
+	$(MAKE) -C src all OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabi-
 
 #shared_ctrl: $(CONTROLLERHF) $(CONTROLLER)
 
@@ -63,7 +63,6 @@ $(PDF):
 #zip: $(CONTROLLERHF) $(CONTROLLER) $(PDF)
 
 zip: $(CONTROLLERHF) $(PDF)
-	-$(RM) target -rf
 	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
 	#cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
@@ -71,8 +70,10 @@ zip: $(CONTROLLERHF) $(PDF)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
-	find target -type f -exec dos2unix {} \;
-	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	#find target -type f -exec dos2unix {} \;
+	cd target
+	mkdir -p $(INSTALL_DIR)
+	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	$(RM) -r target
 
 

@@ -19,7 +19,9 @@ CONTROLLER   = controller.so
 CFLAGS += -DVERSION=\"$(VER)-$(BUILD_NUMBER)\" -DREVISION=\"$(REVISION)\"
 export CFLAGS
 
-all: $(CONTROLLERHF) $(CONTROLLER)
+#all: $(CONTROLLERHF) $(CONTROLLER)
+
+all: $(CONTROLLERHF)
 
 $(CONTROLLERHF):
 	$(MAKE) -C src clean
@@ -29,17 +31,22 @@ $(CONTROLLER):
 	$(MAKE) -C src clean
 	$(MAKE) -C src OUT_NAME=$(CONTROLLER) CROSS_COMPILE=arm-linux-gnueabi-
 
-zip: $(CONTROLLERHF) $(CONTROLLER)
-	-$(RM) target -rf
+#zip: $(CONTROLLERHF) $(CONTROLLER)
+
+zip: $(CONTROLLERHF)
+	-$(RM) -r target
 	mkdir -p target/$(APP)
-	cp -r $(CONTROLLERHF) $(CONTROLLER) fpga.conf info index.html target/$(APP)
+	#cp -r $(CONTROLLERHF) $(CONTROLLER) fpga.conf info index.html target/$(APP)
+	cp -r $(CONTROLLERHF) fpga.conf info index.html target/$(APP)
 	touch target/$(APP)/fpga.bit
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
-	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
-	$(RM) target -rf
+	cd target
+	mkdir -p $(INSTALL_DIR)
+	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	$(RM) -r target
 
 clean:
 	$(MAKE) -C src clean
-	-$(RM) target -rf
+	-$(RM) -r target
 	-$(RM) *.so

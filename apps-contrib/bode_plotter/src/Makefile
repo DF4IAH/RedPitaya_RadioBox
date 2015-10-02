@@ -16,7 +16,9 @@ OUT_NAME  ?= controllerhf.so
 OUT_DIR   = ..
 C_OUT_NAME= $(OUT_DIR)/$(OUT_NAME)
 
+
 all: make_c_app
+
 clean: clean_c_app
 
 make_c_app: $(OBJECTS)

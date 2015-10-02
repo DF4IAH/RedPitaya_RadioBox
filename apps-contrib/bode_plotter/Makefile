@@ -14,7 +14,9 @@ VER:=$(shell cat info/info.json | grep version | sed -e 's/.*:\ *\"//' | sed -e 
 CONTROLLER   = controller.so
 CONTROLLERHF = controllerhf.so
 
-all: $(CONTROLLER) $(CONTROLLERHF)
+#all: $(CONTROLLER) $(CONTROLLERHF)
+
+all: $(CONTROLLERHF)
 
 $(CONTROLLER):
 	$(MAKE) -C src clean
@@ -24,16 +26,20 @@ $(CONTROLLERHF):
 	$(MAKE) -C src clean
 	$(MAKE) -C src all OUT_NAME=$(CONTROLLERHF)
 
-zip: $(CONTROLLER) $(CONTROLLERHF)
-	-$(RM) target -rf
+#zip: $(CONTROLLER) $(CONTROLLERHF)
+
+zip: $(CONTROLLERHF)
+	-$(RM) target -r
 	mkdir -p target/$(APP)
-	cp -r $(CONTROLLER) $(CONTROLLERHF) fpga.conf info index.html Makefile target/$(APP)
+	#cp -r $(CONTROLLER) $(CONTROLLERHF) fpga.conf info index.html Makefile target/$(APP)
+	cp -r $(CONTROLLERHF) fpga.conf info index.html Makefile target/$(APP)
 	$(MAKE) -C src clean
-	cp -r src target/$(APP)
-	cd target; zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
-	-$(RM) target -rf
+	cd target
+	mkdir -p $(INSTALL_DIR)
+	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	-$(RM) -r target
 
 clean:
 	$(MAKE) -C src clean
-	-$(RM) target -rf
+	-$(RM) -r target
 	-$(RM) *.so
