@@ -51,10 +51,10 @@
 					<li><a id="" href="#" data-toggle="modal" data-target="#myModal">CALIBRATION</a></li>
 				  </ul>
 			  </li>				  
-              <li><a id="OSC_AUTOSCALE" href="#" style="padding-left: 23px; white-space: nowrap;">AUTO SCALE</a></li>
+              <li><a id="RB_AUTRBALE" href="#" style="padding-left: 23px; white-space: nowrap;">AUTO SCALE</a></li>
               <li>
-                <a id="OSC_RUN" href="#" style="">RUN</a>
-                <a id="OSC_STOP" href="#" style="display:none;">STOP</a>
+                <a id="RB_RUN" href="#" style="">RUN</a>
+                <a id="RB_STOP" href="#" style="display:none;">STOP</a>
               </li>
             </ul>
           </div>
@@ -170,7 +170,7 @@
           <div class="col-xs-12 option-content">
             <span class="col-info">Probe attenuation</span>
             <div class="right-menu-option">
-              <select id="OSC_CH1_PROBE" class="form-control styled-select">
+              <select id="RB_CH1_PROBE" class="form-control styled-select">
                 <option>1</option>
                 <option selected>10</option>
                 <option>100</option>
@@ -182,19 +182,19 @@
             <div class="right-menu-option" id="ch1_meas_range">- V</div>
           </div -->
           <div class="col-xs-12 option-content">
-            <div class="col-info">Vertical offset / <span id="OSC_CH1_OFFSET_UNIT">V</span></div>
+            <div class="col-info">Vertical offset / <span id="RB_CH1_OFFSET_UNIT">V</span></div>
             <div class="right-menu-option">
-              <input id="OSC_CH1_OFFSET" class="setfield input-number" type="text" value="0.0000" step="0.0010" min="-40.0000" max="40.0000">
+              <input id="RB_CH1_OFFSET" class="setfield input-number" type="text" value="0.0000" step="0.0010" min="-40.0000" max="40.0000">
             </div>
           </div>
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn">
-                  <input type="radio" value="0" name="OSC_CH1_IN_GAIN" id="OSC_CH1_IN_GAIN" autocomplete="off">LV
+                  <input type="radio" value="0" name="RB_CH1_IN_GAIN" id="RB_CH1_IN_GAIN" autocomplete="off">LV
                 </label>
                 <label class="btn">
-                  <input type="radio" value="1" name="OSC_CH1_IN_GAIN" id="OSC_CH1_IN_GAIN1" autocomplete="off">HV
+                  <input type="radio" value="1" name="RB_CH1_IN_GAIN" id="RB_CH1_IN_GAIN1" autocomplete="off">HV
                 </label>
               </div>  
             </div>
@@ -221,7 +221,7 @@
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
               <span class="col-info">Probe attenuation</span>
-              <select id="OSC_CH2_PROBE" class="form-control styled-select">
+              <select id="RB_CH2_PROBE" class="form-control styled-select">
                 <option>1</option>
                 <option selected>10</option>
                 <option>100</option>
@@ -233,19 +233,19 @@
             <div class="right-menu-option" id="ch2_meas_range">- V</div>
           </div -->
           <div class="col-xs-12 option-content">
-            <div class="col-info">Vertical offset / <span id="OSC_CH2_OFFSET_UNIT">V</span></div>
+            <div class="col-info">Vertical offset / <span id="RB_CH2_OFFSET_UNIT">V</span></div>
             <div class="right-menu-option">
-              <input id="OSC_CH2_OFFSET" class="setfield input-number" type="text" value="0.0000" step="0.0010" min="-40.0000" max="40.0000">
+              <input id="RB_CH2_OFFSET" class="setfield input-number" type="text" value="0.0000" step="0.0010" min="-40.0000" max="40.0000">
             </div>
           </div>
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn">
-                  <input type="radio" value="0" id="OSC_CH2_IN_GAIN" name="OSC_CH2_IN_GAIN" autocomplete="off">LV
+                  <input type="radio" value="0" id="RB_CH2_IN_GAIN" name="RB_CH2_IN_GAIN" autocomplete="off">LV
                 </label>
                 <label class="btn">
-                  <input type="radio" value="1" id="OSC_CH2_IN_GAIN1" name="OSC_CH2_IN_GAIN" autocomplete="off">HV
+                  <input type="radio" value="1" id="RB_CH2_IN_GAIN1" name="RB_CH2_IN_GAIN" autocomplete="off">HV
                 </label>
               </div>
             </div>
@@ -427,10 +427,10 @@
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn">
                   <span class="col-info-activ">Signal1</span>
-                  <input type="radio" value="0" name="OSC_MATH_SRC1" id="OSC_MATH_SRC1" autocomplete="off">IN1
+                  <input type="radio" value="0" name="RB_MATH_SRC1" id="RB_MATH_SRC1" autocomplete="off">IN1
                 </label>
                 <label class="btn">
-                  <input type="radio" value="1" name="OSC_MATH_SRC1" id="OSC_MATH_SRC12" autocomplete="off">IN2
+                  <input type="radio" value="1" name="RB_MATH_SRC1" id="RB_MATH_SRC12" autocomplete="off">IN2
                 </label>
               </div>
             </div>
@@ -438,7 +438,7 @@
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
               <span class="col-info">Operator</span>
-              <select class="form-control styled-select" id="OSC_MATH_OP">
+              <select class="form-control styled-select" id="RB_MATH_OP">
                 <option value="1">+</option>
                 <option value="2">-</option>
                 <option value="3">*</option>
@@ -453,18 +453,18 @@
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn math-radio-btn">
                   <span class="col-info-activ">Signal2</span>
-                  <input type="radio" value="0" name="OSC_MATH_SRC2" id="OSC_MATH_SRC2" autocomplete="off">IN1
+                  <input type="radio" value="0" name="RB_MATH_SRC2" id="RB_MATH_SRC2" autocomplete="off">IN1
                 </label>
                 <label class="btn math-radio-btn">
-                  <input type="radio" value="1" name="OSC_MATH_SRC2" id="OSC_MATH_SRC22" autocomplete="off">IN2
+                  <input type="radio" value="1" name="RB_MATH_SRC2" id="RB_MATH_SRC22" autocomplete="off">IN2
                 </label>
               </div>
             </div>
           </div>
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
-              <div class="col-info">Vertical offset / <span id="OSC_MATH_OFFSET_UNIT">V</span></div>
-              <input class="setfield input-number" id="OSC_MATH_OFFSET" type="text" value="0.000" step="0.001" min="-40.000" max="40.000">
+              <div class="col-info">Vertical offset / <span id="RB_MATH_OFFSET_UNIT">V</span></div>
+              <input class="setfield input-number" id="RB_MATH_OFFSET" type="text" value="0.000" step="0.001" min="-40.000" max="40.000">
             </div>
           </div>
         </div>
@@ -481,13 +481,13 @@
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn">
                   <span class="col-info-activ">Source</span>
-                  <input type="radio" value="0" name="OSC_TRIG_SOURCE" id="OSC_TRIG_SOURCE" autocomplete="off">IN1
+                  <input type="radio" value="0" name="RB_TRIG_SOURCE" id="RB_TRIG_SOURCE" autocomplete="off">IN1
                 </label>
                 <label class="btn">
-                  <input type="radio" value="1" name="OSC_TRIG_SOURCE" id="OSC_TRIG_SOURCE2" autocomplete="off">IN2
+                  <input type="radio" value="1" name="RB_TRIG_SOURCE" id="RB_TRIG_SOURCE2" autocomplete="off">IN2
                 </label>
                 <label class="btn">
-                  <input type="radio" value="2" name="OSC_TRIG_SOURCE" id="OSC_TRIG_SOURCE3" autocomplete="off">EXT
+                  <input type="radio" value="2" name="RB_TRIG_SOURCE" id="RB_TRIG_SOURCE3" autocomplete="off">EXT
                 </label>
               </div>
             </div>
@@ -497,11 +497,11 @@
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label id="edge1" class="btn active">
                   <span class="col-info-activ">Edge</span>
-                  <input type="radio" value="1" name="OSC_TRIG_SLOPE" id="OSC_TRIG_SLOPE" autocomplete="off" checked>
+                  <input type="radio" value="1" name="RB_TRIG_SLOPE" id="RB_TRIG_SLOPE" autocomplete="off" checked>
                   <img src="img/edge1_active.png">
                 </label>
                 <label id="edge2" class="btn">
-                  <input type="radio" value="0" name="OSC_TRIG_SLOPE" id="OSC_TRIG_SLOPE1" autocomplete="off">
+                  <input type="radio" value="0" name="RB_TRIG_SLOPE" id="RB_TRIG_SLOPE1" autocomplete="off">
                   <img src="img/edge2.png">
                 </label>
               </div>
@@ -510,7 +510,7 @@
           <div class="col-xs-12 option-content">
             <div class="right-menu-option">
               <span class="col-info">Level / V</span>
-              <input id="OSC_TRIG_LEVEL" class="setfield input-number" type="text" value="0.000" step="0.001" min="-1" max="1">
+              <input id="RB_TRIG_LEVEL" class="setfield input-number" type="text" value="0.000" step="0.001" min="-1" max="1">
             </div>
           </div>
           
@@ -518,13 +518,13 @@
             <span class="col-info">Mode</span>
             <div class="btn-group btn-group-vertical" data-toggle="buttons">
               <label class="btn active" style="box-shadow: 0px 0px 0px;">
-                <input type="radio" value="0" name="OSC_TRIG_SWEEP" id="OSC_TRIG_SWEEP" autocomplete="off" checked>AUTO
+                <input type="radio" value="0" name="RB_TRIG_SWEEP" id="RB_TRIG_SWEEP" autocomplete="off" checked>AUTO
               </label>
               <label class="btn" style="box-shadow: 0px 0px 0px;">
-                <input type="radio" value="1" name="OSC_TRIG_SWEEP" id="OSC_TRIG_SWEEP1" autocomplete="off">NORMAL
+                <input type="radio" value="1" name="RB_TRIG_SWEEP" id="RB_TRIG_SWEEP1" autocomplete="off">NORMAL
               </label>
               <label class="btn" style="border-radius: 0px;box-shadow: 0px 0px 0px;">
-                <input type="radio" value="2" name="OSC_TRIG_SWEEP" id="OSC_TRIG_SWEEP2" autocomplete="off">SINGLE
+                <input type="radio" value="2" name="RB_TRIG_SWEEP" id="RB_TRIG_SWEEP2" autocomplete="off">SINGLE
               </label>
             </div>
           </div>
@@ -587,22 +587,22 @@
           
           <div class="col-xs-6 option-content">
             <div class="right-menu-option">
-              <button id="OSC_CURSOR_X1" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">X1</button>
+              <button id="RB_CURSOR_X1" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">X1</button>
             </div>
           </div>
           <div class="col-xs-6 option-content">
             <div class="right-menu-option">
-              <button id="OSC_CURSOR_X2" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">X2</button>
+              <button id="RB_CURSOR_X2" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">X2</button>
             </div>
           </div>
           <div class="col-xs-6 option-content">
             <div class="right-menu-option">
-              <button id="OSC_CURSOR_Y1" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">Y1</button>
+              <button id="RB_CURSOR_Y1" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">Y1</button>
             </div>
           </div>
           <div class="col-xs-6 option-content">
             <div class="right-menu-option">
-              <button id="OSC_CURSOR_Y2" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">Y2</button>
+              <button id="RB_CURSOR_Y2" type="button" class="btn" data-toggle="button" aria-pressed="false" autocomplete="off">Y2</button>
             </div>
           </div>
           <div class="col-xs-12 option-content">
@@ -614,13 +614,13 @@
             <div class="right-menu-option">
               <div class="btn-group btn-group-justified" data-toggle="buttons">
                 <label class="btn">
-                  <input type="radio" name="OSC_CURSOR_SRC" id="OSC_CURSOR_SRC" value="0" autocomplete="off">IN1
+                  <input type="radio" name="RB_CURSOR_SRC" id="RB_CURSOR_SRC" value="0" autocomplete="off">IN1
                 </label>
                 <label class="btn">
-                  <input type="radio" name="OSC_CURSOR_SRC" id="OSC_CURSOR_SRC1" value="1" autocomplete="off">IN2
+                  <input type="radio" name="RB_CURSOR_SRC" id="RB_CURSOR_SRC1" value="1" autocomplete="off">IN2
                 </label>
                 <label class="btn">
-                  <input type="radio" name="OSC_CURSOR_SRC" id="OSC_CURSOR_SRC2" value="2" autocomplete="off">MATH
+                  <input type="radio" name="RB_CURSOR_SRC" id="RB_CURSOR_SRC2" value="2" autocomplete="off">MATH
                 </label>
               </div>
             </div>
@@ -683,25 +683,25 @@
               <div class="math">MATH</div>
             </div>
             <div class="info-value">
-              <div class="ch1"><span id="OSC_CH1_SCALE">-</span>/div</div>
-              <div class="ch2"><span id="OSC_CH2_SCALE">-</span>/div</div>
+              <div class="ch1"><span id="RB_CH1_SCALE">-</span>/div</div>
+              <div class="ch2"><span id="RB_CH2_SCALE">-</span>/div</div>
               <div class="output1"><span id="SOUR1_VOLT_info">-</span>/div</div>
               <div class="output2"><span id="SOUR2_VOLT_info">-</span>/div</div>
               <div class="math">
-				  <span id="OSC_MATH_SCALE">1</span>
+				  <span id="RB_MATH_SCALE">1</span>
 				  <span id="munit">/div</span>
 			  </div>
             </div>
           </div>
           <div id="info-meas" style="position: absolute; left: 200px;"></div>
           <div class="pull-right">
-            Time <span id="OSC_TIME_SCALE">-</span>/div <br />
+            Time <span id="RB_TIME_SCALE">-</span>/div <br />
             Trig 
             <img id="osc_trig_edge_img" src="img/dummy.png"> 
             <span id="osc_trig_source_ch"></span> 
             <span id="osc_trig_level_info">-</span><br />
-            <img src="img/time-offset-info.png"> <span id="OSC_TIME_OFFSET">-</span><br />
-            <span id="OSC_SAMPL_RATE"></span>
+            <img src="img/time-offset-info.png"> <span id="RB_TIME_OFFSET">-</span><br />
+            <span id="RB_SAMPL_RATE"></span>
           </div>
           <div id="triginfo" style="color: green; display:none;">TEXT</div>    
         </div>   
@@ -801,57 +801,57 @@ $('#calib-input').change(function() {
 
 <script>
 	function updateLimits(){
-		{ // OSC_CH1_OFFSET limits
-			var probeAttenuation = parseInt($("#OSC_CH1_PROBE option:selected").text());
-			var jumperSettings = $("#OSC_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-			var units = $('#OSC_CH1_OFFSET_UNIT').html();
+		{ // RB_CH1_OFFSET limits
+			var probeAttenuation = parseInt($("#RB_CH1_PROBE option:selected").text());
+			var jumperSettings = $("#RB_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+			var units = $('#RB_CH1_OFFSET_UNIT').html();
 			var multiplier = units == "mV" ? 1000 : 1;
 			var newMin = -1 * 10 * jumperSettings * probeAttenuation * multiplier;
 			var newMax =  1 * 10 * jumperSettings * probeAttenuation * multiplier;
-			$("#OSC_CH1_OFFSET").attr("min", newMin);
-			$("#OSC_CH1_OFFSET").attr("max", newMax);
+			$("#RB_CH1_OFFSET").attr("min", newMin);
+			$("#RB_CH1_OFFSET").attr("max", newMax);
 		}
 		
-		{ // OSC_CH2_OFFSET limits
-			var probeAtt1 = parseInt($("#OSC_CH2_PROBE option:selected").text());
-			var jumperSettings1 = $("#OSC_CH2_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-			var units = $('#OSC_CH2_OFFSET_UNIT').html();
+		{ // RB_CH2_OFFSET limits
+			var probeAtt1 = parseInt($("#RB_CH2_PROBE option:selected").text());
+			var jumperSettings1 = $("#RB_CH2_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+			var units = $('#RB_CH2_OFFSET_UNIT').html();
 			var multiplier = units == "mV" ? 1000 : 1;
 			var newMin = -1 * 10 * jumperSettings1 * probeAtt1 * multiplier;
 			var newMax =  1 * 10 * jumperSettings1 * probeAtt1 * multiplier;
-			$("#OSC_CH2_OFFSET").attr("min", newMin);
-			$("#OSC_CH2_OFFSET").attr("max", newMax);
+			$("#RB_CH2_OFFSET").attr("min", newMin);
+			$("#RB_CH2_OFFSET").attr("max", newMax);
 		} 
 		
-		{ // OSC_MATH_OFFSET limits
-			var scale_val = $("#OSC_MATH_SCALE").text();
+		{ // RB_MATH_OFFSET limits
+			var scale_val = $("#RB_MATH_SCALE").text();
 			var math_vdiv = parseFloat(scale_val);
 			var newMin = -1 * 5 * math_vdiv;
 			var newMax =  1 * 5 * math_vdiv;
-			$("#OSC_MATH_OFFSET").attr("min", newMin);
-			$("#OSC_MATH_OFFSET").attr("max", newMax);
+			$("#RB_MATH_OFFSET").attr("min", newMin);
+			$("#RB_MATH_OFFSET").attr("max", newMax);
 		}
 		
-		{ // OSC_TRIG_LEVEL_OFFSET limits
+		{ // RB_TRIG_LEVEL_OFFSET limits
 			var ch="";
-			if($("#OSC_TRIG_SOURCE").parent().hasClass("active"))
+			if($("#RB_TRIG_SOURCE").parent().hasClass("active"))
 				ch="CH1";
-			else if ($("#OSC_TRIG_SOURCE2").parent().hasClass("active"))
+			else if ($("#RB_TRIG_SOURCE2").parent().hasClass("active"))
 				ch="CH2";
 			else
 			{
-				$("#OSC_TRIG_LEVEL").attr("min", -3.3);
-				$("#OSC_TRIG_LEVEL").attr("max",  3.3);
+				$("#RB_TRIG_LEVEL").attr("min", -3.3);
+				$("#RB_TRIG_LEVEL").attr("max",  3.3);
 				return;
 			}
 			
-			var probeAttenuation = parseInt($("#OSC_"+ch+"_PROBE option:selected").text());
-			var jumperSettings = $("#OSC_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+			var probeAttenuation = parseInt($("#RB_"+ch+"_PROBE option:selected").text());
+			var jumperSettings = $("#RB_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
 			
 			var newMin = -1 * jumperSettings * probeAttenuation ;
 			var newMax =  1 * jumperSettings * probeAttenuation ;
 			
-			var trig_lvl = $("#OSC_TRIG_LEVEL");
+			var trig_lvl = $("#RB_TRIG_LEVEL");
 			trig_lvl.attr("min", newMin);
 			trig_lvl.attr("max", newMax);
 		}
@@ -894,26 +894,26 @@ $('#calib-input').change(function() {
 	}
 
 	function formatVals(){
-		{ // OSC_CH1_OFFSET 
-			var probeAttenuation = parseInt($("#OSC_CH1_PROBE option:selected").text());
-			var jumperSettings = $("#OSC_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-			var units = $('#OSC_CH1_OFFSET_UNIT').html();
+		{ // RB_CH1_OFFSET 
+			var probeAttenuation = parseInt($("#RB_CH1_PROBE option:selected").text());
+			var jumperSettings = $("#RB_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+			var units = $('#RB_CH1_OFFSET_UNIT').html();
 			var multiplier = units == "mV" ? 1000 : 1;
-			var in1_value = parseFloat($("#OSC_CH1_OFFSET").val());
-			$("#OSC_CH1_OFFSET").val(formatInputValue(in1_value, probeAttenuation, units=="mV", jumperSettings == 20));	
+			var in1_value = parseFloat($("#RB_CH1_OFFSET").val());
+			$("#RB_CH1_OFFSET").val(formatInputValue(in1_value, probeAttenuation, units=="mV", jumperSettings == 20));	
 		}
 		
-		{ // OSC_CH2_OFFSET 
-			var probeAtt1 = parseInt($("#OSC_CH2_PROBE option:selected").text());
-			var jumperSettings1 = $("#OSC_CH2_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-			var units = $('#OSC_CH2_OFFSET_UNIT').html();
+		{ // RB_CH2_OFFSET 
+			var probeAtt1 = parseInt($("#RB_CH2_PROBE option:selected").text());
+			var jumperSettings1 = $("#RB_CH2_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+			var units = $('#RB_CH2_OFFSET_UNIT').html();
 			var multiplier = units == "mV" ? 1000 : 1;
-			var in2_value = parseFloat($("#OSC_CH2_OFFSET").val());
-			$("#OSC_CH2_OFFSET").val(formatInputValue(in2_value, probeAtt1, units=="mV", jumperSettings1 == 20));	
+			var in2_value = parseFloat($("#RB_CH2_OFFSET").val());
+			$("#RB_CH2_OFFSET").val(formatInputValue(in2_value, probeAtt1, units=="mV", jumperSettings1 == 20));	
 		} 
 		
-		{ // OSC_MATH_OFFSET 
-			var scale_val = $("#OSC_MATH_SCALE").text();
+		{ // RB_MATH_OFFSET 
+			var scale_val = $("#RB_MATH_SCALE").text();
 			var units = $("#munit").text();
 			var math_vdiv = parseFloat(scale_val);
 			
@@ -923,17 +923,17 @@ $('#calib-input').change(function() {
 				precision = 0;
 			if(math_vdiv < 1)
 				precision = 3;
-			var math_value = parseFloat($("#OSC_MATH_OFFSET").val());			
-			$("#OSC_MATH_OFFSET").val(math_value.toFixed(precision));
+			var math_value = parseFloat($("#RB_MATH_OFFSET").val());			
+			$("#RB_MATH_OFFSET").val(math_value.toFixed(precision));
 		}
 		
-		{ // OSC_TRIG_LEVEL_OFFSET
+		{ // RB_TRIG_LEVEL_OFFSET
 			var probeAttenuation = 1;
 			var jumperSettings = 1;
 			var ch="";
-			if($("#OSC_TRIG_SOURCE").parent().hasClass("active"))
+			if($("#RB_TRIG_SOURCE").parent().hasClass("active"))
 				ch="CH1";
-			else if ($("OSC_TRIG_SOURCE2").parent().hasClass("actie"))
+			else if ($("RB_TRIG_SOURCE2").parent().hasClass("actie"))
 				ch="CH2";
 			else
 			{
@@ -942,12 +942,12 @@ $('#calib-input').change(function() {
 			
 			if (ch == "CH1" || ch == "CH2")
 			{
-				probeAttenuation = parseInt($("#OSC_"+ch+"_PROBE option:selected").text());
-				jumperSettings = $("#OSC_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+				probeAttenuation = parseInt($("#RB_"+ch+"_PROBE option:selected").text());
+				jumperSettings = $("#RB_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
 			}
 			
-			var trig_value = parseFloat($("#OSC_TRIG_LEVEL").val());
-			$("#OSC_TRIG_LEVEL").val(formatInputValue(trig_value, probeAttenuation, false, jumperSettings == 20));	
+			var trig_value = parseFloat($("#RB_TRIG_LEVEL").val());
+			$("#RB_TRIG_LEVEL").val(formatInputValue(trig_value, probeAttenuation, false, jumperSettings == 20));	
 		}
 		
 				
@@ -963,15 +963,15 @@ $('#calib-input').change(function() {
 			$("SOUR2_PHAS").val(SOUR2_PHAS.toFixed(1));
 		}
 	}
-	$('#OSC_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function(){
+	$('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function(){
 		updateLimits();
 		formatVals();
 	});
-	$('#OSC_CH2_OFFSET_UNIT').bind("DOMSubtreeModified",function(){
+	$('#RB_CH2_OFFSET_UNIT').bind("DOMSubtreeModified",function(){
 		updateLimits();
 		formatVals();
 	});	
-	$("#OSC_MATH_SCALE").bind("DOMSubtreeModified",function(){
+	$("#RB_MATH_SCALE").bind("DOMSubtreeModified",function(){
 		updateLimits();
 		formatVals();
 	});
@@ -982,7 +982,7 @@ $('#calib-input').change(function() {
 			formatVals();
 		}, 20);
 	});
-	$("#OSC_CH1_PROBE").change(function() {
+	$("#RB_CH1_PROBE").change(function() {
 		updateLimits();
 	});
 	
@@ -1097,7 +1097,7 @@ $('#calib-input').change(function() {
 
             function changeInputsVal(input, newValue){
                 input.val(newValue);
-				OSC.exitEditing(true);
+				RB.exitEditing(true);
             }
 
             function checkInputAttr(input) {
@@ -1110,17 +1110,17 @@ $('#calib-input').change(function() {
                 }
                 if (input.attr('step')) {
                     step = parseFloat(input.attr('step'));
-					if (['OSC_CH1_OFFSET', 'OSC_CH2_OFFSET'].indexOf(input.attr('id')) != -1) {
+					if (['RB_CH1_OFFSET', 'RB_CH2_OFFSET'].indexOf(input.attr('id')) != -1) {
 					
 						var ch = "";
-						if  (input.attr('id') == "OSC_CH1_OFFSET")
+						if  (input.attr('id') == "RB_CH1_OFFSET")
 							ch = "CH1";
 						else 
 							ch = "CH2";
 							
-						var probeAttenuation = parseInt($("#OSC_"+ch+"_PROBE option:selected").text());
-						var jumperSettings = $("#OSC_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-						var units = $('#OSC_'+ch+'_OFFSET_UNIT').html();
+						var probeAttenuation = parseInt($("#RB_"+ch+"_PROBE option:selected").text());
+						var jumperSettings = $("#RB_"+ch+"_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+						var units = $('#RB_'+ch+'_OFFSET_UNIT').html();
 						var multiplier = units == "mV" ? 1000 : 1;
 						
 						if (multiplier == 1000)
@@ -1157,11 +1157,11 @@ $('#calib-input').change(function() {
 							}
 						}
 					}
-					if (['OSC_MATH_OFFSET'].indexOf(input.attr('id')) != -1) {
+					if (['RB_MATH_OFFSET'].indexOf(input.attr('id')) != -1) {
 					
-						var unit_holder = $('#OSC_MATH_OFFSET_UNIT');
+						var unit_holder = $('#RB_MATH_OFFSET_UNIT');
 						var unit = unit_holder.html().charAt(0);
-						var scale_val = $("#OSC_MATH_SCALE").text();
+						var scale_val = $("#RB_MATH_SCALE").text();
 						var math_vdiv = parseFloat(scale_val);
 						step = math_vdiv / 100;
 					}
