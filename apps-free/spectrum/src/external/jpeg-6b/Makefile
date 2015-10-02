@@ -20,10 +20,10 @@ manext = 1
 mandir = $(prefix)/man/man$(manext)
 
 # The name of your C compiler:
-CC= gcc
+CC= $(CROSS_COMPILE)gcc
 
 # You may need to adjust these cc options:
-CFLAGS= -O2  -I$(srcdir)
+CFLAGS= -O2  -I$(srcdir) -fPIC
 # Generally, we recommend defining any configuration symbols in jconfig.h,
 # NOT via -D switches here.
 # However, any special defines for ansi2knr.c may be included here:
@@ -60,9 +60,9 @@ RM= rm -f
 # directory creation command
 MKDIR= mkdir
 # library (.a) file creation command
-AR= ar rc
+AR= $(CROSS_COMPILE)ar rc
 # second step in .a creation (use "touch" if not needed)
-AR2= ranlib
+AR2= $(CROSS_COMPILE)ranlib
 # installation program
 INSTALL= /usr/bin/install -c
 INSTALL_PROGRAM= ${INSTALL}
