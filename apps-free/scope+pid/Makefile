@@ -44,9 +44,7 @@ zip: $(CONTROLLERHF)
 	touch target/$(APP)/fpga.bit
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
-	cd target
-	mkdir -p $(INSTALL_DIR)
-	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	cd target; mkdir -p $(INSTALL_DIR); zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	$(RM) -r target
 
 clean:

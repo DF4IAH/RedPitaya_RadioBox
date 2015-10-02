@@ -37,9 +37,7 @@ zip: $(CONTROLLERHF)
 	cp -r $(CONTROLLERHF) fpga.conf info index.html Makefile target/$(APP)
 	-$(MAKE) -C src clean
 	cp -r src target/$(APP)
-	cd target
-	mkdir -p $(INSTALL_DIR)
-	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	cd target; mkdir -p $(INSTALL_DIR); zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	-$(RM) -r target
 
 clean:

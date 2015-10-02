@@ -71,9 +71,7 @@ zip: $(CONTROLLERHF) $(PDF)
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
 	sed -i target/$(APP)/info/info.json -e 's/BUILD_NUMBER/$(BUILD_NUMBER)/'
 	#find target -type f -exec dos2unix {} \;
-	cd target
-	mkdir -p $(INSTALL_DIR)
-	zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
+	cd target; mkdir -p $(INSTALL_DIR); zip -r $(INSTALL_DIR)/$(APP)-$(VER)-$(BUILD_NUMBER)-$(REVISION).zip *
 	$(RM) -r target
 
 
