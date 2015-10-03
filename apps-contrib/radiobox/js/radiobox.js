@@ -1,7 +1,7 @@
 /*
  * Red Pitaya RadioBox client
  *
- * Author: Ulrich Habel (DF4IAH) <espero@gmx.net>
+ * Author: Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *         
  * (c) Red Pitaya  http://www.redpitaya.com
  *
