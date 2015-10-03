@@ -1709,7 +1709,7 @@ value = field.val();
 			var ch="";
 			if($("#OSC_TRIG_SOURCE").parent().hasClass("active"))
 				ch="CH1";
-			else if ($("OSC_TRIG_SOURCE2").parent().hasClass("actie"))
+			else if ($("OSC_TRIG_SOURCE2").parent().hasClass("active"))
 				ch="CH2";
 			else
 			{
