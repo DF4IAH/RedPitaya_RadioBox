@@ -1,0 +1,18 @@
+.navbar-radiobox {
+}
+
+
+#OSC_RUN, #OSC_RUN:hover
+{
+  color: #31b44b;
+}
+
+#OSC_STOP, #OSC_STOP:hover
+{
+  display: none;
+  color: #ee3739;
+}
+
+#osc_trig_edge_img {
+  margin: -2px 0 0;
+}

@@ -147,17 +147,6 @@ area:hover {
   color: #E5D5D5;
 }
 
-#OSC_RUN, #OSC_RUN:hover
-{
-  color: #31b44b;
-}
-
-#OSC_STOP, #OSC_STOP:hover
-{
-  display: none;
-  color: #ee3739;
-}
-
 .navbar {
   border-radius: 0px;
   background-color: #343433;
@@ -563,10 +552,6 @@ area:hover {
 #time_offset_arrow {
   margin-top: 0;
   display: inline;
-}
-
-#osc_trig_edge_img {
-  margin: -2px 0 0;
 }
 
 .hline {
