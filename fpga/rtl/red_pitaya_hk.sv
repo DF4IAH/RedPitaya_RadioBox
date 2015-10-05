@@ -58,22 +58,6 @@ module red_pitaya_hk #(
 
 //---------------------------------------------------------------------------------
 //
-//  Testing logic
-
-// LED blinking
-reg  [26:0] led_cnt;
-
-always @(posedge clk_i)
-if (rstn_i == 1'b0) begin
-   led_o[0] <=  1'b0;
-   led_cnt  <= 32'h0;
-end else begin
-   led_o[0] <= led_cnt[26];
-   led_cnt  <= led_cnt + 32'h1;
-end
-
-//---------------------------------------------------------------------------------
-//
 //  Read device DNA
 
 wire           dna_dout ;
@@ -125,31 +109,13 @@ wire [32-1: 0] id_value;
 assign id_value[31: 4] = 28'h0; // reserved
 assign id_value[ 3: 0] =  4'h1; // board type   1 - release 1
 
-/* GIT FPGA SHA1 identification
- *
- * 1) get the last checkin SHA1 from GIT below of the FPGA directory:
- *    GIT_SHA1=`git log -n1 --pretty=format:%H -- fpga | cut -b 1-8`
- * 2) assign that GIT_SHA1 value to  id_git_sha1  below.
- * 3) compile the FPGA and commit that change(s) of the FPGA source(s).
- * 4) for controller.so compilation store this SHA1 as well as the CRC32
- *    of the resulting fpga.bit file in its sources.
- * 5) each controller.so checks at start-up for its stored SHA1 against
- *    the current fpga configuration. In case of difference the local
- *    fpga.bit file has to be CRC32 checked against its stored value and
- *    if compares OK that fpga.bit file is pushed to the /dev/xdevcfg device
- *    for setting that new FPGA configuration.
- */
-wire [32-1: 0] id_git_sha1;
-assign id_git_sha1 = /*GIT_SHA1*/ 32'h6e698a0f;
-
-
 //---------------------------------------------------------------------------------
 //
 //  System bus connection
 
 always @(posedge clk_i)
 if (rstn_i == 1'b0) begin
-  led_o[DWL-1:1] <= {DWL-1{1'b0}};
+  led_o        <= {DWL{1'b0}};
   exp_p_dat_o  <= {DWE{1'b0}};
   exp_p_dir_o  <= {DWE{1'b0}};
   exp_n_dat_o  <= {DWE{1'b0}};
@@ -162,7 +128,7 @@ end else if (sys_wen) begin
   if (sys_addr[19:0]==20'h18)   exp_p_dat_o  <= sys_wdata[DWE-1:0];
   if (sys_addr[19:0]==20'h1C)   exp_n_dat_o  <= sys_wdata[DWE-1:0];
 
-  if (sys_addr[19:0]==20'h30)   led_o[DWL-1:1]<= sys_wdata[DWL-1:1];
+  if (sys_addr[19:0]==20'h30)   led_o        <= sys_wdata[DWL-1:0];
 end
 
 wire sys_en;
@@ -188,9 +154,7 @@ end else begin
     20'h00020: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWE{1'b0}}, exp_p_dat_i}       ; end
     20'h00024: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWE{1'b0}}, exp_n_dat_i}       ; end
 
-    20'h00030: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWL{1'b0}}, led_o[DWL-1:1], 1'b0}; end
-
-    20'h00100: begin sys_ack <= sys_en;  sys_rdata <= {                id_git_sha1       }; end
+    20'h00030: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWL{1'b0}}, led_o[DWL-1:0]}    ; end
 
       default: begin sys_ack <= sys_en;  sys_rdata <=  32'h0                              ; end
   endcase
