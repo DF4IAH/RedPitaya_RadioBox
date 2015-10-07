@@ -40,6 +40,8 @@
   RB.state = {
     app_started: false,
     socket_opened: false,
+    sending: false,
+    send_que: false,
     processing: false,
     editing: false,
     resized: false,
@@ -49,10 +51,20 @@
   RB.params = {
     orig: {},
     local: {},
-    dflt: {}
+    init: {}
   };
-  RB.params.dflt = {
-    en_avg_at_dec: 0
+  RB.params.init = {
+    osc1_qrg_i: { value: 0 },
+    osc1_amp_i: { value: 0 },
+    osc1_modsrc: { value: 0 },
+    osc1_modtyp_s: { value: 0 },
+    osc2_qrg_i: { value: 0 },
+    osc1_amp_i: { value: 0 },
+
+    rb_add_a_i: { value: 0 },  // TODO: remove me
+    rb_add_b_i: { value: 0 },  // TODO: remove me
+
+    'in_command': { value: 'send_all_params' }
   };
 
 
@@ -70,11 +82,11 @@
     )
     .done(function(dresult) {
       if (dresult.status == 'OK') {
-        RB.connectAjaxCom();
+        RB.ac();
         //RB.connectWebSocket();
       }
       else if (dresult.status == 'ERROR') {
-        console.log(dresult.reason ? dresult.reason : 'Failjure returned when connecting the web-server - can not start the application (ERR1)');
+        console.log(dresult.reason ? dresult.reason : 'Failure returned when connecting the web-server - can not start the application (ERR1)');
       }
       else {
         console.log('Unknown connection state - can not start the application (ERR2)');
@@ -85,25 +97,25 @@
     });
   };
 
-  // Creates an Ajax Communication end-point
-  RB.connectAjaxCom = function() {
-    window.onbeforeunload = function() {
-      RB.state.app_started = false;
-      RB.state.socket_opened = false;
-      $.ajax({
-	    url: stop_app_url,
-	    async: false
-	  });
-    };
+  function showModalError(err_msg, retry_btn, restart_btn, ignore_btn) {
+    var err_modal = $('#modal_err');
+    err_modal.find('#btn_retry_get')[retry_btn ? 'show' : 'hide']();
+    err_modal.find('.btn-app-restart')[restart_btn ? 'show' : 'hide']();
+    err_modal.find('#btn_ignore')[ignore_btn ? 'show' : 'hide']();
+    err_modal.find('.modal-body').html(err_msg);
+    err_modal.modal('show');
+  }
 
+  // Initial Ajax Connection set-up
+  RB.ac = function() {
     $.post(
       RB.config.post_url,
-      JSON.stringify({ datasets: { params: RB.params.dflt } })
+      JSON.stringify({ datasets: { params: RB.params.init } })
     )
     .done(function(dresult) {
       RB.state.socket_opened = true;
       RB.state.app_started = true;
-      updateRBData();  // TODO
+      RB.parsePacket(dresult);
     })
     .fail(function() {
       showModalError('Can not initialize the application with the default parameters.', false, true);
@@ -172,6 +184,22 @@
   };
   */
 
+
+  /* Server to front-end communication */
+
+  // Parse returned data result from last POST transfer
+  RB.parsePacket = function(dresult) {
+    if (dresult.datasets !== undefined) {
+      if (dresult.datasets.params !== undefined) {
+        RB.processParameters(dresult.datasets.params);
+      }
+
+      if (dresult.datasets.signals !== undefined) {
+        RB.processSignals(dresult.datasets.signals);
+      }
+    }
+  };
+
   // Processes newly received values for parameters
   RB.processParameters = function(new_params) {
     var old_params = $.extend(true, {}, RB.params.orig);
@@ -229,10 +257,14 @@
         */
 
     }
+
+    if (send_all_params) {
+      RB.sendParams();
+    }
   };
 
   // Processes newly received data for signals
-  RB.iterCnt = 0;
+  RB.processSignalsFrmsCnt = 0;
   RB.processSignals = function(new_signals) {
     var visible_btns = [];
     var visible_plots = [];
@@ -260,17 +292,19 @@
 
     var fps = 1000/(+new Date() - start);
 
-    if (RB.iterCnt++ >= 20 && RB.params.orig['DEBUG_SIGNAL_PERIOD']) {
+    if (RB.processSignalsFrmsCnt++ >= 20 && RB.params.orig['DEBUG_SIGNAL_PERIOD']) {
       var new_period = 1100/fps < 25 ? 25 : 1100/fps;
       var period = {};
 
       period['DEBUG_SIGNAL_PERIOD'] = { value: new_period };
       RB.ac.send(JSON.stringify({ parameters: period }));
       //RB.ws.send(JSON.stringify({ parameters: period }));
-      RB.iterCnt = 0;
+      RB.processSignalsFrmsCnt = 0;
     }
   };
 
+
+  /* Front-end to server communication */
 
   // Sends to server modified parameters
   RB.sendParams = function() {
@@ -278,12 +312,14 @@
       return false;
     }
 
+    /*
     if (!RB.state.socket_opened) {
       console.log('ERROR: Cannot save changes, socket not opened');
       return false;
     }
+    */
 
-    RB.params.local['in_command'] = { value: 'send_all_params' };
+    RB.state.sending = true;
 
     //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
     $.ajax({
@@ -295,40 +331,43 @@
     })
     .done(function(dresult) {
       // OK: Load the params received as POST result
-      if (dresult.datasets !== undefined && dresult.datasets.params !== undefined) {
-        loadParams(dresult.datasets.params);
+      if (dresult.datasets !== undefined) {
+        RB.parsePacket(dresult);
+        RB.params.local = {};
       }
       else if(dresult.status == 'ERROR') {
    	    RB.state.socket_opened = false;
-        showModalError((dresult.reason ? dresult.reason : 'Error while sending data (E1).'), false, true, true);
-        send_que = false;
+        showModalError((dresult.reason ? dresult.reason : 'Failure returned when connecting the web-server - can not start the application (ERR1).'), false, true, true);
+        RB.state.send_que = false;
       }
       else {
         RB.state.socket_opened = false;
-        showModalError('Error while sending data (E2).', false, true, true);
+        showModalError('Unknown connection state - can not start the application (ERR2).', false, true, true);
       }
     })
     .fail(function() {
       RB.state.socket_opened = false;
-      showModalError('Error while sending data (E3).', false, true, true);
+      showModalError('Can not connect the web-server (ERR3).', false, true, true);
     })
     .always(function() {
-      sending = false;
+      RB.state.sending = false;
       RB.state.editing = false;
-      if (send_que) {
-        send_que = false;
+
+      if (RB.state.send_que) {
+        RB.state.send_que = false;
         setTimeout(function(refresh_data) {
           sendParams(refresh_data);
         }, 100);
       }
     });
 
-    RB.params.local = {};
     return true;
   };
 
 
-  // Exits from editing mode
+  /* Controller handling */
+
+  // Exits from editing mode - create local parameters of changed values and send them away
   RB.exitEditing = function(noclose) {
    for (var key in RB.params.orig) {
       var field = $('#' + key);
@@ -348,7 +387,7 @@
       }
       /*
       else {
-        value = ('#' + key).html();
+        value = field.html();
       }
       */
 
@@ -375,21 +414,21 @@
 
 // Page onload event handler
 $(function() {
-    $('#modal-warning').hide();
+  $('#modal-warning').hide();
 
-    $('button').bind('activeChanged', function() {
-      RB.exitEditing(true);
-    });
+  $('button').bind('activeChanged', function() {
+    RB.exitEditing(true);
+  });
 
-    $('select, input').on('change', function() {
-      RB.exitEditing(true);
-    });
+  $('select, input').on('change', function() {
+    RB.exitEditing(true);
+  });
 
   // Initialize FastClick to remove the 300ms delay between a physical tap and the firing of a click event on mobile browsers
   //new FastClick(document.body);
 
   // Process clicks on top menu buttons
-//  $('#RB_RUN').on('click touchstart', function(ev) {
+  //$('#RB_RUN').on('click touchstart', function(ev) {
   $('#RB_RUN').on('click', function(ev) {
     ev.preventDefault();
     $('#RB_RUN').hide();
@@ -398,7 +437,7 @@ $(function() {
     RB.sendParams();
   });
 
-//  $('#RB_STOP').on('click touchstart', function(ev) {
+  //$('#RB_STOP').on('click touchstart', function(ev) {
   $('#RB_STOP').on('click', function(ev) {
     ev.preventDefault();
     $('#RB_STOP').hide();
@@ -409,7 +448,7 @@ $(function() {
 
   /*
   // Selecting active signal
-//  $('.menu-btn').on('click touchstart', function() {
+  //$('.menu-btn').on('click touchstart', function() {
   $('.menu-btn').on('click', function() {
     $('#right_menu .menu-btn').not(this).removeClass('active');
     if (!$(this).hasClass('active'))
@@ -444,7 +483,7 @@ $(function() {
   });
 
   // Close parameters dialog on close button click
-//  $('.close-dialog').on('click touchstart', function() {
+  //$('.close-dialog').on('click touchstart', function() {
   $('.close-dialog').on('click', function() {
     RB.exitEditing();
   });
@@ -493,10 +532,9 @@ $(function() {
 
   // Bind to the window resize event to redraw the graph; trigger that event to do the first drawing
   $(window).resize(function() {
-    if (RB.ac) {
+    if (RB.ac !== undefined) {
       RB.params.local['in_command'] = { value: 'send_all_params' };
-      RB.ac.send(JSON.stringify({ parameters: RB.params.local }));
-      RB.params.local = {};
+      RB.ac();
     }
     /*
     if (RB.ws) {
@@ -510,6 +548,8 @@ $(function() {
 
   // Stop the application when page is unloaded
   window.onbeforeunload = function() {
+    RB.state.app_started = false;
+    RB.state.socket_opened = false;
     $.ajax({
       url: RB.config.stop_app_url,
       async: false
@@ -572,7 +612,7 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
 */
 
 
-;(function ($) {
+(function ($) {
   $.fn.iLightInputNumber = function (options) {
     var inBox = '.input-number-box',
         newInput = '.input-number',
@@ -627,6 +667,13 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
       clearInterval(interval);
     });
 
+
+    function getLimits(input) {
+      var min = parseFloat(input.attr('min'));
+      var max = parseFloat(input.attr('max'));
+      return {'min': min, 'max': max};
+    }
+
     function moreValFn(input) {
       var max;
       var limits = getLimits(input);
@@ -642,12 +689,6 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
         newValue = max;
       }
       changeInputsVal(input, newValue);
-    }
-
-    function getLimits(input) {
-      var min = parseFloat(input.attr('min'));
-      var max = parseFloat(input.attr('max'));
-      return {'min': min, 'max': max};
     }
 
     function lessValFn(input) {
@@ -671,6 +712,7 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
       input.val(newValue);
       RB.exitEditing(true);
     }
+
 
     function checkInputAttr(input) {
       value = parseFloat(input.val());
@@ -717,7 +759,6 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
     });
   };
 })(jQuery);
-
 
 $('input[type=text]').iLightInputNumber({
     mobile: false
