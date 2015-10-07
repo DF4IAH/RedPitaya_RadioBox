@@ -28,34 +28,37 @@
   RB.config = {};
   RB.config.app_id = 'radiobox';
   RB.config.server_ip = '';  // Leave empty on production, it is used for testing only
-  RB.config.start_app_url = (RB.config.server_ip.length ? 'http://' + RB.config.server_ip : '') + '/bazaar?start=' + RB.config.app_id + '?' + location.search.substr(1);
-  RB.config.stop_app_url = (RB.config.server_ip.length ? 'http://' + RB.config.server_ip : '') + '/bazaar?stop=' + RB.config.app_id;
-  RB.config.socket_url = 'ws://' + (RB.config.server_ip.length ? RB.config.server_ip : window.location.hostname) + ':9002';  // WebSocket server URI
+  var root_url = (RB.config.server_ip.length ? 'http://' + RB.config.server_ip : '');
+  RB.config.start_app_url = root_url + '/bazaar?start=' + RB.config.app_id + '?' + location.search.substr(1);
+  RB.config.stop_app_url = root_url + '/bazaar?stop=' + RB.config.app_id;
+  RB.config.get_url = root_url + '/data';
+  RB.config.post_url = root_url + '/data';
+ //RB.config.socket_url = 'ws://' + (RB.config.server_ip.length ? RB.config.server_ip : window.location.hostname) + ':9002';  // WebSocket server URI
+  RB.config.request_timeout = 3000;
 
   // App state
   RB.state = {
+    app_started: false,
     socket_opened: false,
     processing: false,
     editing: false,
-    trig_dragging: false,
-    cursor_dragging: false,
     resized: false,
-    sel_sig_name: null,
-    fine: false,
-    graph_grid_height: null,
-    graph_grid_width: null,
-    calib: 0
   };
 
   // Params cache
   RB.params = {
     orig: {},
-    local: {}
+    local: {},
+    dflt: {}
+  };
+  RB.params.dflt = {
+    en_avg_at_dec: 0
   };
 
+
   // Other global variables
-  RB.ws = null;
-  RB.graphs = {};
+  RB.ac = null;
+  //RB.ws = null;
   RB.touch = {};
 
   RB.connect_time;
@@ -67,20 +70,47 @@
     )
     .done(function(dresult) {
       if (dresult.status == 'OK') {
-         RB.connectWebSocket();
+        RB.connectAjaxCom();
+        //RB.connectWebSocket();
       }
       else if (dresult.status == 'ERROR') {
-        console.log(dresult.reason ? dresult.reason : 'Could not start the application (ERR1)');
+        console.log(dresult.reason ? dresult.reason : 'Failjure returned when connecting the web-server - can not start the application (ERR1)');
       }
       else {
-        console.log('Could not start the application (ERR2)');
+        console.log('Unknown connection state - can not start the application (ERR2)');
       }
     })
     .fail(function() {
-      console.log('Could not start the application (ERR3)');
+      console.log('Can not connect the web-server (ERR3)');
     });
   };
 
+  // Creates an Ajax Communication end-point
+  RB.connectAjaxCom = function() {
+    window.onbeforeunload = function() {
+      RB.state.app_started = false;
+      RB.state.socket_opened = false;
+      $.ajax({
+	    url: stop_app_url,
+	    async: false
+	  });
+    };
+
+    $.post(
+      RB.config.post_url,
+      JSON.stringify({ datasets: { params: RB.params.dflt } })
+    )
+    .done(function(dresult) {
+      RB.state.socket_opened = true;
+      RB.state.app_started = true;
+      updateRBData();  // TODO
+    })
+    .fail(function() {
+      showModalError('Can not initialize the application with the default parameters.', false, true);
+    });
+  }
+
+  /*
   // Creates a WebSocket connection with the web server
   RB.connectWebSocket = function() {
 
@@ -140,6 +170,7 @@
       };
     }
   };
+  */
 
   // Processes newly received values for parameters
   RB.processParameters = function(new_params) {
@@ -234,7 +265,8 @@
       var period = {};
 
       period['DEBUG_SIGNAL_PERIOD'] = { value: new_period };
-      RB.ws.send(JSON.stringify({ parameters: period }));
+      RB.ac.send(JSON.stringify({ parameters: period }));
+      //RB.ws.send(JSON.stringify({ parameters: period }));
       RB.iterCnt = 0;
     }
   };
@@ -252,9 +284,46 @@
     }
 
     RB.params.local['in_command'] = { value: 'send_all_params' };
-    RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
-    RB.params.local = {};
 
+    //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
+    $.ajax({
+      type: 'POST',
+      url: post_url,
+      data: JSON.stringify({ datasets: { params: RB.params.local } }),
+      timeout: RB.config.request_timeout,
+      cache: false
+    })
+    .done(function(dresult) {
+      // OK: Load the params received as POST result
+      if (dresult.datasets !== undefined && dresult.datasets.params !== undefined) {
+        loadParams(dresult.datasets.params);
+      }
+      else if(dresult.status == 'ERROR') {
+   	    RB.state.socket_opened = false;
+        showModalError((dresult.reason ? dresult.reason : 'Error while sending data (E1).'), false, true, true);
+        send_que = false;
+      }
+      else {
+        RB.state.socket_opened = false;
+        showModalError('Error while sending data (E2).', false, true, true);
+      }
+    })
+    .fail(function() {
+      RB.state.socket_opened = false;
+      showModalError('Error while sending data (E3).', false, true, true);
+    })
+    .always(function() {
+      sending = false;
+      RB.state.editing = false;
+      if (send_que) {
+        send_que = false;
+        setTimeout(function(refresh_data) {
+          sendParams(refresh_data);
+        }, 100);
+      }
+    });
+
+    RB.params.local = {};
     return true;
   };
 
@@ -352,6 +421,21 @@ $(function() {
   });
   */
 
+  $('.btn').on('click', function() {
+    var btn = $(this);
+    setTimeout(function() { 
+      btn.blur();
+    }, 10);
+  });
+
+  $('.btn').mouseup(function() {
+    setTimeout(function() {
+  	  //updateLimits();
+  	  //formatVals();
+      RB.exitEditing(true);
+	}, 20);
+  });
+
   // Close parameters dialog after Enter key is pressed
   $('input').keyup(function(event) {
     if (event.keyCode == 13) {
@@ -409,11 +493,18 @@ $(function() {
 
   // Bind to the window resize event to redraw the graph; trigger that event to do the first drawing
   $(window).resize(function() {
+    if (RB.ac) {
+      RB.params.local['in_command'] = { value: 'send_all_params' };
+      RB.ac.send(JSON.stringify({ parameters: RB.params.local }));
+      RB.params.local = {};
+    }
+    /*
     if (RB.ws) {
       RB.params.local['in_command'] = { value: 'send_all_params' };
       RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
       RB.params.local = {};
     }
+    */
     RB.state.resized = true;
   }).resize();
 
@@ -472,13 +563,6 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
     formatVals();
 });
 */
-
-$(".btn").mouseup(function() {
-    setTimeout(function() {
-        updateLimits();
-        formatVals();
-    }, 20);
-});
 
 /*
 -    $( document ).ready(function() {

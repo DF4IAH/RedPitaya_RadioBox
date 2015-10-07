@@ -243,11 +243,11 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
        */
         "gen_awg_refresh",   0, 0, 0, 0, 2 },
 	{ /* calculator register A */
-		"rb_add_a", 0, 1, 0, 0, 1000 },
+		"rb_add_a_i", 0, 1, 0, 0, 1000 },
 	{ /* calculator register B */
-		"rb_add_b", 0, 1, 0, 0, 1000 },
+		"rb_add_b_i", 0, 1, 0, 0, 1000 },
 	{ /* calculator sum result register */
-		"rb_add_res", 0, 0, 1, 0, 10000 },
+		"rb_add_res_i", 0, 0, 1, 0, 10000 },
     { /* Must be last! */
         NULL, 0.0, -1, -1, 0.0, 0.0 }
 };
