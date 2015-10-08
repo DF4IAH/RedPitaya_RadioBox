@@ -8,18 +8,18 @@
 */
 
 (function() {
-    var originalAddClassMethod = jQuery.fn.addClass;
-    var originalRemoveClassMethod = jQuery.fn.removeClass;
-    $.fn.addClass = function(clss) {
-        var result = originalAddClassMethod.apply(this, arguments);
-        $(this).trigger('activeChanged', 'add');
-        return result;
-    };
-    $.fn.removeClass = function(clss) {
-        var result = originalRemoveClassMethod.apply(this, arguments);
-        $(this).trigger('activeChanged', 'remove');
-        return result;
-    }
+  var originalAddClassMethod = jQuery.fn.addClass;
+  var originalRemoveClassMethod = jQuery.fn.removeClass;
+  $.fn.addClass = function(clss) {
+    var result = originalAddClassMethod.apply(this, arguments);
+    $(this).trigger('activeChanged', 'add');
+    return result;
+  };
+  $.fn.removeClass = function(clss) {
+    var result = originalRemoveClassMethod.apply(this, arguments);
+    $(this).trigger('activeChanged', 'remove');
+    return result;
+  }
 })();
 
 
@@ -33,7 +33,7 @@
   RB.config.stop_app_url = root_url + '/bazaar?stop=' + RB.config.app_id;
   RB.config.get_url = root_url + '/data';
   RB.config.post_url = root_url + '/data';
- //RB.config.socket_url = 'ws://' + (RB.config.server_ip.length ? RB.config.server_ip : window.location.hostname) + ':9002';  // WebSocket server URI
+  //RB.config.socket_url = 'ws://' + (RB.config.server_ip.length ? RB.config.server_ip : window.location.hostname) + ':9002';  // WebSocket server URI
   RB.config.request_timeout = 3000;
 
   // App state
@@ -66,7 +66,6 @@
 
     'in_command': { value: 'send_all_params' }
   };
-
 
   // Other global variables
   RB.ac = null;
@@ -210,62 +209,62 @@
       RB.params.orig[param_name] = new_params[param_name];
 
       if (param_name.indexOf('osc1_qrg_i') == 0) {
-          $("#osc1_qrg_i").text(new_params[param_name].value);
-          //$("#"+param_name).parent().children("#osc1_qrg_i").text(new_params[param_name].value);
+        $("#osc1_qrg_i").text(new_params[param_name].value);
+        //$("#"+param_name).parent().children("#osc1_qrg_i").text(new_params[param_name].value);
       }
       else if (param_name.indexOf('osc1_amp_i') == 0) {
-          $("#osc1_amp_i").text(new_params[param_name].value);
+        $("#osc1_amp_i").text(new_params[param_name].value);
       }
       else if (param_name.indexOf('osc1_modsrc_s') == 0) {
       }
       else if (param_name.indexOf('osc1_modtyp_s') == 0) {
-          switch (new_params[param_name].value) {
-              case 0: {
-                  //$('#osc1_modtyp_s').data('checked', true)
-                  $("#osc1_modtyp_s").val('AM');
-                  $("#osc2_mag_units").text('%');
-              }
-              case 1: {
-                  $("#osc1_modtyp_s").val('FM');
-                  $("#osc2_mag_units").text('Hz');
-              }
-              case 2: {
-                  $("#osc1_modtyp_s").val('PM');
-                  $("#osc2_mag_units").text('°');
-              }
-              default: {
-                  $("#osc1_modtyp_s").val('AM');
-                  $("#osc2_mag_units").text('( )');
-              }
+        switch (new_params[param_name].value) {
+          case 0: {
+            //$('#osc1_modtyp_s').data('checked', true)
+            $("#osc1_modtyp_s").val('AM');
+            $("#osc2_mag_units").text('%');
           }
+          case 1: {
+            $("#osc1_modtyp_s").val('FM');
+            $("#osc2_mag_units").text('Hz');
+          }
+          case 2: {
+            $("#osc1_modtyp_s").val('PM');
+            $("#osc2_mag_units").text('°');
+          }
+          default: {
+            $("#osc1_modtyp_s").val('AM');
+            $("#osc2_mag_units").text('( )');
+          }
+        }
       }
       else if (param_name.indexOf('osc2_qrg_i') == 0) {
-          $("#osc2_qrg_i").text(new_params[param_name].value);
+        $("#osc2_qrg_i").text(new_params[param_name].value);
       }
       else if (param_name.indexOf('osc2_mag_i') == 0) {
-          $("#osc2_mag_i").text(new_params[param_name].value);
+        $("#osc2_mag_i").text(new_params[param_name].value);
       }
 
       else if (param_name.indexOf('rb_add_a_i') == 0) {  // TODO: to be removed
-          $("#rb_add_a_i").text(new_params[param_name].value);
-        }
+        $("#rb_add_a_i").text(new_params[param_name].value);
+      }
       else if (param_name.indexOf('rb_add_b_i') == 0) {  // TODO: to be removed
-          $("#rb_add_b_i").text(new_params[param_name].value);
-        }
+        $("#rb_add_b_i").text(new_params[param_name].value);
+      }
       else if (param_name.indexOf('rb_add_res_i') == 0) {  // TODO: to be removed
         $("#rb_add_res_i").text(new_params[param_name].value);
       }
 
       /*
       if (param_name.indexOf('RB_MEAS_VAL') == 0) {
-          var orig_units = $("#"+param_name).parent().children("#RB_MEAS_ORIG_UNITS").text();
-          var orig_function = $("#"+param_name).parent().children("#RB_MEAS_ORIG_FOO").text();
-          var orig_source = $("#"+param_name).parent().children("#RB_MEAS_ORIG_SIGNAME").text();
-          var y = new_params[param_name].value;
-          var z = y;
-          var factor = '';
+        var orig_units = $("#"+param_name).parent().children("#RB_MEAS_ORIG_UNITS").text();
+        var orig_function = $("#"+param_name).parent().children("#RB_MEAS_ORIG_FOO").text();
+        var orig_source = $("#"+param_name).parent().children("#RB_MEAS_ORIG_SIGNAME").text();
+        var y = new_params[param_name].value;
+        var z = y;
+        var factor = '';
 
-          $("#"+param_name).parent().children("#RB_MEAS_UNITS").text(factor + orig_units);
+        $("#"+param_name).parent().children("#RB_MEAS_UNITS").text(factor + orig_units);
       }
       */
 
@@ -612,6 +611,7 @@ $(".limits").change(function() {
       $(this).val(min);
     else if ($(this).val() > max)
       $(this).val(max);
+
   } else {
     var min = $(this).attr('id').indexOf('OFFS') > 0 ? -1 : 0;
     var max = 1;
@@ -626,14 +626,14 @@ $(".limits").change(function() {
 function updateLimits() {
     /*
     { // RB_CH1_OFFSET limits
-        var probeAttenuation = parseInt($("#RB_CH1_PROBE option:selected").text());
-        var jumperSettings = $("#RB_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
-        var units = $('#RB_CH1_OFFSET_UNIT').html();
-        var multiplier = units == "mV" ? 1000 : 1;
-        var newMin = -1 * 10 * jumperSettings * probeAttenuation * multiplier;
-        var newMax =  1 * 10 * jumperSettings * probeAttenuation * multiplier;
-        $("#RB_CH1_OFFSET").attr("min", newMin);
-        $("#RB_CH1_OFFSET").attr("max", newMax);
+      var probeAttenuation = parseInt($("#RB_CH1_PROBE option:selected").text());
+      var jumperSettings = $("#RB_CH1_IN_GAIN").parent().hasClass("active") ? 1 : 20;
+      var units = $('#RB_CH1_OFFSET_UNIT').html();
+      var multiplier = units == "mV" ? 1000 : 1;
+      var newMin = -1 * 10 * jumperSettings * probeAttenuation * multiplier;
+      var newMax =  1 * 10 * jumperSettings * probeAttenuation * multiplier;
+      $("#RB_CH1_OFFSET").attr("min", newMin);
+      $("#RB_CH1_OFFSET").attr("max", newMax);
     }
     */
 }
@@ -641,15 +641,15 @@ function updateLimits() {
 
 /*
 $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
-    updateLimits();
-    formatVals();
+  updateLimits();
+  formatVals();
 });
 */
 
 /*
--    $( document ).ready(function() {
-    updateLimits();
-    formatVals();
+$( document ).ready(function() {
+  updateLimits();
+  formatVals();
 });
 */
 
@@ -657,9 +657,9 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
 (function ($) {
   $.fn.iLightInputNumber = function (options) {
     var inBox = '.input-number-box',
-        newInput = '.input-number',
-        moreVal = '.input-number-more',
-        lessVal = '.input-number-less';
+      newInput = '.input-number',
+      moreVal = '.input-number-more',
+      lessVal = '.input-number-less';
 
     this.each(function () {
       var el = $(this);
