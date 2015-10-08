@@ -26,13 +26,18 @@
 
 scpi-server/scpi-server
 
-#Eclipse
+# Eclipse
 .cproject
 .project
 .settings
 
 # SCPI Server examples
 scpi-server/3rdparty/libs/scpi-parser/examples/
+
+# Results of building process
+/Bazaar
+/OS/buildroot/buildroot-*
+/tmp
 
 # Editors
 *~
