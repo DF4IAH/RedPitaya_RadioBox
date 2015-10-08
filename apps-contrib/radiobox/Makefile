@@ -35,6 +35,10 @@ export CFLAGS
 
 all:  $(CONTROLLERHF) doc
 
+#libs:  $(CONTROLLERHF) $(CONTROLLER)
+
+libs:  $(CONTROLLERHF)
+
 $(CONTROLLERHF):
 	$(MAKE) -C src clean
 	$(MAKE) -C src all OUT_NAME=$(CONTROLLERHF)

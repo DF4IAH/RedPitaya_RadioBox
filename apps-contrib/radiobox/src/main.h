@@ -96,9 +96,9 @@ typedef struct rp_osc_meas_res_s {
 #define RB_OSC2_QRG   	   4
 #define RB_OSC2_MAG   	   5
 
-#define RB_SUM_A   	       6
-#define RB_SUM_B   	       7
-#define RB_SUM_RES	       8
+#define RB_ADD_A   	       6
+#define RB_ADD_B   	       7
+#define RB_ADD_RES	       8
 
 #define PARAMS_NUM         9
 
@@ -130,17 +130,6 @@ int rp_clean_params(rp_app_params_t *params);
  * parameters are updated it also changed the worker state machine.
  */
 int rp_update_main_params(rp_app_params_t *params);
-
-/* sets the measurement data to output parameters structure - these parameters
- * are read-only for the client and there is no need to update them internally
- * in the application
- */
-//int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
-
-/* Waveform generator frequency limiter. */
-//float rp_gen_limit_freq(float freq, float gen_type);
-
-//void dir_gen_set(int ch, int param, int value);
 
 void write_cal_eeprom( void);
 

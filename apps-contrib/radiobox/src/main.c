@@ -27,6 +27,7 @@
 #include "worker.h"
 #include "fpga.h"
 #include "calib.h"
+#include "cb_ws.h"
 
 #include "main.h"
 
@@ -89,19 +90,22 @@ int rp_app_init(void)
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
 
     // Debugging
-    set_leds(0, 0xff, 0x02);
+    set_leds(0, 0xff, 0x01);
 
+    /*
     rp_default_calib_params(&rp_main_calib_params);
-    if(rp_read_calib_params(&rp_main_calib_params) < 0) {
+    if (rp_read_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_read_calib_params() failed, using default"
                 " parameters\n");
     }
-    if(rp_osc_worker_init(&rp_main_params[0], PARAMS_NUM,
-                          &rp_main_calib_params) < 0) {
+    */
+
+    if (rp_osc_worker_init(&rp_main_params[0], PARAMS_NUM,
+                           &rp_main_calib_params) < 0) {
         return -1;
     }
 
-    rp_set_params(&rp_main_params[0], PARAMS_NUM ,0);
+    rp_set_params(&rp_main_params[0], PARAMS_NUM, 0);
 
     return 0;
 }
@@ -138,60 +142,66 @@ int time_range_to_time_unit(int range)
     return unit;
 }
 
-int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
-{                            // This "internal_flag" tells who is requesting param. set (0 client, 1 app. on server)
+int rp_set_params(rp_app_params_t *p, int len, int requesterIsServer)
+{
     int i;
     int params_change = 0;
     int fpga_update = 1;
 
+    fprintf(stderr, "rp_set_params: BEGIN\n");
     TRACE("%s()\n", __FUNCTION__);
 
     // Debugging
-    set_leds(1, 0x04, 0);
+    set_leds(1, 0x02, 0);
 
-    if(len > PARAMS_NUM) {
-        fprintf(stderr, "Too many parameters, max=%d\n", PARAMS_NUM);
+    if (len > PARAMS_NUM) {
+        fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, PARAMS_NUM);
         return -1;
     }
 
     pthread_mutex_lock(&rp_main_params_mutex);
-    for(i = 0; i < len || p[i].name != NULL; i++) {
+    for (i = 0; i < len || p[i].name != NULL; i++) {
         int p_idx = -1;
         int j = 0;
+
         /* Search for correct parameter name in defined parameters */
-        while(rp_main_params[j].name != NULL) {
+        while (rp_main_params[j].name != NULL) {
+            fprintf(stderr, "rp_set_params: next param name = %s\n", p[i].name);
+
             int p_strlen = strlen(p[i].name);
 
-            if(p_strlen != strlen(rp_main_params[j].name)) {
+            if (p_strlen != strlen(rp_main_params[j].name)) {
                 j++;
                 continue;
             }
-            if(!strncmp(p[i].name, rp_main_params[j].name, p_strlen)) {
+            if (!strncmp(p[i].name, rp_main_params[j].name, p_strlen)) {
                 p_idx = j;
                 break;
             }
             j++;
         }
 
-        if(p_idx == -1) {
+        if (p_idx == -1) {
             fprintf(stderr, "Parameter %s not found, ignoring it\n", p[i].name);
             continue;
         }
 
-        if(rp_main_params[p_idx].read_only)
+        if (rp_main_params[p_idx].read_only)
             continue;
 
-        if(rp_main_params[p_idx].value != p[i].value) {
+        if (rp_main_params[p_idx].value != p[i].value) {
             params_change = 1;
-            if(rp_main_params[p_idx].fpga_update) {
+            if (rp_main_params[p_idx].fpga_update) {
                 fpga_update = 1;
             }
         }
-        if(rp_main_params[p_idx].min_val > p[i].value) {
+
+        if (rp_main_params[p_idx].min_val > p[i].value) {
             fprintf(stderr, "Incorrect parameters value: %f (min:%f), "
                     " correcting it\n", p[i].value, rp_main_params[p_idx].min_val);
             p[i].value = rp_main_params[p_idx].min_val;
-        } else if(rp_main_params[p_idx].max_val < p[i].value) {
+
+        } else if (rp_main_params[p_idx].max_val < p[i].value) {
             fprintf(stderr, "Incorrect parameters value: %f (max:%f), "
                     " correcting it\n", p[i].value, rp_main_params[p_idx].max_val);
             p[i].value = rp_main_params[p_idx].max_val;
@@ -201,34 +211,41 @@ int rp_set_params(rp_app_params_t *p, int len, int internal_flag)
     pthread_mutex_unlock(&rp_main_params_mutex);
 
     // DF4IAH  v
-    if(params_change || (params_init == 0)) {
+    if (params_change || (params_init == 0)) {
         (void) fpga_update;
 
         // Debugging
-        set_leds(1, 0x08, 0);
+        set_leds(1, 0x04, 0);
 
-        rb_set_fpga(0x00, rp_main_params[RB_SUM_A].value);
-        rb_set_fpga(0x04, rp_main_params[RB_SUM_B].value);
-        rp_main_params[RB_SUM_RES].value = rb_get_fpga(0x08);
+        rb_set_fpga(0x00, rp_main_params[RB_ADD_A].value);
+        rb_set_fpga(0x04, rp_main_params[RB_ADD_B].value);
+        rp_main_params[RB_ADD_RES].value = rb_get_fpga(0x08);
     }
     // DF4IAH  ^
 
+    fprintf(stderr, "rp_set_params: END\n\n");
     return 0;
 }
 
 /* Returned vector must be free'd externally! */
 int rp_get_params(rp_app_params_t **p)
 {
+    fprintf(stderr, "rp_get_params: BEGIN\n");
+
     rp_app_params_t *p_copy = NULL;
     int i;
 
+    // Debugging
+    set_leds(1, 0x08, 0);
+
     p_copy = (rp_app_params_t *)malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
-    if(p_copy == NULL)
+    if (p_copy == NULL)
         return -1;
 
     pthread_mutex_lock(&rp_main_params_mutex);
-    for(i = 0; i < PARAMS_NUM; i++) {
+    for (i = 0; i < PARAMS_NUM; i++) {
         int p_strlen = strlen(rp_main_params[i].name);
+
         p_copy[i].name = (char *)malloc(p_strlen+1);
         strncpy((char *)&p_copy[i].name[0], &rp_main_params[i].name[0],
                 p_strlen);
@@ -244,6 +261,7 @@ int rp_get_params(rp_app_params_t **p)
     p_copy[PARAMS_NUM].name = NULL;
 
     *p = p_copy;
+    fprintf(stderr, "rp_get_params: END\n\n");
     return PARAMS_NUM;
 }
 
@@ -251,15 +269,18 @@ int rp_get_signals(float ***s, int *sig_num, int *sig_len)
 {
     int ret_val = 0;
 
+    fprintf(stderr, "rp_get_signals: BEGIN\n");
+
     // Debugging
     set_leds(1, 0x10, 0);
 
-    if(*s == NULL)
+    if (*s == NULL)
         return -1;
 
     *sig_num = SIGNALS_NUM;
     *sig_len = SIGNAL_LENGTH;
 
+    fprintf(stderr, "rp_get_signals: END\n\n");
     return ret_val;
 }
 
@@ -268,25 +289,30 @@ int rp_create_signals(float ***a_signals)
     int i;
     float **s;
 
+    fprintf(stderr, "rp_create_signals: BEGIN\n");
+
     // Debugging
     set_leds(1, 0x20, 0);
 
     s = (float **)malloc(SIGNALS_NUM * sizeof(float *));
-    if(s == NULL) {
+    if (s == NULL) {
         return -1;
     }
-    for(i = 0; i < SIGNALS_NUM; i++)
+
+    for (i = 0; i < SIGNALS_NUM; i++)
         s[i] = NULL;
 
-    for(i = 0; i < SIGNALS_NUM; i++) {
+    for (i = 0; i < SIGNALS_NUM; i++) {
         s[i] = (float *)malloc(SIGNAL_LENGTH * sizeof(float));
-        if(s[i] == NULL) {
+        if (s[i] == NULL) {
             rp_cleanup_signals(a_signals);
             return -1;
         }
         memset(&s[i][0], 0, SIGNAL_LENGTH * sizeof(float));
     }
     *a_signals = s;
+
+    fprintf(stderr, "rp_create_signals: END\n\n");
 
     return 0;
 }
@@ -296,12 +322,14 @@ void rp_cleanup_signals(float ***a_signals)
     int i;
     float **s = *a_signals;
 
+    fprintf(stderr, "rp_cleanup_signals: BEGIN\n");
+
     // Debugging
     set_leds(1, 0x40, 0);
 
-    if(s) {
-        for(i = 0; i < SIGNALS_NUM; i++) {
-            if(s[i]) {
+    if (s) {
+        for (i = 0; i < SIGNALS_NUM; i++) {
+            if (s[i]) {
                 free(s[i]);
                 s[i] = NULL;
             }
@@ -309,6 +337,8 @@ void rp_cleanup_signals(float ***a_signals)
         free(s);
         *a_signals = NULL;
     }
+
+    fprintf(stderr, "rp_cleanup_signals: END\n\n");
 }
 
 /*----------------------------------------------------------------------------------*/
@@ -344,26 +374,26 @@ int rp_copy_params(rp_app_params_t *src, rp_app_params_t **dst)
     }
 
     /* check if destination buffer is allocated or not */
-    if(p_new == NULL) {
+    if (p_new == NULL) {
         i = 0;
 
         /* retrieve the number of source parameters */
         num_params=0;
-        while(src[i++].name != NULL)
+        while (src[i++].name != NULL)
             num_params++;
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
         p_new = (rp_app_params_t *)malloc(sizeof(rp_app_params_t) * (num_params+1));
-        if(p_new == NULL) {
+        if (p_new == NULL) {
             fprintf(stderr, "Memory problem, the destination buffer could not be allocated.\n");
             return -1;
         }
 
         /* scan source parameters, allocate memory space for parameter names and copy values */
         i = 0;
-        while(src[i].name != NULL) {
+        while (src[i].name != NULL) {
             p_new[i].name = (char *)malloc(strlen(src[i].name)+1);
-            if(p_new[i].name == NULL)
+            if (p_new[i].name == NULL)
                 return -1;
 
             strncpy(p_new[i].name, src[i].name, strlen(src[i].name));
@@ -379,11 +409,10 @@ int rp_copy_params(rp_app_params_t *src, rp_app_params_t **dst)
     } else {
         /* destination buffer is already allocated, just copy values */
         i = 0;
-        while(src[i].name != NULL) {
+        while (src[i].name != NULL) {
             p_new[i].value = src[i].value;
             i++;
         }
-
     }
 
     *dst = p_new;
@@ -405,9 +434,9 @@ int rp_clean_params(rp_app_params_t *params)
 {
     int i = 0;
     /* cleanup params structure */
-    if(params) {
-        while(params[i].name != NULL) {
-            if(params[i].name)
+    if (params) {
+        while (params[i].name != NULL) {
+            if (params[i].name)
                 free(params[i].name);
             params[i].name = NULL;
             i++;
@@ -421,11 +450,11 @@ int rp_clean_params(rp_app_params_t *params)
 int rp_update_main_params(rp_app_params_t *params)
 {
     int i = 0;
-    if(params == NULL)
+    if (params == NULL)
         return -1;
 
     pthread_mutex_lock(&rp_main_params_mutex);
-    while(params[i].name != NULL) {
+    while (params[i].name != NULL) {
         rp_main_params[i].value = params[i].value;
         i++;
     }
@@ -439,47 +468,17 @@ int rp_update_main_params(rp_app_params_t *params)
 
 void write_cal_eeprom( void)
 {
-  if(rp_write_calib_params(&rp_main_calib_params) < 0) {
+    if (rp_write_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_write_calib_params() failed. \n");
-   }
-}
-
-
-
-float rp_gen_limit_freq(float freq, float gen_type)
-{
-    int type = (int)gen_type;
-
-    if(freq < 0) {
-        freq = 0;
-    } else {
-        switch(type) {
-        case 0:
-            /* Sine */
-            if(freq > 50e6)
-                freq = 50e6;
-            break;
-        case 1:
-            /* Square */
-            if(freq > 20e6)
-                freq = 20e6;
-            break;
-        case 2:
-            /* Triangle */
-            if(freq > 25e6)
-                freq = 25e6;
-            break;
-        }
     }
-
-    return freq;
 }
+
 
 void set_leds(unsigned char doToggle, unsigned char mask, unsigned char leds)
 {
     // constructor - part
     g_hk_fpga_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-    if(g_hk_fpga_mem_fd < 0) {
+    if (g_hk_fpga_mem_fd < 0) {
         fprintf(stderr, "open(/dev/mem) failed: %s\n", strerror(errno));
         return;  // -1;
     }
@@ -490,7 +489,7 @@ void set_leds(unsigned char doToggle, unsigned char mask, unsigned char leds)
 
     void* page_ptr = mmap(NULL, HK_FPGA_BASE_SIZE, PROT_READ | PROT_WRITE,
                           MAP_SHARED, g_hk_fpga_mem_fd, page_addr);
-    if((void *)page_ptr == MAP_FAILED) {
+    if ((void *)page_ptr == MAP_FAILED) {
         fprintf(stderr, "mmap() failed: %s\n", strerror(errno));
         // call destructor     __osc_fpga_cleanup_mem();
         return;  // -1;
@@ -511,7 +510,7 @@ void set_leds(unsigned char doToggle, unsigned char mask, unsigned char leds)
     }
     g_hk_fpga_reg_mem = NULL;
 
-    if(g_hk_fpga_mem_fd >= 0) {
+    if (g_hk_fpga_mem_fd >= 0) {
         close(g_hk_fpga_mem_fd);
         g_hk_fpga_mem_fd = -1;
     }
@@ -522,7 +521,7 @@ void rb_set_fpga(unsigned int base_offs, unsigned int value)
 {
     // constructor - part
     g_rb_fpga_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-    if(g_rb_fpga_mem_fd < 0) {
+    if (g_rb_fpga_mem_fd < 0) {
         fprintf(stderr, "open(/dev/mem) failed: %s\n", strerror(errno));
         return;  // -1;
     }
@@ -533,7 +532,7 @@ void rb_set_fpga(unsigned int base_offs, unsigned int value)
 
     void* page_ptr = mmap(NULL, RB_FPGA_BASE_SIZE, PROT_READ | PROT_WRITE,
                           MAP_SHARED, g_rb_fpga_mem_fd, page_addr);
-    if((void *)page_ptr == MAP_FAILED) {
+    if ((void *)page_ptr == MAP_FAILED) {
         fprintf(stderr, "mmap() failed: %s\n", strerror(errno));
         // call destructor     __rb_fpga_cleanup_mem();
         return;  // -1;
@@ -541,11 +540,9 @@ void rb_set_fpga(unsigned int base_offs, unsigned int value)
     //g_rb_fpga_reg_mem = page_ptr + page_off;
     unsigned int* data_ptr = (unsigned int*) (page_ptr + page_off + base_offs);
 
-
     // setting value to offset address
     //*(g_rb_fpga_reg_mem + base_offs) = value;
     *data_ptr = value;
-
 
     // destructor - part
     if (munmap(page_ptr, RB_FPGA_BASE_SIZE) < 0) {
@@ -554,7 +551,7 @@ void rb_set_fpga(unsigned int base_offs, unsigned int value)
     }
     page_ptr = NULL;
 
-    if(g_rb_fpga_mem_fd >= 0) {
+    if (g_rb_fpga_mem_fd >= 0) {
         close(g_rb_fpga_mem_fd);
         g_rb_fpga_mem_fd = -1;
     }
@@ -567,7 +564,7 @@ unsigned int rb_get_fpga(unsigned int base_offs)
 
     // constructor - part
     g_rb_fpga_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
-    if(g_rb_fpga_mem_fd < 0) {
+    if (g_rb_fpga_mem_fd < 0) {
         fprintf(stderr, "open(/dev/mem) failed: %s\n", strerror(errno));
         return 0;
     }
@@ -578,7 +575,7 @@ unsigned int rb_get_fpga(unsigned int base_offs)
 
     void* page_ptr = mmap(NULL, RB_FPGA_BASE_SIZE, PROT_READ | PROT_WRITE,
                           MAP_SHARED, g_rb_fpga_mem_fd, page_addr);
-    if((void *)page_ptr == MAP_FAILED) {
+    if ((void *)page_ptr == MAP_FAILED) {
         fprintf(stderr, "mmap() failed: %s\n", strerror(errno));
         // call destructor     __rb_fpga_cleanup_mem();
         return 0;
@@ -586,11 +583,9 @@ unsigned int rb_get_fpga(unsigned int base_offs)
     //g_rb_fpga_reg_mem = page_ptr + page_off;
     unsigned int* data_ptr = (unsigned int*) (page_ptr + page_off + base_offs);
 
-
     // getting value from offset address
     //retval = *(g_rb_fpga_reg_mem + base_offs);
     retval = *data_ptr;
-
 
     // destructor - part
     if (munmap(page_ptr, RB_FPGA_BASE_SIZE) < 0) {
@@ -599,7 +594,7 @@ unsigned int rb_get_fpga(unsigned int base_offs)
     }
     page_ptr = NULL;
 
-    if(g_rb_fpga_mem_fd >= 0) {
+    if (g_rb_fpga_mem_fd >= 0) {
         close(g_rb_fpga_mem_fd);
         g_rb_fpga_mem_fd = -1;
     }
