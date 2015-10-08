@@ -22,10 +22,7 @@ typedef enum rp_osc_worker_state_e {
     rp_osc_idle_state = 0, /* do nothing */
     rp_osc_quit_state, /* shutdown worker */
     rp_osc_abort_state, /* abort current measurement */
-    rp_osc_auto_state, /* auto mode acquisition */
     rp_osc_normal_state, /* normal mode */
-    rp_osc_single_state, /* single acq., automatically goes to idle */
-    rp_osc_auto_set_state, /* runs auto-set algorithm */
     rp_osc_nonexisting_state /* must be last */
 } rp_osc_worker_state_t;
 
@@ -47,9 +44,6 @@ int rp_osc_get_signals(float ***signals, int *sig_idx);
  * and marks it dirty 
  */
 int rp_osc_set_signals(float **source, int index);
-/* Fills the output measuremenet data with last measurements
- */
-int rp_osc_set_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
 
 /* Prepares time vector (only where there is a need for it) */
 int rp_osc_prepare_time_vector(float **out_signal, int dec_factor,
@@ -81,12 +75,6 @@ int rp_osc_decimate_partial(float **cha_out_signal, int *cha_in_signal,
                             rp_osc_meas_res_t *ch2_meas,
                             float ch1_max_adc_v, float ch2_max_adc_v,
                             float ch1_user_dc_off, float ch2_user_dc_off);
-
-/* Auto-set algorithm */
-int rp_osc_auto_set(rp_app_params_t *orig_params, 
-                    float ch1_max_adc_v, float ch2_max_adc_v,
-                    float ch1_user_dc_off, float ch2_user_dc_off,
-                    int ch1_probe_att, int ch2_probe_att, int ch1_gain, int ch2_gain, int en_avg_at_dec);
 
 /* helper function - returns the factor for time unit conversion */
 int rp_osc_get_time_unit_factor(int time_unit);

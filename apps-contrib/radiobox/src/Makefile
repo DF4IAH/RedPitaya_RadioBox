@@ -8,7 +8,7 @@ CROSS_COMPILE ?= arm-linux-gnueabihf-
 CC=$(CROSS_COMPILE)gcc
 RM=rm
 
-OBJECTS=main.o worker.o fpga.o fpga_awg.o calib.o generate.o
+OBJECTS=main.o worker.o fpga.o calib.o
 
 CFLAGS+= -Wall -Werror -g -fPIC $(INCLUDE)
 LDFLAGS=-shared

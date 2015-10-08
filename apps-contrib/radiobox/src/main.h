@@ -88,74 +88,19 @@ typedef struct rp_osc_meas_res_s {
 
 /* Parameters indexes - these defines should be in the same order as
  * rp_app_params_t structure defined in main.c */
-#define MIN_GUI_PARAM     0
-#define MAX_GUI_PARAM     1
-#define TRIG_MODE_PARAM   2
-#define TRIG_SRC_PARAM    3
-#define TRIG_EDGE_PARAM   4
-#define TRIG_DLY_PARAM    5
-#define TRIG_LEVEL_PARAM  6
-#define SINGLE_BUT_PARAM  7
-#define TIME_RANGE_PARAM  8
-#define TIME_UNIT_PARAM   9
-#define EN_AVG_AT_DEC     10
-#define AUTO_FLAG_PARAM   11
-#define MIN_Y_PARAM       12
-#define MAX_Y_PARAM       13
-#define FORCEX_FLAG_PARAM 14
-#define MEAS_MIN_CH1      15
-#define MEAS_MAX_CH1      16
-#define MEAS_AMP_CH1      17
-#define MEAS_AVG_CH1      18
-#define MEAS_FREQ_CH1     19
-#define MEAS_PER_CH1      20
-#define MEAS_MIN_CH2      21
-#define MEAS_MAX_CH2      22
-#define MEAS_AMP_CH2      23
-#define MEAS_AVG_CH2      24
-#define MEAS_FREQ_CH2     25
-#define MEAS_PER_CH2      26
-#define PRB_ATT_CH1       27
-#define GAIN_CH1          28
-#define PRB_ATT_CH2       29
-#define GAIN_CH2          30
-#define GUI_RST_Y_RANGE   31
-#define GEN_DC_OFFS_1     32
-#define GEN_DC_OFFS_2     33
-#define GUI_XMIN          34
-#define GUI_XMAX          35
-#define MIN_Y_NORM        36
-#define MAX_Y_NORM        37
-#define GEN_DC_NORM_1     38
-#define GEN_DC_NORM_2     39
-#define SCALE_CH1         40
-#define SCALE_CH2         41
-#define DC_CAL            42
-#define REQ_TRC           43
-#define DC_CALOUT1        44
-#define DC_CALOUT2        45
-/* AWG parameters */
-#define GEN_TRIG_MODE_CH1 46
-#define GEN_SIG_TYPE_CH1  47
-#define GEN_ENABLE_CH1    48
-#define GEN_SINGLE_CH1    49
-#define GEN_SIG_AMP_CH1   50
-#define GEN_SIG_FREQ_CH1  51
-#define GEN_SIG_DCOFF_CH1 52
-#define GEN_TRIG_MODE_CH2 53
-#define GEN_SIG_TYPE_CH2  54
-#define GEN_ENABLE_CH2    55
-#define GEN_SINGLE_CH2    56
-#define GEN_SIG_AMP_CH2   57
-#define GEN_SIG_FREQ_CH2  58
-#define GEN_SIG_DCOFF_CH2 59
-#define GEN_AWG_REFRESH   60
 /* RadioBox parameters */
-#define RB_SUM_A   	      61
-#define RB_SUM_B   	      62
-#define RB_SUM_RES	      63
+#define RB_OSC1_QRG   	   0
+#define RB_OSC1_AMP   	   1
+#define RB_OSC1_MODSRC     2
+#define RB_OSC1_MODTYP     3
+#define RB_OSC2_QRG   	   4
+#define RB_OSC2_MAG   	   5
 
-#define PARAMS_NUM        64
+#define RB_SUM_A   	       6
+#define RB_SUM_B   	       7
+#define RB_SUM_RES	       8
+
+#define PARAMS_NUM         9
 
 
 /* Output signals */
@@ -182,23 +127,20 @@ int rp_clean_params(rp_app_params_t *params);
 
 /* Updates all parameters (structure must be aligned with main parameter
  * structure - this includes also ready-only parameters. After the
-* parameters are updated it also changed the worker state machine.
+ * parameters are updated it also changed the worker state machine.
  */
 int rp_update_main_params(rp_app_params_t *params);
-void get_scales(rp_app_params_t *p, float *scale1, float *scale2, float *maxv);
-void transform_to_iface_units(rp_app_params_t *p);
-void transform_from_iface_units(rp_app_params_t *p);
 
 /* sets the measurement data to output parameters structure - these parameters
  * are read-only for the client and there is no need to update them internally
  * in the application
  */
-int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
+//int rp_update_meas_data(rp_osc_meas_res_t ch1_meas, rp_osc_meas_res_t ch2_meas);
 
 /* Waveform generator frequency limiter. */
-float rp_gen_limit_freq(float freq, float gen_type);
+//float rp_gen_limit_freq(float freq, float gen_type);
 
-void dir_gen_set(int ch, int param, int value);
+//void dir_gen_set(int ch, int param, int value);
 
 void write_cal_eeprom( void);
 

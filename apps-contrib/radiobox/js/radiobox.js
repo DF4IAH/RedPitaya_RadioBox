@@ -209,9 +209,51 @@
       // Save new parameter value
       RB.params.orig[param_name] = new_params[param_name];
 
-      if (param_name.indexOf('RB_ADD_RES') == 0) {
-        //$("#"+param_name).parent().children("#RB_ADD_RES").text(new_params[param_name].value);
-        $("#osc2_qrg_i").text(new_params[param_name].value);
+      if (param_name.indexOf('osc1_qrg_i') == 0) {
+          $("#osc1_qrg_i").text(new_params[param_name].value);
+          //$("#"+param_name).parent().children("#osc1_qrg_i").text(new_params[param_name].value);
+      }
+      else if (param_name.indexOf('osc1_amp_i') == 0) {
+          $("#osc1_amp_i").text(new_params[param_name].value);
+      }
+      else if (param_name.indexOf('osc1_modsrc_s') == 0) {
+      }
+      else if (param_name.indexOf('osc1_modtyp_s') == 0) {
+          switch (new_params[param_name].value) {
+              case 0: {
+                  //$('#osc1_modtyp_s').data('checked', true)
+                  $("#osc1_modtyp_s").val('AM');
+                  $("#osc2_mag_units").text('%');
+              }
+              case 1: {
+                  $("#osc1_modtyp_s").val('FM');
+                  $("#osc2_mag_units").text('Hz');
+              }
+              case 2: {
+                  $("#osc1_modtyp_s").val('PM');
+                  $("#osc2_mag_units").text('°');
+              }
+              default: {
+                  $("#osc1_modtyp_s").val('AM');
+                  $("#osc2_mag_units").text('( )');
+              }
+          }
+      }
+      else if (param_name.indexOf('osc2_qrg_i') == 0) {
+          $("#osc2_qrg_i").text(new_params[param_name].value);
+      }
+      else if (param_name.indexOf('osc2_mag_i') == 0) {
+          $("#osc2_mag_i").text(new_params[param_name].value);
+      }
+
+      else if (param_name.indexOf('rb_add_a_i') == 0) {  // TODO: to be removed
+          $("#rb_add_a_i").text(new_params[param_name].value);
+        }
+      else if (param_name.indexOf('rb_add_b_i') == 0) {  // TODO: to be removed
+          $("#rb_add_b_i").text(new_params[param_name].value);
+        }
+      else if (param_name.indexOf('rb_add_res_i') == 0) {  // TODO: to be removed
+        $("#rb_add_res_i").text(new_params[param_name].value);
       }
 
       /*
@@ -324,7 +366,7 @@
     //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
     $.ajax({
       type: 'POST',
-      url: post_url,
+      url: RB.config.post_url,
       data: JSON.stringify({ datasets: { params: RB.params.local } }),
       timeout: RB.config.request_timeout,
       cache: false
