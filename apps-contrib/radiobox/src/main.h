@@ -108,13 +108,6 @@ typedef struct rp_osc_meas_res_s {
 #define SIGNALS_NUM   3
 
 
-/* module entry points */
-int rp_app_init(void);
-int rp_app_exit(void);
-int rp_set_params(rp_app_params_t *p, int len, int internal_flag);
-int rp_get_params(rp_app_params_t **p);
-int rp_get_signals(float ***s, int *sig_num, int *sig_len);
-
 /* Internal helper functions */
 int  rp_create_signals(float ***a_signals);
 void rp_cleanup_signals(float ***a_signals);
@@ -124,14 +117,6 @@ int rp_copy_params(rp_app_params_t *src, rp_app_params_t **dst);
 
 /* cleans up memory of parameters structure */
 int rp_clean_params(rp_app_params_t *params);
-
-/* Updates all parameters (structure must be aligned with main parameter
- * structure - this includes also ready-only parameters. After the
- * parameters are updated it also changed the worker state machine.
- */
-int rp_update_main_params(rp_app_params_t *params);
-
-void write_cal_eeprom( void);
 
 void set_leds(unsigned char doToggle, unsigned char mask, unsigned char leds);
 void rb_set_fpga(unsigned int base_offs, unsigned int value);

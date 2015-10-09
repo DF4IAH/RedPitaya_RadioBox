@@ -21,8 +21,10 @@
 #include <stdlib.h>
 #include <limits.h>
 
-#include "worker.h"
+#include "cb_http.h"
 #include "fpga.h"
+
+#include "worker.h"
 
 pthread_t *rp_osc_thread_handler = NULL;
 void *rp_osc_worker_thread(void *args);

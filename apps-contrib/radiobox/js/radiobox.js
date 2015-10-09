@@ -54,17 +54,17 @@
     init: {}
   };
   RB.params.init = {
-    osc1_qrg_i: { value: 0 },
-    osc1_amp_i: { value: 0 },
-    osc1_modsrc: { value: 0 },
-    osc1_modtyp_s: { value: 0 },
-    osc2_qrg_i: { value: 0 },
-    osc1_amp_i: { value: 0 },
+    osc1_qrg_i: { value: 51 },
+    osc1_amp_i: { value: 52 },
+    osc1_modsrc: { value: 1 },
+    osc1_modtyp_s: { value: 2 },
+    osc2_qrg_i: { value: 55 },
+    osc1_amp_i: { value: 56 },
 
-    rb_add_a_i: { value: 0 },  // TODO: remove me
-    rb_add_b_i: { value: 0 },  // TODO: remove me
+    rb_add_a_i: { value: 11 },  // TODO: remove me
+    rb_add_b_i: { value: 22 }   // TODO: remove me
 
-    'in_command': { value: 'send_all_params' }
+    //'in_command': { value: 'send_all_params' }
   };
 
   // Other global variables
