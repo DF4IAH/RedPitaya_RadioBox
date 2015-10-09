@@ -47,8 +47,8 @@ typedef enum rp_osc_worker_state_e {
 
 /** @} */
 
-int rp_osc_worker_init(void);
-int rp_osc_worker_exit(void);
+int worker_init(void);
+int worker_exit(void);
 int rp_osc_worker_change_state(rp_osc_worker_state_t new_state);
 int rp_osc_worker_update_params(rp_osc_params_t *params, int fpga_update);
 

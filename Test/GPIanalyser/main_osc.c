@@ -99,7 +99,7 @@ int rp_app_init(void)
     float p[PARAMS_NUM];
     int i;
 
-    if(rp_osc_worker_init() < 0) {
+    if(worker_init() < 0) {
         return -1;
     }
 
@@ -120,7 +120,7 @@ int rp_app_init(void)
  */
 int rp_app_exit(void)
 {
-    rp_osc_worker_exit();
+    worker_exit();
 
     return 0;
 }
