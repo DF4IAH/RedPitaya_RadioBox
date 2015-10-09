@@ -37,6 +37,7 @@ scpi-server/3rdparty/libs/scpi-parser/examples/
 # Results of building process
 /Bazaar
 /OS/buildroot/buildroot-*
+/Test
 /tmp
 
 # Editors
