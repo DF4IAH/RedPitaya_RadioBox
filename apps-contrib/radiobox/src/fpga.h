@@ -92,13 +92,11 @@ typedef struct hk_fpga_reg_mem_s {
 } hk_fpga_reg_mem_t;
 
 
-
 /** RadioBox starting address of FPGA registers. */
 #define RB_FPGA_BASE_ADDR 	0x40600000
 
 /** RadioBox memory map size of FPGA registers. */
 #define RB_FPGA_BASE_SIZE 	0x10000
-
 
 /** @brief FPGA registry structure for the RadioBox sub-module.
  *

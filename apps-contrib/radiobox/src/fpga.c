@@ -27,18 +27,17 @@
 
 
 /* @brief The HouseKeeping memory file descriptor used to mmap() the FPGA space. */
-static int                g_hk_fpga_mem_fd = -1;
+extern int           		g_hk_fpga_mem_fd;
 
 /* @brief The HouseKeeping memory layout of the FPGA registers. */
-static hk_fpga_reg_mem_t *g_hk_fpga_reg_mem = NULL;
+extern hk_fpga_reg_mem_t*	g_hk_fpga_reg_mem;
 
 
 /* @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
-static int                g_rb_fpga_mem_fd = -1;
+extern int                	g_rb_fpga_mem_fd;
 
 /* @brief The RadioBox memory layout of the FPGA registers. */
-static rb_fpga_reg_mem_t *g_rb_fpga_reg_mem = NULL;
-
+extern rb_fpga_reg_mem_t*	g_rb_fpga_reg_mem;
 
 
 /*----------------------------------------------------------------------------*/

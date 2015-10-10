@@ -18,6 +18,20 @@
 #include "cb_http.h"
 
 
+/* @brief The HouseKeeping memory file descriptor used to mmap() the FPGA space. */
+int                			g_hk_fpga_mem_fd = -1;
+
+/* @brief The HouseKeeping memory layout of the FPGA registers. */
+hk_fpga_reg_mem_t*			g_hk_fpga_reg_mem = NULL;
+
+
+/* @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
+int                			g_rb_fpga_mem_fd = -1;
+
+/* @brief The RadioBox memory layout of the FPGA registers. */
+rb_fpga_reg_mem_t*			g_rb_fpga_reg_mem = NULL;
+
+
 /* Describe app. parameters with some info/limitations */
 static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
     { /* Oscillator-1 frequency (Hz) */
