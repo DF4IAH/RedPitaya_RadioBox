@@ -62,32 +62,32 @@
  */
 
 /** POSIX thread handler */
-pthread_t worker_thread_handler;
+pthread_t rp_osc_thread_handler;
 /** Worker thread function declaration */
-void *worker_thread(void *args);
+void *rp_osc_worker_thread(void *args);
 
 /** pthread mutex used to protect parameters and related variables */
-pthread_mutex_t       worker_ctrl_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t       rp_osc_ctrl_mutex = PTHREAD_MUTEX_INITIALIZER;
 /** Worker thread state holder */
-rp_osc_worker_state_t worker_ctrl_state;
+rp_osc_worker_state_t rp_osc_ctrl;
 /** Worker module copy of parameters (copied from main parameters) */
-rp_osc_params_t       worker_params[PARAMS_NUM];
+rp_osc_params_t       rp_osc_params[PARAMS_NUM];
 /** Signalizer if new parameters were copied */
-int                   worker_params_dirty;
+int                   rp_osc_params_dirty;
 /** Signalizer if worker thread loop needs to update FPGA registers */
-int                   worker_params_fpga_update;
+int                   rp_osc_params_fpga_update;
 
 /** pthread mutex used to protect signal structure and related variables */
-pthread_mutex_t       worker_signals_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t       rp_osc_sig_mutex = PTHREAD_MUTEX_INITIALIZER;
 /** Output signals holder */
-float               **worker_signals;
+float               **rp_osc_signals;
 /** Output signals signalizer - it indicates to main whether new signals are 
  *  available or not */
-int                   worker_signals_dirty = 0;
+int                   rp_osc_signals_dirty = 0;
 /** Output signal index indicator - used in long acquisitions, it indicates 
  *  to main module if the returning signal is full or partial
  */
-int                   worker_signals_lastIdx = 0;
+int                   rp_osc_sig_last_idx = 0;
 /** Working signal holder - this is used in working thread loop for the 
  *  calculation of the final result */
 float               **rp_tmp_signals; /* used for calculation from worker */
@@ -103,29 +103,29 @@ int                  *rp_fpga_cha_signal, *rp_fpga_chb_signal;
  * @retval -1 Failure
  * @retval 0 Success
 */
-int worker_init(void)
+int rp_osc_worker_init(void)
 {
     int ret_val;
 
-    worker_ctrl_state               = rp_osc_idle_state;
-    worker_params_dirty       = 0;
-    worker_params_fpga_update = 0;
+    rp_osc_ctrl               = rp_osc_idle_state;
+    rp_osc_params_dirty       = 0;
+    rp_osc_params_fpga_update = 0;
 
     /* Create output signal structure */
-    rp_cleanup_signals(&worker_signals);
-    if(rp_create_signals(&worker_signals) < 0)
+    rp_cleanup_signals(&rp_osc_signals);
+    if(rp_create_signals(&rp_osc_signals) < 0)
         return -1;
 
     /* Create working signal structure */
     rp_cleanup_signals(&rp_tmp_signals);
     if(rp_create_signals(&rp_tmp_signals) < 0) {
-        rp_cleanup_signals(&worker_signals);
+        rp_cleanup_signals(&rp_osc_signals);
         return -1;
     }
 
     /* FPGA module initialization */
     if(osc_fpga_init() < 0) {
-        rp_cleanup_signals(&worker_signals);
+        rp_cleanup_signals(&rp_osc_signals);
         rp_cleanup_signals(&rp_tmp_signals);
         return -1;
     }
@@ -136,11 +136,11 @@ int worker_init(void)
     /* Creating worker thread */
 //fprintf(stderr, "create worker thread\n") ;
     ret_val = 
-        pthread_create(&worker_thread_handler, NULL, worker_thread, NULL);
+        pthread_create(&rp_osc_thread_handler, NULL, rp_osc_worker_thread, NULL);
     if(ret_val != 0) {
         osc_fpga_exit();
 
-        rp_cleanup_signals(&worker_signals);
+        rp_cleanup_signals(&rp_osc_signals);
         rp_cleanup_signals(&rp_tmp_signals);
         fprintf(stderr, "pthread_create() failed: %s\n", 
                 strerror(errno));
@@ -159,19 +159,19 @@ int worker_init(void)
  *
  * @retval 0 Always returns 0
 */
-int worker_exit(void)
+int rp_osc_worker_exit(void)
 {
     int ret_val;
 //fprintf(stderr, "cleanup worker thread\n") ;
     rp_osc_worker_change_state(rp_osc_quit_state);
-    ret_val = pthread_join(worker_thread_handler, NULL);
+    ret_val = pthread_join(rp_osc_thread_handler, NULL);
     if(ret_val != 0) {
         fprintf(stderr, "pthread_join() failed: %s\n", 
                 strerror(errno));
     }
     osc_fpga_exit();
 
-    rp_cleanup_signals(&worker_signals);
+    rp_cleanup_signals(&rp_osc_signals);
     rp_cleanup_signals(&rp_tmp_signals);
 
     return 0;
@@ -194,9 +194,9 @@ int rp_osc_worker_change_state(rp_osc_worker_state_t new_state)
 {
     if(new_state >= rp_osc_nonexisting_state)
         return -1;
-    pthread_mutex_lock(&worker_ctrl_mutex);
-    worker_ctrl_state = new_state;
-    pthread_mutex_unlock(&worker_ctrl_mutex);
+    pthread_mutex_lock(&rp_osc_ctrl_mutex);
+    rp_osc_ctrl = new_state;
+    pthread_mutex_unlock(&rp_osc_ctrl_mutex);
     return 0;
 }
 
@@ -213,11 +213,11 @@ int rp_osc_worker_change_state(rp_osc_worker_state_t new_state)
  **/
 int rp_osc_worker_update_params(rp_osc_params_t *params, int fpga_update)
 {
-    pthread_mutex_lock(&worker_ctrl_mutex);
-    memcpy(&worker_params, params, sizeof(rp_osc_params_t)*PARAMS_NUM);
-    worker_params_dirty       = 1;
-    worker_params_fpga_update = fpga_update;
-    pthread_mutex_unlock(&worker_ctrl_mutex);
+    pthread_mutex_lock(&rp_osc_ctrl_mutex);
+    memcpy(&rp_osc_params, params, sizeof(rp_osc_params_t)*PARAMS_NUM);
+    rp_osc_params_dirty       = 1;
+    rp_osc_params_fpga_update = fpga_update;
+    pthread_mutex_unlock(&rp_osc_ctrl_mutex);
     return 0;
 }
 
@@ -232,9 +232,9 @@ int rp_osc_worker_update_params(rp_osc_params_t *params, int fpga_update)
 */
 int rp_osc_clean_signals(void)
 {
-    pthread_mutex_lock(&worker_signals_mutex);
-    worker_signals_dirty = 0;
-    pthread_mutex_unlock(&worker_signals_mutex);
+    pthread_mutex_lock(&rp_osc_sig_mutex);
+    rp_osc_signals_dirty = 0;
+    pthread_mutex_unlock(&rp_osc_sig_mutex);
     return 0;
 }
 
@@ -254,21 +254,21 @@ int rp_osc_clean_signals(void)
 int rp_osc_get_signals(float ***signals, int *sig_idx)
 {
     float **s = *signals;
-    pthread_mutex_lock(&worker_signals_mutex);
-    if(worker_signals_dirty == 0) {
-        *sig_idx = worker_signals_lastIdx;
-        pthread_mutex_unlock(&worker_signals_mutex);
+    pthread_mutex_lock(&rp_osc_sig_mutex);
+    if(rp_osc_signals_dirty == 0) {
+        *sig_idx = rp_osc_sig_last_idx;
+        pthread_mutex_unlock(&rp_osc_sig_mutex);
         return -1;
     }
 
-    memcpy(&s[0][0], &worker_signals[0][0], sizeof(float)*SIGNAL_LENGTH);
-    memcpy(&s[1][0], &worker_signals[1][0], sizeof(float)*SIGNAL_LENGTH);
-    memcpy(&s[2][0], &worker_signals[2][0], sizeof(float)*SIGNAL_LENGTH);
+    memcpy(&s[0][0], &rp_osc_signals[0][0], sizeof(float)*SIGNAL_LENGTH);
+    memcpy(&s[1][0], &rp_osc_signals[1][0], sizeof(float)*SIGNAL_LENGTH);
+    memcpy(&s[2][0], &rp_osc_signals[2][0], sizeof(float)*SIGNAL_LENGTH);
 
-    *sig_idx = worker_signals_lastIdx;
+    *sig_idx = rp_osc_sig_last_idx;
 
-    worker_signals_dirty = 0;
-    pthread_mutex_unlock(&worker_signals_mutex);
+    rp_osc_signals_dirty = 0;
+    pthread_mutex_unlock(&rp_osc_sig_mutex);
     return 0;
 }
 
@@ -287,15 +287,15 @@ int rp_osc_get_signals(float ***signals, int *sig_idx)
 */
 int rp_osc_set_signals(float **source, int index)
 {
-    pthread_mutex_lock(&worker_signals_mutex);
+    pthread_mutex_lock(&rp_osc_sig_mutex);
 
-    memcpy(&worker_signals[0][0], &source[0][0], sizeof(float)*SIGNAL_LENGTH);
-    memcpy(&worker_signals[1][0], &source[1][0], sizeof(float)*SIGNAL_LENGTH);
-    memcpy(&worker_signals[2][0], &source[2][0], sizeof(float)*SIGNAL_LENGTH);
-    worker_signals_lastIdx = index;
+    memcpy(&rp_osc_signals[0][0], &source[0][0], sizeof(float)*SIGNAL_LENGTH);
+    memcpy(&rp_osc_signals[1][0], &source[1][0], sizeof(float)*SIGNAL_LENGTH);
+    memcpy(&rp_osc_signals[2][0], &source[2][0], sizeof(float)*SIGNAL_LENGTH);
+    rp_osc_sig_last_idx = index;
 
-    worker_signals_dirty = 1;
-    pthread_mutex_unlock(&worker_signals_mutex);
+    rp_osc_signals_dirty = 1;
+    pthread_mutex_unlock(&rp_osc_sig_mutex);
 
     return 0;
 }
@@ -309,7 +309,7 @@ int rp_osc_set_signals(float **source, int index)
  * @param [in] args Optinal arguments as defined by pthread API functions.
  *
 */
-void *worker_thread(void *args)
+void *rp_osc_worker_thread(void *args)
 {
     rp_osc_worker_state_t old_state, state;
     rp_osc_params_t       curr_params[PARAMS_NUM];
@@ -321,9 +321,9 @@ void *worker_thread(void *args)
 
    
 
-    pthread_mutex_lock(&worker_ctrl_mutex);
-    old_state = state = worker_ctrl_state;
-    pthread_mutex_unlock(&worker_ctrl_mutex);
+    pthread_mutex_lock(&rp_osc_ctrl_mutex);
+    old_state = state = rp_osc_ctrl;
+    pthread_mutex_unlock(&rp_osc_ctrl_mutex);
 
     /* Continuous thread loop (exited only with 'quit' state) */
     while(1) {
@@ -331,19 +331,19 @@ void *worker_thread(void *args)
          * FPGA 
          */
         old_state = state;
-        pthread_mutex_lock(&worker_ctrl_mutex);
-        state = worker_ctrl_state;
-        if(worker_params_dirty) {
-            memcpy(&curr_params, &worker_params, 
+        pthread_mutex_lock(&rp_osc_ctrl_mutex);
+        state = rp_osc_ctrl;
+        if(rp_osc_params_dirty) {
+            memcpy(&curr_params, &rp_osc_params, 
                    sizeof(rp_osc_params_t)*PARAMS_NUM);
-            fpga_update = worker_params_fpga_update;
+            fpga_update = rp_osc_params_fpga_update;
 
-            worker_params_dirty = 0;
+            rp_osc_params_dirty = 0;
             dec_factor = 
                 osc_fpga_cnv_time_range_to_dec(curr_params[TIME_RANGE_PARAM].value);
             time_vect_update = 1;
         }
-        pthread_mutex_unlock(&worker_ctrl_mutex);
+        pthread_mutex_unlock(&rp_osc_ctrl_mutex);
 
         /* request to stop worker thread, we will shut down */
 
@@ -421,9 +421,9 @@ void *worker_thread(void *args)
         
 
         /* start working */
-        pthread_mutex_lock(&worker_ctrl_mutex);
-        old_state = state = worker_ctrl_state;
-        pthread_mutex_unlock(&worker_ctrl_mutex);
+        pthread_mutex_lock(&rp_osc_ctrl_mutex);
+        old_state = state = rp_osc_ctrl;
+        pthread_mutex_unlock(&rp_osc_ctrl_mutex);
         if((state == rp_osc_idle_state) || (state == rp_osc_abort_state)) {
             continue;
         } else if(state == rp_osc_quit_state) {
@@ -433,10 +433,10 @@ void *worker_thread(void *args)
        
             /* polling until data is ready */
             while(1) {
-                pthread_mutex_lock(&worker_ctrl_mutex);
-                state = worker_ctrl_state;
-                params_dirty = worker_params_dirty;
-                pthread_mutex_unlock(&worker_ctrl_mutex);
+                pthread_mutex_lock(&rp_osc_ctrl_mutex);
+                state = rp_osc_ctrl;
+                params_dirty = rp_osc_params_dirty;
+                pthread_mutex_unlock(&rp_osc_ctrl_mutex);
                 /* change in state, abort polling */
                 if((state != old_state) || params_dirty) {
                     break;
@@ -456,10 +456,10 @@ void *worker_thread(void *args)
         }
      
 
-        pthread_mutex_lock(&worker_ctrl_mutex);
-        state = worker_ctrl_state;
-        params_dirty = worker_params_dirty;
-        pthread_mutex_unlock(&worker_ctrl_mutex);
+        pthread_mutex_lock(&rp_osc_ctrl_mutex);
+        state = rp_osc_ctrl;
+        params_dirty = rp_osc_params_dirty;
+        pthread_mutex_unlock(&rp_osc_ctrl_mutex);
 
         if((state != old_state) || params_dirty)
             continue;
@@ -478,9 +478,9 @@ void *worker_thread(void *args)
         
 
         /* check again for change of state */
-        pthread_mutex_lock(&worker_ctrl_mutex);
-        state = worker_ctrl_state;
-        pthread_mutex_unlock(&worker_ctrl_mutex);
+        pthread_mutex_lock(&rp_osc_ctrl_mutex);
+        state = rp_osc_ctrl;
+        pthread_mutex_unlock(&rp_osc_ctrl_mutex);
 
         /* We have acquisition - if we are in single put state machine
          * to idle */
