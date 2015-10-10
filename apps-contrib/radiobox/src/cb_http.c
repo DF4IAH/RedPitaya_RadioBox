@@ -13,13 +13,13 @@
 #include "main.h"
 #include "worker.h"
 #include "calib.h"
+#include "fpga.h"
 
 #include "cb_http.h"
 
 
 /* Describe app. parameters with some info/limitations */
-pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
-static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
+static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
     { /* Oscillator-1 frequency (Hz) */
         "osc1_qrg_i", 100, 1, 0, 0, 125000000 },
     { /* Oscillator-1 amplitude (µV) */
@@ -42,10 +42,15 @@ static rp_app_params_t rp_main_params[PARAMS_NUM+1] = {
     { /* Must be last! */
         NULL, 0.0, -1, -1, 0.0, 0.0 }
 };
-/* params initialized */
+
+pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/* params initialized - accessed by the nginx loader */
 static int params_init = 0;
 
 rp_calib_params_t rp_main_calib_params;
+
+extern rb_fpga_reg_mem_t *g_rb_fpga_reg_mem;
 
 
 int rp_app_init(void)
@@ -53,7 +58,7 @@ int rp_app_init(void)
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
 
     // Debugging
-    set_leds(0, 0xff, 0x01);
+    hk_fpga_setLeds(0, 0xff, 0x01);
 
     /*
     rp_default_calib_params(&rp_main_calib_params);
@@ -63,7 +68,7 @@ int rp_app_init(void)
     }
     */
 
-    if (rp_osc_worker_init(&rp_main_params[0], PARAMS_NUM,
+    if (worker_init(&rp_main_params[0], PARAMS_NUM,
                            &rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_app_init: failed to start rp_osc_worker_init.\n");
         return -1;
@@ -80,15 +85,15 @@ int rp_app_exit(void)
 {
     fprintf(stderr, "Unloading radiobox version %s-%s.\n", VERSION, REVISION);
 
-    rp_osc_worker_exit();
+    worker_exit();
 
     // Debugging
-    set_leds(0, 0xff, 0x00);
+    hk_fpga_setLeds(0, 0xff, 0x00);
 
     return 0;
 }
 
-int rp_set_params(rp_app_params_t *p, int len, int requesterIsServer)
+int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
 {
     int i;
     int params_change = 0;
@@ -98,7 +103,7 @@ int rp_set_params(rp_app_params_t *p, int len, int requesterIsServer)
     TRACE("%s()\n", __FUNCTION__);
 
     // Debugging
-    set_leds(1, 0x02, 0);
+    hk_fpga_setLeds(1, 0x02, 0);
 
     if (len > PARAMS_NUM) {
         fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, PARAMS_NUM);
@@ -162,12 +167,12 @@ int rp_set_params(rp_app_params_t *p, int len, int requesterIsServer)
         (void) fpga_update;
 
         // Debugging
-        set_leds(1, 0x04, 0);
+        hk_fpga_setLeds(1, 0x04, 0);
 
         fprintf(stderr, "rp_set_params: setting FPGA - A=%lf, B=%lf ...\n", rp_main_params[RB_ADD_A].value, rp_main_params[RB_ADD_B].value);
-        rb_set_fpga(0x00, rp_main_params[RB_ADD_A].value);
-        rb_set_fpga(0x04, rp_main_params[RB_ADD_B].value);
-        rp_main_params[RB_ADD_RES].value = rb_get_fpga(0x08);
+        g_rb_fpga_reg_mem->rb_add_a = rp_main_params[RB_ADD_A].value;
+        g_rb_fpga_reg_mem->rb_add_b = rp_main_params[RB_ADD_B].value;
+        rp_main_params[RB_ADD_RES].value = g_rb_fpga_reg_mem->rb_add_res;
         fprintf(stderr, "rp_set_params: getting FPGA -  ... RES=%lf\n", rp_main_params[RB_ADD_RES].value);
     }
     // DF4IAH  ^
@@ -177,7 +182,7 @@ int rp_set_params(rp_app_params_t *p, int len, int requesterIsServer)
 }
 
 /* Returned vector must be free'd externally! */
-int rp_get_params(rp_app_params_t **p)
+int rp_get_params(rp_app_params_t** p)
 {
     fprintf(stderr, "rp_get_params: BEGIN\n");
 
@@ -185,7 +190,7 @@ int rp_get_params(rp_app_params_t **p)
     int i;
 
     // Debugging
-    set_leds(1, 0x08, 0);
+    hk_fpga_setLeds(1, 0x08, 0);
 
     p_copy = (rp_app_params_t *)malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
     if (p_copy == NULL)
@@ -214,20 +219,21 @@ int rp_get_params(rp_app_params_t **p)
     return PARAMS_NUM;
 }
 
-int rp_get_signals(float ***s, int *sig_num, int *sig_len)
+int rp_get_signals(float*** s, int* trc_num, int* trc_len)
 {
     int ret_val = 0;
 
     fprintf(stderr, "rp_get_signals: BEGIN\n");
 
     // Debugging
-    set_leds(1, 0x10, 0);
+    hk_fpga_setLeds(1, 0x10, 0);
 
-    if (*s == NULL)
-        return -1;
+    if (*s == NULL) {
+    	return -1;
+    }
 
-    *sig_num = SIGNALS_NUM;
-    *sig_len = SIGNAL_LENGTH;
+    *trc_num = TRACE_NUM;
+    *trc_len = TRACE_LENGTH;
 
     fprintf(stderr, "rp_get_signals: END\n\n");
     return ret_val;
@@ -235,7 +241,7 @@ int rp_get_signals(float ***s, int *sig_num, int *sig_len)
 
 
 
-int rp_update_main_params(rp_app_params_t *params)
+int rp_update_main_params(rp_app_params_t* params)
 {
     int i = 0;
     if (params == NULL)
@@ -251,12 +257,4 @@ int rp_update_main_params(rp_app_params_t *params)
     rp_set_params(&rp_main_params[0], PARAMS_NUM, 1);
 
     return 0;
-}
-
-
-void write_cal_eeprom( void)
-{
-    if (rp_write_calib_params(&rp_main_calib_params) < 0) {
-        fprintf(stderr, "rp_write_calib_params() failed. \n");
-    }
 }
