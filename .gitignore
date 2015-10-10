@@ -35,6 +35,11 @@ scpi-server/scpi-server
 scpi-server/3rdparty/libs/scpi-parser/examples/
 
 # Results of building process
+apps-contrib/build/
+apps-contrib/radiobox/doc/RedPitaya_RadioBox_Development_Manual.pdf
+apps-contrib/radiobox/doc/html
+apps-contrib/radiobox/doc/latex
+apps-free/build/
 /Bazaar
 /OS/buildroot/buildroot-*
 /tmp
