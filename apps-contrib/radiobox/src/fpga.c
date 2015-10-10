@@ -78,7 +78,7 @@ int fpga_init(void)
 			fpga_exit();
 			return -1;
 		}
-		g_hk_fpga_reg_mem = page_ptr + page_offs;
+		g_hk_fpga_reg_mem = (hk_fpga_reg_mem_t*) (page_ptr + page_offs);
     }
 
     // init the RadioBox FPGA sub-module
@@ -89,17 +89,17 @@ int fpga_init(void)
 			fpga_exit();
 			return -1;
 		}
-		long page_addr = HK_FPGA_BASE_ADDR & (~(page_size-1));
-		long page_offs = HK_FPGA_BASE_ADDR - page_addr;
+		long page_addr = RB_FPGA_BASE_ADDR & (~(page_size-1));
+		long page_offs = RB_FPGA_BASE_ADDR - page_addr;
 
-		void* page_ptr = mmap(NULL, HK_FPGA_BASE_SIZE, PROT_READ | PROT_WRITE,
-                          MAP_SHARED, g_hk_fpga_mem_fd, page_addr);
+		void* page_ptr = mmap(NULL, RB_FPGA_BASE_SIZE, PROT_READ | PROT_WRITE,
+                          MAP_SHARED, g_rb_fpga_mem_fd, page_addr);
 		if (page_ptr == MAP_FAILED) {
 			fprintf(stderr, "RadioBox: mmap() failed: %s\n", strerror(errno));
 			fpga_exit();
 			return -1;
 		}
-		g_hk_fpga_reg_mem = page_ptr + page_offs;
+		g_rb_fpga_reg_mem = (rb_fpga_reg_mem_t*) page_ptr + page_offs;
     }
 
     return 0;
