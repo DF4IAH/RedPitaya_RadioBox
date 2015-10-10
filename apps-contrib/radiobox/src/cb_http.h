@@ -15,18 +15,20 @@
  * rp_app_params_t structure defined in cb_http.c */
 
 /* RadioBox parameters */
-#define RB_OSC1_QRG   	   	0
-#define RB_OSC1_AMP   	   	1
-#define RB_OSC1_MODSRC     	2
-#define RB_OSC1_MODTYP     	3
-#define RB_OSC2_QRG   	   	4
-#define RB_OSC2_MAG   	   	5
+enum rb_enum_t {
+	RB_RUN         = 0,
+	RB_OSC1_QRG,
+	RB_OSC1_AMP,
+	RB_OSC1_MODSRC,
+	RB_OSC1_MODTYP,
+	RB_OSC2_QRG,
+	RB_OSC2_MAG,
+	RB_ADD_A,
+	RB_ADD_B,
+	RB_ADD_RES,
 
-#define RB_ADD_A   	       	6
-#define RB_ADD_B   	       	7
-#define RB_ADD_RES	       	8
-
-#define PARAMS_NUM         	9
+	PARAMS_NUM
+};
 
 
 /* module entry points */

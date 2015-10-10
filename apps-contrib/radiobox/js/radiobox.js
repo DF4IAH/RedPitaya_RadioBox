@@ -54,15 +54,15 @@
     init: {}
   };
   RB.params.init = {
-    osc1_qrg_i:     parseInt(1000000),
-    osc1_amp_i:     parseInt(   1000),
-    osc1_modsrc_s:  parseInt(      1),
-    osc1_modtyp_s:  parseInt(      0),
-    osc2_qrg_i:     parseInt(   1000),
-    osc2_mag_i:     parseInt(     50),
+    osc1_qrg_i:     1000000,
+    osc1_amp_i:        1000,
+    osc1_modsrc_s:        1,
+    osc1_modtyp_s:        0,
+    osc2_qrg_i:        1000,
+    osc2_mag_i:          50,
 
-    rb_add_a_i:     parseInt(     11),  // TODO: remove me
-    rb_add_b_i:     parseInt(     22)   // TODO: remove me
+    rb_add_a_i:          11,  // TODO: remove me
+    rb_add_b_i:          22   // TODO: remove me
   };
 
   // Other global variables
@@ -204,53 +204,52 @@
 
     for (var param_name in new_params) {
       // Save new parameter value
+      //RB.params.orig[param_name] = new_params[param_name].value;
       RB.params.orig[param_name] = new_params[param_name];
+      var intVal = parseInt(RB.params.orig[param_name]);
+
+      //console.log("CHECK: param_name='" + param_name + "', content='" + RB.params.orig[param_name] + "'");
 
       if (param_name.indexOf('osc1_qrg_i') == 0) {
-        $("#osc1_qrg_i").text(new_params[param_name].value);
-        //$("#"+param_name).parent().children("#osc1_qrg_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('osc1_amp_i') == 0) {
-        $("#osc1_amp_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('osc1_modsrc_s') == 0) {
+        $('#'+param_name).val(intVal);
       }
       else if (param_name.indexOf('osc1_modtyp_s') == 0) {
-        switch (new_params[param_name].value) {
-          case 0: {
-            //$('#osc1_modtyp_s').data('checked', true)
-            $("#osc1_modtyp_s").val('AM');
-            $("#osc2_mag_units").text('%');
-          }
-          case 1: {
-            $("#osc1_modtyp_s").val('FM');
-            $("#osc2_mag_units").text('Hz');
-          }
-          case 2: {
-            $("#osc1_modtyp_s").val('PM');
-            $("#osc2_mag_units").text('°');
-          }
-          default: {
-            $("#osc1_modtyp_s").val('AM');
-            $("#osc2_mag_units").text('( )');
-          }
+        $('#'+param_name).val(intVal);
+        switch (intVal) {
+          case 0:
+            $('#osc2_mag_units').text('%');
+            break;
+          case 1:
+            $('#osc2_mag_units').text('Hz');
+            break;
+          case 2:
+            $('#osc2_mag_units').text('°');
+            break;
+          default:
+            $('#osc2_mag_units').text('( )');
         }
       }
       else if (param_name.indexOf('osc2_qrg_i') == 0) {
-        $("#osc2_qrg_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('osc2_mag_i') == 0) {
-        $("#osc2_mag_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
 
       else if (param_name.indexOf('rb_add_a_i') == 0) {  // TODO: to be removed
-        $("#rb_add_a_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('rb_add_b_i') == 0) {  // TODO: to be removed
-        $("#rb_add_b_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('rb_add_res_i') == 0) {  // TODO: to be removed
-        $("#rb_add_res_i").text(new_params[param_name].value);
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
 
       /*
@@ -335,8 +334,9 @@
       var new_period = 1100/fps < 25 ? 25 : 1100/fps;
       var period = {};
 
-      period['DEBUG_SIGNAL_PERIOD'] = { value: new_period };
-      RB.ac.send(JSON.stringify({ parameters: period }));
+      period['DEBUG_SIGNAL_PERIOD'] = new_period;
+      //period['DEBUG_SIGNAL_PERIOD'] = { value: new_period };
+      RB.ac.send(JSON.stringify({ datasets: { params: period } }));
       //RB.ws.send(JSON.stringify({ parameters: period }));
       RB.processSignalsFrmsCnt = 0;
     }
@@ -364,7 +364,7 @@
     $.ajax({
       type: 'POST',
       url: RB.config.post_url,
-      data: JSON.stringify({ datasets: { params: RB.params.local } }),
+      data: JSON.stringify({ app: { id: 'radiobox' }, datasets: { params: RB.params.local } }),
       timeout: RB.config.request_timeout,
       cache: false
     })
@@ -395,7 +395,7 @@
       if (RB.state.send_que) {
         RB.state.send_que = false;
         setTimeout(function(refresh_data) {
-          sendParams(refresh_data);
+          RB.sendParams(refresh_data);
         }, 100);
       }
     });
@@ -416,13 +416,13 @@
         value = (field.is(':visible') ? 0 : 1);
       }
       else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
-        value = field.val();
+        value = parseInt(field.val());
       }
       else if (field.is('button')) {
         value = (field.hasClass('active') ? 1 : 0);
       }
       else if (field.is('input:radio')) {
-        value = $('input[name="' + key + '"]:checked').val();
+        value = parseInt($('input[name="' + key + '"]:checked').val());
       }
       /*
       else {
@@ -430,11 +430,12 @@
       }
       */
 
-      if (value !== undefined && value != RB.params.orig[key].value) {
-        var new_value = ($.type(RB.params.orig[key].value) == 'boolean' ?  !!value : value);
+      if (value !== undefined && value != RB.params.orig[key]) {
+        var new_value = ($.type(RB.params.orig[key]) == 'boolean' ?  !!value : value);
 
-        console.log(key + ' changed from ' + RB.params.orig[key].value + ' to ' + new_value);
-        RB.params.local[key] = { value: new_value };
+        console.log(key + ' changed from ' + RB.params.orig[key] + ' to ' + new_value);
+        RB.params.local[key] = new_value;
+        //RB.params.local[key] = { value: new_value };
       }
     }
 
@@ -472,7 +473,8 @@ $(function() {
     ev.preventDefault();
     $('#RB_RUN').hide();
     $('#RB_STOP').css('display','block');
-    RB.params.local['RB_RUN'] = { value: true };
+    //RB.params.local['RB_RUN'] = { value: false };
+    RB.params.local['RB_RUN'] = 0;
     RB.sendParams();
   });
 
@@ -481,7 +483,7 @@ $(function() {
     ev.preventDefault();
     $('#RB_STOP').hide();
     $('#RB_RUN').show();
-    RB.params.local['RB_RUN'] = { value: false };
+    RB.params.local['RB_RUN'] = 1;
     RB.sendParams();
   });
 
@@ -571,10 +573,10 @@ $(function() {
 
   // Bind to the window resize event to redraw the graph; trigger that event to do the first drawing
   $(window).resize(function() {
-    if (RB.ac !== undefined) {
-      RB.params.local['in_command'] = { value: 'send_all_params' };
-      RB.ac();
-    }
+    /*
+	RB.params.local['in_command'] = 'send_all_params';
+    RB.sendParams();
+    */
     /*
     if (RB.ws) {
       RB.params.local['in_command'] = { value: 'send_all_params' };

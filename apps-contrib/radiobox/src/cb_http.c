@@ -37,6 +37,8 @@ static rp_calib_params_t        rp_main_calib_params;
 
 /* Describe app. parameters with some info/limitations */
 static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
+    { /* Running mode */
+	    "RB_RUN",           0, 1, 0, 0,         1 },
     { /* Oscillator-1 frequency (Hz) */
         "osc1_qrg_i",       0, 1, 0, 0, 125000000 },
     { /* Oscillator-1 amplitude (µV) */
