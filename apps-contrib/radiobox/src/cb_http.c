@@ -19,42 +19,45 @@
 
 
 /* @brief The HouseKeeping memory file descriptor used to mmap() the FPGA space. */
-int                			g_hk_fpga_mem_fd = -1;
+int                             g_hk_fpga_mem_fd = -1;
 
 /* @brief The HouseKeeping memory layout of the FPGA registers. */
-hk_fpga_reg_mem_t*			g_hk_fpga_reg_mem = NULL;
+hk_fpga_reg_mem_t*              g_hk_fpga_reg_mem = NULL;
 
 
 /* @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
-int                			g_rb_fpga_mem_fd = -1;
+int                             g_rb_fpga_mem_fd = -1;
 
 /* @brief The RadioBox memory layout of the FPGA registers. */
-rb_fpga_reg_mem_t*			g_rb_fpga_reg_mem = NULL;
+rb_fpga_reg_mem_t*              g_rb_fpga_reg_mem = NULL;
+
+
+static rp_calib_params_t        rp_main_calib_params;
 
 
 /* Describe app. parameters with some info/limitations */
 static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
     { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_i", 100, 1, 0, 0, 125000000 },
+        "osc1_qrg_i",       0, 1, 0, 0, 125000000 },
     { /* Oscillator-1 amplitude (µV) */
-        "osc1_amp_i", 90, 1, 0, 0, 2048000 },
+        "osc1_amp_i",       0, 1, 0, 0,   2048000 },
     { /* Oscillator-1 modulation source selector (0: none, 1: VCO2, 2: XADC0) */
-        "osc1_modsrc_s", 1, 1, 0, 0, 2 },
+        "osc1_modsrc_s",    0, 1, 0, 0,         2 },
     { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
-        "osc1_modtyp_s", 2, 1, 0, 0, 2 },
+        "osc1_modtyp_s",    0, 1, 0, 0,         2 },
     { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_i", 80, 1, 0, 0, 125000000 },
+        "osc2_qrg_i",       0, 1, 0, 0, 125000000 },
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
-        "osc2_mag_i", 70, 1, 0, 0, 1000000 },
+        "osc2_mag_i",       0, 1, 0, 0,   1000000 },
 
     { /* calculator register A */
-        "rb_add_a_i", 51, 1, 0, 0, 1000 },
+        "rb_add_a_i",       0, 1, 0, 0,      1000 },
     { /* calculator register B */
-        "rb_add_b_i", 52, 1, 0, 0, 1000 },
+        "rb_add_b_i",       0, 1, 0, 0,      1000 },
     { /* calculator sum result register */
-        "rb_add_res_i", 53, 0, 1, 0, 10000 },
+        "rb_add_res_i",     0, 0, 1, 0, 999999999 },
     { /* Must be last! */
-        NULL, 0.0, -1, -1, 0.0, 0.0 }
+        NULL,               0.0, -1, -1, 0.0, 0.0 }
 };
 
 pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -62,36 +65,30 @@ pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* params initialized - accessed by the nginx loader */
 static int params_init = 0;
 
-rp_calib_params_t rp_main_calib_params;
-
-extern rb_fpga_reg_mem_t *g_rb_fpga_reg_mem;
 
 
 int rp_app_init(void)
 {
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
 
+    fpga_init();
+
     // Debugging
     hk_fpga_setLeds(0, 0xff, 0x01);
 
-    /*
     rp_default_calib_params(&rp_main_calib_params);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
-        fprintf(stderr, "rp_read_calib_params() failed, using default"
-                " parameters\n");
+        fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
-    */
 
-    if (worker_init(&rp_main_params[0], PARAMS_NUM,
-                           &rp_main_calib_params) < 0) {
+    if (worker_init(&rp_main_params[0], PARAMS_NUM, &rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_app_init: failed to start rp_osc_worker_init.\n");
         return -1;
     }
 
-    fprintf(stderr, "rp_app_init: before rp_set_params.\n");
     rp_set_params(&rp_main_params[0], PARAMS_NUM, 0);
-    fprintf(stderr, "rp_app_init: after rp_set_params.\n");
 
+    fprintf(stderr, "rp_app_init: END.\n");
     return 0;
 }
 
@@ -104,12 +101,15 @@ int rp_app_exit(void)
     // Debugging
     hk_fpga_setLeds(0, 0xff, 0x00);
 
+    fpga_exit();
+
+    fprintf(stderr, "rp_app_exit: END.\n");
     return 0;
 }
 
+
 int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
 {
-    int i;
     int params_change = 0;
     int fpga_update = 1;
 
@@ -125,14 +125,14 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
     }
 
     pthread_mutex_lock(&rp_main_params_mutex);
-    for (i = 0; i < len || p[i].name != NULL; i++) {
+    int i;
+    for (i = 0; i < len || p[i].name; i++) {
         int p_idx = -1;
         int j = 0;
 
         /* Search for correct parameter name in defined parameters */
         fprintf(stderr, "rp_set_params: next param name = %s\n", p[i].name);
-        while (rp_main_params[j].name != NULL) {
-
+        while (rp_main_params[j].name) {
             int p_strlen = strlen(p[i].name);
 
             if (p_strlen != strlen(rp_main_params[j].name)) {
@@ -188,10 +188,12 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
         g_rb_fpga_reg_mem->rb_add_b = rp_main_params[RB_ADD_B].value;
         rp_main_params[RB_ADD_RES].value = g_rb_fpga_reg_mem->rb_add_res;
         fprintf(stderr, "rp_set_params: getting FPGA -  ... RES=%lf\n", rp_main_params[RB_ADD_RES].value);
+
+        params_init = 1;
     }
     // DF4IAH  ^
 
-    fprintf(stderr, "rp_set_params: END\n\n");
+    fprintf(stderr, "rp_set_params: END\n");
     return 0;
 }
 
@@ -200,23 +202,22 @@ int rp_get_params(rp_app_params_t** p)
 {
     fprintf(stderr, "rp_get_params: BEGIN\n");
 
-    rp_app_params_t *p_copy = NULL;
-    int i;
-
     // Debugging
     hk_fpga_setLeds(1, 0x08, 0);
 
-    p_copy = (rp_app_params_t *)malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
-    if (p_copy == NULL)
+    rp_app_params_t* p_copy = NULL;
+    p_copy = (rp_app_params_t*) malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
+    if (!p_copy) {
         return -1;
+    }
 
     pthread_mutex_lock(&rp_main_params_mutex);
+    int i;
     for (i = 0; i < PARAMS_NUM; i++) {
         int p_strlen = strlen(rp_main_params[i].name);
 
-        p_copy[i].name = (char *)malloc(p_strlen+1);
-        strncpy((char *)&p_copy[i].name[0], &rp_main_params[i].name[0],
-                p_strlen);
+        p_copy[i].name = (char*) malloc(p_strlen+1);
+        strncpy((char*) &p_copy[i].name[0], &rp_main_params[i].name[0], p_strlen);
         p_copy[i].name[p_strlen]='\0';
 
         p_copy[i].value       = rp_main_params[i].value;
@@ -224,12 +225,14 @@ int rp_get_params(rp_app_params_t** p)
         p_copy[i].read_only   = rp_main_params[i].read_only;
         p_copy[i].min_val     = rp_main_params[i].min_val;
         p_copy[i].max_val     = rp_main_params[i].max_val;
+
+        fprintf(stderr, "rp_get_params: param name = %s, value = %lf\n", p_copy[i].name, p_copy[i].value);
     }
     pthread_mutex_unlock(&rp_main_params_mutex);
     p_copy[PARAMS_NUM].name = NULL;
-
     *p = p_copy;
-    fprintf(stderr, "rp_get_params: END\n\n");
+
+    fprintf(stderr, "rp_get_params: END\n");
     return PARAMS_NUM;
 }
 
@@ -242,33 +245,40 @@ int rp_get_signals(float*** s, int* trc_num, int* trc_len)
     // Debugging
     hk_fpga_setLeds(1, 0x10, 0);
 
-    if (*s == NULL) {
-    	return -1;
+    if (!*s) {
+        return -1;
     }
 
     *trc_num = TRACE_NUM;
     *trc_len = TRACE_LENGTH;
 
-    fprintf(stderr, "rp_get_signals: END\n\n");
+    fprintf(stderr, "rp_get_signals: END\n");
     return ret_val;
 }
-
 
 
 int rp_update_main_params(rp_app_params_t* params)
 {
     int i = 0;
-    if (params == NULL)
-        return -1;
 
+    fprintf(stderr, "rp_update_main_params: BEGIN\n");
+
+    if (!params) {
+        return -1;
+    }
+
+    /* make own copy */
     pthread_mutex_lock(&rp_main_params_mutex);
-    while (params[i].name != NULL) {
+    while (params[i].name) {
         rp_main_params[i].value = params[i].value;
         i++;
     }
     pthread_mutex_unlock(&rp_main_params_mutex);
+
+    /* inform rp_set_params(), also */
     params_init = 0;
     rp_set_params(&rp_main_params[0], PARAMS_NUM, 1);
 
+    fprintf(stderr, "rp_update_main_params: END\n");
     return 0;
 }

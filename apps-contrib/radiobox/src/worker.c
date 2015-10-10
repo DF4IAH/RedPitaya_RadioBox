@@ -26,24 +26,25 @@
 
 #include "worker.h"
 
-pthread_t *worker_thread_handler = NULL;
 
-pthread_mutex_t       worker_ctrl_mutex = PTHREAD_MUTEX_INITIALIZER;
-worker_state_t        worker_ctrl_state;
+static pthread_t*               worker_thread_handler = NULL;
 
-rp_app_params_t*      rp_app_params = NULL;
-int                   rp_app_params_dirty;
-int                   rp_app_params_fpga_update;
+static pthread_mutex_t          worker_ctrl_mutex = PTHREAD_MUTEX_INITIALIZER;
+static worker_state_t           worker_ctrl_state;
 
-pthread_mutex_t       rp_app_traces_mutex = PTHREAD_MUTEX_INITIALIZER;
-float**               rp_app_traces;
-int                   rp_app_traces_dirty = 0;
-int                   rp_app_traces_lastIdx = 0;
-float**               rp_app_traces_tmp; /* used for calculation, only from worker */
+static rp_app_params_t*         worker_params = NULL;
+static int                      worker_params_dirty;
+static int                      worker_params_fpga_update;
+
+static pthread_mutex_t          worker_traces_mutex = PTHREAD_MUTEX_INITIALIZER;
+static float**                  worker_traces;
+static int                      worker_traces_dirty = 0;
+static int                      worker_traces_lastIdx = 0;
+static float**                  worker_traces_tmp;  /* used for calculation, only from worker */
 
 
 /* Calibration parameters read from EEPROM */
-rp_calib_params_t*    rp_calib_params = NULL;
+static rp_calib_params_t*       worker_calib_params = NULL;
 
 
 
@@ -52,43 +53,43 @@ int worker_init(rp_app_params_t* params, int params_len, rp_calib_params_t* cali
 {
     int ret_val;
 
+    fprintf(stderr, "worker_init: BEGIN\n");
+
     // make sure all previous data is vanished
-    (void) worker_exit();
+    if (worker_thread_handler || worker_calib_params) {
+        (void) worker_exit();
+    }
 
     worker_ctrl_state         = worker_idle_state;
-    rp_app_params_dirty       = 0;
-    rp_app_params_fpga_update = 0;
+    worker_params_dirty       = 0;
+    worker_params_fpga_update = 0;
 
-    // get access to the global EEPROM parameter set
-    rp_calib_params = calib_params;
+    // set reference to the global EEPROM parameter set
+    worker_calib_params = calib_params;
 
     // fill in parameters to the worker context
-    rp_copy_params((rp_app_params_t **) &rp_app_params, params);
-
-    if (fpga_init() < 0) {
-    	worker_exit();
-        return -1;
-    }
+    rp_copy_params((rp_app_params_t**) &worker_params, params);
 
     /*
     osc_fpga_get_sig_ptr(&rp_fpga_cha_signal, &rp_fpga_chb_signal);
     */
 
     worker_thread_handler = (pthread_t*) malloc(sizeof(pthread_t));
-    if (worker_thread_handler == NULL) {
-    	worker_exit();
+    if (!worker_thread_handler) {
+        worker_exit();
         return -1;
     }
 
     ret_val = pthread_create(worker_thread_handler, NULL, worker_thread, NULL);
-    if (ret_val != 0) {
+    if (ret_val) {
         fprintf(stderr, "pthread_create() failed: %s\n", strerror(errno));
         free(worker_thread_handler);
         worker_thread_handler = NULL;
-    	worker_exit();
+        worker_exit();
         return -1;
     }
 
+    fprintf(stderr, "worker_init: END\n");
     return 0;
 }
 
@@ -96,6 +97,8 @@ int worker_init(rp_app_params_t* params, int params_len, rp_calib_params_t* cali
 int worker_exit(void)
 {
     int ret_val = 0; 
+
+    fprintf(stderr, "worker_exit: BEGIN\n");
 
     pthread_mutex_lock(&worker_ctrl_mutex);
     worker_ctrl_state = worker_quit_state;
@@ -106,18 +109,17 @@ int worker_exit(void)
         free(worker_thread_handler);
         worker_thread_handler = NULL;
     }
-    if(ret_val != 0) {
+    if (ret_val) {
         fprintf(stderr, "pthread_join() failed: %s\n", strerror(errno));
     }
 
-    fpga_exit();
+    rp_free_traces(&worker_traces);
+    rp_free_traces(&worker_traces_tmp);
 
-    rp_free_traces(&rp_app_traces);
-    rp_free_traces(&rp_app_traces_tmp);
+    rp_free_params(worker_params);
+    worker_calib_params = NULL;
 
-    rp_free_params(rp_app_params);
-    rp_calib_params = NULL;
-
+    fprintf(stderr, "worker_exit: END\n");
     return 0;
 }
 
@@ -128,9 +130,11 @@ void* worker_thread(void* args)
     rp_app_params_t*      curr_params   = NULL;
     int                   fpga_update   = 0;
 
+    fprintf(stderr, "worker_thread: BEGIN\n");
+
     pthread_mutex_lock(&worker_ctrl_mutex);
     state = worker_ctrl_state;
-    rp_app_params_dirty = 1;
+    worker_params_dirty = 1;
     pthread_mutex_unlock(&worker_ctrl_mutex);
 
     while (1) {
@@ -142,10 +146,10 @@ void* worker_thread(void* args)
 
         pthread_mutex_lock(&worker_ctrl_mutex);
         state = worker_ctrl_state;
-        if (rp_app_params_dirty) {
-            rp_copy_params((rp_app_params_t**) &curr_params, rp_app_params);
-            fpga_update = rp_app_params_fpga_update;
-            rp_app_params_dirty = 0;
+        if (worker_params_dirty) {
+            rp_copy_params((rp_app_params_t**) &curr_params, worker_params);
+            fpga_update = worker_params_fpga_update;
+            worker_params_dirty = 0;
         }
         pthread_mutex_unlock(&worker_ctrl_mutex);
 
@@ -162,24 +166,25 @@ void* worker_thread(void* args)
             continue;
 
         } else {
-        	/* state == worker_normal_state */
+            /* state == worker_normal_state */
 
-			if (fpga_update) {
-				rb_fpga_reset();
+            if (fpga_update) {
+                rb_fpga_reset();
 
-				if (rb_fpga_update_params()) {
-					fprintf(stderr, "worker - RadioBox: setting of FPGA registers failed\n");
-				}
+                if (rb_fpga_update_params()) {
+                    fprintf(stderr, "worker - RadioBox: setting of FPGA registers failed\n");
+                }
 
-				/* data acknowledged */
-		        pthread_mutex_lock(&worker_ctrl_mutex);
-		        rp_app_params_fpga_update = 0;
-		        worker_ctrl_state = 0;
-		        pthread_mutex_unlock(&worker_ctrl_mutex);
-			}
+                /* data acknowledged */
+                pthread_mutex_lock(&worker_ctrl_mutex);
+                worker_params_fpga_update = 0;
+                worker_ctrl_state = 0;
+                pthread_mutex_unlock(&worker_ctrl_mutex);
+            }
         }
     }  // while (1)
 
+    fprintf(stderr, "worker_thread: END\n");
     return 0;
 }
 
@@ -187,7 +192,9 @@ void* worker_thread(void* args)
 /*----------------------------------------------------------------------------------*/
 int worker_update_params(rp_app_params_t* params, int fpga_update)
 {
-	/*
+    fprintf(stderr, "worker_update_params: BEGIN\n");
+
+    /*
     pthread_mutex_lock(&worker_ctrl_mutex);
     rp_copy_params(params, (rp_app_params_t **)&worker_params);
     worker_params_dirty       = 1;
@@ -198,48 +205,47 @@ int worker_update_params(rp_app_params_t* params, int fpga_update)
     pthread_mutex_unlock(&worker_ctrl_mutex);
     */
 
-	return 0;
-}
-
-
-/*----------------------------------------------------------------------------------*/
-int worker_clear_signals(void)
-{
-    pthread_mutex_lock(&rp_app_traces_mutex);
-    rp_app_traces_dirty = 0;
-    pthread_mutex_unlock(&rp_app_traces_mutex);
+    fprintf(stderr, "worker_update_params: END\n");
     return 0;
 }
+
 
 /*----------------------------------------------------------------------------------*/
 int worker_get_signals(float*** traces, int* trc_idx)
 {
     float** trc = *traces;
 
-    pthread_mutex_lock(&rp_app_traces_mutex);
-    *trc_idx = rp_app_traces_lastIdx;
-    if (!rp_app_traces_dirty) {
-        pthread_mutex_unlock(&rp_app_traces_mutex);
+    fprintf(stderr, "worker_get_signals: BEGIN\n");
+
+    pthread_mutex_lock(&worker_traces_mutex);
+    *trc_idx = worker_traces_lastIdx;
+    if (!worker_traces_dirty) {
+        pthread_mutex_unlock(&worker_traces_mutex);
         return -1;
     }
-    memcpy(&trc[0][0], &rp_app_traces[0][0], sizeof(float) * TRACE_LENGTH);
-    memcpy(&trc[1][0], &rp_app_traces[1][0], sizeof(float) * TRACE_LENGTH);
-    memcpy(&trc[2][0], &rp_app_traces[2][0], sizeof(float) * TRACE_LENGTH);
-    rp_app_traces_dirty = 0;
-    pthread_mutex_unlock(&rp_app_traces_mutex);
+    memcpy(&trc[0][0], &worker_traces[0][0], sizeof(float) * TRACE_LENGTH);
+    memcpy(&trc[1][0], &worker_traces[1][0], sizeof(float) * TRACE_LENGTH);
+    memcpy(&trc[2][0], &worker_traces[2][0], sizeof(float) * TRACE_LENGTH);
+    worker_traces_dirty = 0;
+    pthread_mutex_unlock(&worker_traces_mutex);
+
+    fprintf(stderr, "worker_get_signals: END\n");
     return 0;
 }
 
 /*----------------------------------------------------------------------------------*/
 int worker_set_signals(float** source, int index)
 {
-    pthread_mutex_lock(&rp_app_traces_mutex);
-    memcpy(&rp_app_traces[0][0], &source[0][0], sizeof(float) * TRACE_LENGTH);
-    memcpy(&rp_app_traces[1][0], &source[1][0], sizeof(float) * TRACE_LENGTH);
-    memcpy(&rp_app_traces[2][0], &source[2][0], sizeof(float) * TRACE_LENGTH);
-    rp_app_traces_lastIdx = index;
-    rp_app_traces_dirty = 1;
-    pthread_mutex_unlock(&rp_app_traces_mutex);
+    fprintf(stderr, "worker_set_signals: BEGIN\n");
 
+    pthread_mutex_lock(&worker_traces_mutex);
+    memcpy(&worker_traces[0][0], &source[0][0], sizeof(float) * TRACE_LENGTH);
+    memcpy(&worker_traces[1][0], &source[1][0], sizeof(float) * TRACE_LENGTH);
+    memcpy(&worker_traces[2][0], &source[2][0], sizeof(float) * TRACE_LENGTH);
+    worker_traces_lastIdx = index;
+    worker_traces_dirty = 1;
+    pthread_mutex_unlock(&worker_traces_mutex);
+
+    fprintf(stderr, "worker_set_signals: END\n");
     return 0;
 }

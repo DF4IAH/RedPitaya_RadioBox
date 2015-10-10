@@ -39,7 +39,7 @@ int rp_get_signals(float*** s, int* sig_num, int* sig_len);
 
 /* Updates all parameters (structure must be aligned with main parameter
  * structure - this includes also ready-only parameters. After the
- * parameters are updated it also changed the worker state machine.
+ * parameters are updated it also changes the worker state machine.
  */
 int rp_update_main_params(rp_app_params_t* params);
 
