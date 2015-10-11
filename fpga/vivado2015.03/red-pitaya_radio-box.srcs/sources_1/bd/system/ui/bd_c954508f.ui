@@ -1,5 +1,5 @@
 {
-   guistr: "# # String gsaved with Nlview 6.4.12  2014-12-16 bk=1.3272 VDI=35 GEI=35 GUI=JA:1.6
+   guistr: "# # String gsaved with Nlview 6.5.5  2015-06-26 bk=1.3371 VDI=38 GEI=35 GUI=JA:1.6
 #  -string -flagsOSRD
 preplace port FCLK_CLK3 -pg 1 -y 280 -defaultsOSRD
 preplace port S_AXI_HP1 -pg 1 -y 180 -defaultsOSRD
@@ -25,42 +25,42 @@ preplace port Vaux9 -pg 1 -y 780 -defaultsOSRD
 preplace port S_AXI_HP0 -pg 1 -y 160 -defaultsOSRD
 preplace portBus IRQ_F2P -pg 1 -y 460 -defaultsOSRD
 preplace inst xlconstant_0 -pg 1 -lvl 1 -y 600 -defaultsOSRD
-preplace inst axi_protocol_converter_0 -pg 1 -lvl 3 -y 610 -defaultsOSRD
 preplace inst xadc_wiz_0 -pg 1 -lvl 4 -y 760 -defaultsOSRD
+preplace inst axi_protocol_converter_0 -pg 1 -lvl 3 -y 610 -defaultsOSRD
 preplace inst xlconcat_0 -pg 1 -lvl 3 -y 470 -defaultsOSRD
 preplace inst proc_sys_reset_0 -pg 1 -lvl 2 -y 610 -defaultsOSRD
 preplace inst processing_system7_0 -pg 1 -lvl 4 -y 200 -defaultsOSRD
 preplace netloc Vaux0_1 1 0 4 NJ 720 NJ 720 NJ 720 N
 preplace netloc processing_system7_0_ddr 1 4 1 N
-preplace netloc processing_system7_0_fclk_reset3_n 1 1 4 310 940 NJ 940 NJ 940 1390
+preplace netloc processing_system7_0_fclk_reset3_n 1 1 4 300 400 NJ 400 NJ 420 1390
 preplace netloc s_axi_hp0_1 1 0 4 NJ 160 NJ 160 NJ 160 N
 preplace netloc processing_system7_0_fclk_reset2_n 1 4 1 N
 preplace netloc xlconstant_dout 1 1 1 300
 preplace netloc processing_system7_0_fclk_reset1_n 1 4 1 N
 preplace netloc Vp_Vn_1 1 0 4 NJ 700 NJ 700 NJ 700 N
-preplace netloc processing_system7_0_M_AXI_GP1 1 2 3 650 530 NJ 530 1380
+preplace netloc processing_system7_0_M_AXI_GP1 1 2 3 640 410 NJ 410 1380
 preplace netloc dcm_locked_1 1 0 2 NJ 650 N
-preplace netloc xadc_wiz_0_ip2intc_irpt 1 2 3 640 950 NJ 950 1380
+preplace netloc xadc_wiz_0_ip2intc_irpt 1 2 3 650 530 NJ 530 1380
 preplace netloc s_axi_hp0_aclk 1 0 4 NJ 240 NJ 240 NJ 240 N
 preplace netloc s_axi_hp1_1 1 0 4 NJ 180 NJ 180 NJ 180 N
 preplace netloc proc_sys_reset_0_interconnect_aresetn 1 2 1 N
 preplace netloc Vaux8_1 1 0 4 NJ 760 NJ 760 NJ 760 N
-preplace netloc axi_protocol_converter_0_M_AXI 1 3 1 920
-preplace netloc xlconcat_0_dout 1 3 1 940
+preplace netloc axi_protocol_converter_0_M_AXI 1 3 1 940
+preplace netloc xlconcat_0_dout 1 3 1 920
 preplace netloc s_axi_hp1_aclk 1 0 4 NJ 260 NJ 260 NJ 260 N
 preplace netloc processing_system7_0_fclk_reset0_n 1 4 1 N
 preplace netloc Vaux9_1 1 0 4 NJ 780 NJ 780 NJ 780 N
 preplace netloc processing_system7_0_fixed_io 1 4 1 N
-preplace netloc proc_sys_reset_0_peripheral_aresetn 1 2 2 630 840 NJ
+preplace netloc proc_sys_reset_0_peripheral_aresetn 1 2 2 640 690 NJ
 preplace netloc processing_system7_0_fclk_clk0 1 4 1 N
 preplace netloc Vaux1_1 1 0 4 NJ 740 NJ 740 NJ 740 N
 preplace netloc m_axi_gp0_aclk_1 1 0 4 NJ 200 NJ 200 NJ 200 N
 preplace netloc processing_system7_0_fclk_clk1 1 4 1 N
 preplace netloc processing_system7_0_fclk_clk2 1 4 1 N
 preplace netloc processing_system7_0_m_axi_gp0 1 4 1 N
-preplace netloc processing_system7_0_fclk_clk3 1 1 4 310 520 630 540 930 410 1400
+preplace netloc processing_system7_0_fclk_clk3 1 1 4 310 710 650 680 930 430 1400
 preplace netloc IRQ_F2P_1 1 0 3 NJ 460 NJ 460 N
-levelinfo -pg 1 150 240 470 790 1160 1420
+levelinfo -pg 1 150 240 480 790 1160 1420 -top 0 -bot 960
 ",
 }
 0
