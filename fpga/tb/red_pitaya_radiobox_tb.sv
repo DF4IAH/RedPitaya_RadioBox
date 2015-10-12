@@ -32,7 +32,8 @@
 
 module red_pitaya_radiobox_tb #(
   // time periods
-  realtime  TP = 8.0ns                          // 125MHz
+  realtime  TP125 =  8.0ns,                     // 125 MHz
+  realtime  TP20  = 50.0ns                      //  20 MHz
 
   // DUT configuration
 /*
@@ -46,8 +47,8 @@ module red_pitaya_radiobox_tb #(
 //
 // Settings
 
-localparam TASK01_OP_A = 32'd15;
-localparam TASK01_OP_B = 32'd17;
+localparam TASK01_FREE1 = 32'd0;
+localparam TASK01_FREE2 = 32'd0;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -56,8 +57,17 @@ localparam TASK01_OP_B = 32'd17;
 
 // System signals
 int unsigned               clk_cntr = 999999 ;
-reg                        clk               ;
-reg                        rstn              ;
+reg                        clk_adc_125mhz    ;
+reg                        clk_adc_20mhz     ;
+reg                        adc_rstn_i        ;
+
+// Output signals
+wire                    osc1_saxi_m_vld      ;  // OSC1 output valid
+wire           [ 15: 0] osc1_saxi_m_dat      ;  // OSC1 output
+wire           [ 15: 0] osc1_mixed           ;  // OSC1 amplitude mixer output
+wire                    osc2_saxi_m_vld      ;  // OSC2 output valid
+wire           [ 15: 0] osc2_saxi_m_dat      ;  // OSC2 output
+wire           [ 15: 0] osc2_mixed           ;  // OSC2 amplitude mixer output
 
 // System bus
 wire           [ 32-1: 0]  sys_addr          ;
@@ -91,61 +101,49 @@ int unsigned               blk_size          ;
 
 sys_bus_model bus (
   // system signals
-  .clk            ( clk                    ) ,
-  .rstn           ( rstn                   ) ,
+  .clk            ( clk_adc_125mhz          ),
+  .rstn           ( adc_rstn_i              ),
 
   // bus protocol signals
-  .sys_addr       ( sys_addr               ) ,
-  .sys_wdata      ( sys_wdata              ) ,
-  .sys_sel        ( sys_sel                ) ,
-  .sys_wen        ( sys_wen                ) ,
-  .sys_ren        ( sys_ren                ) ,
-  .sys_rdata      ( sys_rdata              ) ,
-  .sys_err        ( sys_err                ) ,
-  .sys_ack        ( sys_ack                )
+  .sys_addr       ( sys_addr                ),
+  .sys_wdata      ( sys_wdata               ),
+  .sys_sel        ( sys_sel                 ),
+  .sys_wen        ( sys_wen                 ),
+  .sys_ren        ( sys_ren                 ),
+  .sys_rdata      ( sys_rdata               ),
+  .sys_err        ( sys_err                 ),
+  .sys_ack        ( sys_ack                 )
 );
 
 red_pitaya_radiobox #(
-//.RSZ            ( RSZ                    )
+//.RSZ            ( RSZ                     )
 ) radiobox        (
-
   // ADC
-  .adc_clk_i      ( clk                    ) ,
-  .adc_rstn_i     ( rstn                   ) ,
-/*
-  .adc_a_i        ( adc_a                  ) ,  // CH 1
-  .adc_b_i        ( adc_b                  ) ,  // CH 2
-*/
+  .clk_adc_125mhz ( clk_adc_125mhz          ),  // ADC based clock, 125 MHz
+  .clk_adc_20mhz  ( clk_adc_20mhz           ),  // ADC based clock,  20 MHz, for OSC2
+  .adc_rstn_i     ( adc_rstn_i              ),  // ADC reset - active low
 
-/*
-  // trigger sources
-  .trig_ext_i     ( trig_ext               ) ,  // external trigger
-  .trig_asg_i     ( trig_ext               ) ,  // ASG trigger
-*/
+  /*
+  .adc_a_i        (                         ),  // ADC data CHA
+  .adc_b_i        (                         ),  // ADC data CHB
+  */
 
-/*
-  // AXI0 master                                // AXI1 master
-  .axi0_clk_o     (                        ) ,  .axi1_clk_o     (                        ) ,
-  .axi0_rstn_o    (                        ) ,  .axi1_rstn_o    (                        ) ,
-  .axi0_waddr_o   (                        ) ,  .axi1_waddr_o   (                        ) ,
-  .axi0_wdata_o   (                        ) ,  .axi1_wdata_o   (                        ) ,
-  .axi0_wsel_o    (                        ) ,  .axi1_wsel_o    (                        ) ,
-  .axi0_wvalid_o  (                        ) ,  .axi1_wvalid_o  (                        ) ,
-  .axi0_wlen_o    (                        ) ,  .axi1_wlen_o    (                        ) ,
-  .axi0_wfixed_o  (                        ) ,  .axi1_wfixed_o  (                        ) ,
-  .axi0_werr_i    ( 1'b0                   ) ,  .axi1_werr_i    ( 1'b0                   ) ,
-  .axi0_wrdy_i    ( 1'b1                   ) ,  .axi1_wrdy_i    ( 1'b1                   ) ,
-*/
+  .osc1_saxi_m_vld ( osc1_saxi_m_vld        ),  //  OSC1 output valid
+  .osc1_saxi_m_dat ( osc1_saxi_m_dat        ),  //  OSC1 output
+  .osc1_mixed      ( osc1_mixed             ),  //  OSC1 amplitude mixer output
+  .osc2_saxi_m_vld ( osc2_saxi_m_vld        ),  //  OSC2 output valid
+  .osc2_saxi_m_dat ( osc2_saxi_m_dat        ),  //  OSC2 output
+  .osc2_mixed      ( osc2_mixed             ),  //  OSC2 amplitude mixer output
 
   // System bus
-  .sys_addr       ( sys_addr               ) ,
-  .sys_wdata      ( sys_wdata              ) ,
-  .sys_sel        ( sys_sel                ) ,
-  .sys_wen        ( sys_wen                ) ,
-  .sys_ren        ( sys_ren                ) ,
-  .sys_rdata      ( sys_rdata              ) ,
-  .sys_err        ( sys_err                ) ,
-  .sys_ack        ( sys_ack                )
+  .sys_addr       ( sys_addr                ),
+  .sys_wdata      ( sys_wdata               ),
+  .sys_sel        ( sys_sel                 ),
+  .sys_wen        ( sys_wen                 ),
+  .sys_ren        ( sys_ren                 ),
+  .sys_rdata      ( sys_rdata               ),
+  .sys_err        ( sys_err                 ),
+  .sys_ack        ( sys_ack                 )
 );
 
 
@@ -155,7 +153,7 @@ red_pitaya_radiobox #(
 
 /*
 // Task: read_blk
-logic signed   [ 32-1: 0]  rdata_blk []      ;
+logic signed   [ 32-1: 0]  rdata_blk [];
 
 task read_blk (
   input int          adr,
@@ -175,44 +173,36 @@ endtask: read_blk
 
 // Clock and Reset generation
 initial begin
-   clk  = 1'b0 ;
-   rstn = 1'b0 ;
+   clk_adc_125mhz   = 1'b0;
+   clk_adc_20mhz    = 1'b0;
+   adc_rstn_i       = 1'b0;
 
-   repeat(10) @(negedge clk) ;
-   rstn = 1'b1 ;
+   repeat(10) @(negedge clk_adc_125mhz);
+   adc_rstn_i = 1'b1;
 end
 
 always begin
-   #(TP/2)
-   clk = 1'b1 ;
+   #(TP125 / 2)
+   clk_adc_125mhz = 1'b1;
 
-   if (rstn)
-      clk_cntr = clk_cntr + 1 ;
+   if (adc_rstn_i)
+      clk_cntr = clk_cntr + 1;
    else
-      clk_cntr = 32'd0 ;
+      clk_cntr = 32'd0;
 
 
-   #(TP/2)
-   clk = 1'b0 ;
+   #(TP125 / 2)
+   clk_adc_125mhz = 1'b0;
 end
 
-/*
-// ADC signal generation
-function [ADC_DW-1:0] saw_a (input int unsigned cyc);
-  saw_a = ADC_DW'(cyc*23);
-endfunction: saw_a
+always begin
+   #(TP20 / 2)
+   clk_adc_20mhz = 1'b1;
 
-function [ADC_DW-1:0] saw_b (input int unsigned cyc);
-  cyc = cyc % (2**ADC_DW/5);
-  saw_b = -2**(ADC_DW-1) + ADC_DW'(cyc*5);
-endfunction: saw_b
+   #(TP20 / 2)
+   clk_adc_20mhz = 1'b0;
+end
 
-logic [ADC_DW-1:0] adc_a;
-logic [ADC_DW-1:0] adc_b;
-
-assign adc_a = saw_a(adc_cyc);
-assign adc_b = saw_b(adc_cyc);
-*/
 
 // main FSM
 initial begin
@@ -222,101 +212,45 @@ initial begin
    trig_ext = 1'b0 ;                            // external trigger
 */
 
-   // get to initial state
-   wait (rstn)
-   repeat(2) @(posedge clk) ;
+  // get to initial state
+  wait (adc_rstn_i)
+  repeat(2) @(posedge clk_adc_125mhz);
 
-   // TASK 01: addition - set two registers and request the result
-   bus.write(20'h00000, TASK01_OP_A) ;          // set A operand
-   bus.write(20'h00004, TASK01_OP_B) ;          // set A operand
+  // TASK 01: addition - set two registers and request the result
+  bus.write(20'h00000, 32'h00000000);          // control
+  bus.write(20'h00008, 32'h00000000);          // clear ICR
+  bus.write(20'h00010, 32'h00000000);          // clear DMA
 
-   bus.read (20'h00000, task_check) ;           // read result register
-   if (task_check != TASK01_OP_A)
-      $display("FAIL - Task:01.01 read operand A, A=%d, (should be: %d)", task_check, TASK01_OP_A) ;
-   else
-      $display("PASS - Task:01.01 read operand A") ;
+  bus.write(20'h00020, 32'h00010000);          // OSC1 INC LO - lowest value possible
+  bus.write(20'h00024, 32'h10000000);          // OSC1 INC HI
+  bus.write(20'h00028, 32'h00000000);          // OSC1 PHASE
 
-   bus.read (20'h00004, task_check) ;           // read result register
-   if (task_check != TASK01_OP_B)
-      $display("FAIL - Task:01.02 read operand B, B=%d, (should be: %d)", task_check, TASK01_OP_B) ;
-   else
-      $display("PASS - Task:01.02 read operand B") ;
+  bus.write(20'h00030, 32'h00000001);          // OSC2 INC - lowest value possible
+  bus.write(20'h00038, 32'h00000000);          // OSC2 PHASE
 
-   bus.read (20'h00008, task_check) ;           // read result register
-   if (task_check != (TASK01_OP_A + TASK01_OP_B))
-      $display("FAIL - Task:01.03 addition A+B=?, A=%d, B=%d, ?=%d (should be: %d)", TASK01_OP_A, TASK01_OP_B, task_check, TASK01_OP_A + TASK01_OP_B) ;
-   else
-      $display("PASS - Task:01.03 addition A+B=?") ;
 
-/*
-  // configure filter and decimator
-  bus.write(32'h14, 32'd1    );  // data decimation     (data is decimated by a factor of 8)
+  bus.read (20'h00000, task_check);            // read result register
+  if (task_check != 32'h00000000)
+     $display("FAIL - Task:01.01 read REG_RW_RB_CTRL, read=%d, (should be: %d)", task_check, 32'h00000000);
+  else
+     $display("PASS - Task:01.01 read REG_RW_RB_CTRL");
 
-  // configure internal trigger level
-  bus.write(32'h08,-32'd0000 );  // A trigger treshold  (trigger at treshold     0 where signal range is -8192:+8191)
-  bus.write(32'h0C,-32'd7000 );  // B trigger treshold  (trigger at treshold -7000 where signal range is -8192:+8191)
-  bus.write(32'h20, 32'd20   );  // A hysteresis
-  bus.write(32'h24, 32'd200  );  // B hysteresis
+  bus.read (20'h00008, task_check);            // read result register
+  if (task_check != 32'h00000000)
+     $display("FAIL - Task:01.02 read REG_RW_RB_ICR, read=%d, (should be: %d)", task_check, 32'h00000000);
+  else
+     $display("PASS - Task:01.02 read REG_RW_RB_ICR");
 
-  // configure AXI memory limits
-  bus.write(32'h50, 32'd0100);  // A start address
-  bus.write(32'h54, 32'd0200);  // A stop  address
-  bus.write(32'h70, 32'd0100);  // B start address
-  bus.write(32'h74, 32'd0200);  // B stop  address
+  bus.read (20'h00010, task_check);            // read result register
+  if (task_check != 32'h00000000)
+     $display("FAIL - Task:01.03 read REG_RW_RB_DMA_CTRL, read=%d, (should be: %d)", task_check, 32'h00000000);
+  else
+     $display("PASS - Task:01.03 read REG_RW_RB_DMA_CTRL");
 
-  bus.write(32'h10, blk_size );  // after trigger delay (the buffer contains 2**14=16384 locations, 16384-10 before and 32 after trigger)
 
-//  // software trigger
-//  bus.write(32'h00, 32'h1    );  // start aquisition (ARM, start writing data into memory
-//  repeat(200) @(posedge clk);
-//  bus.write(32'h04, 32'h1    );  // do SW trigger
-//  repeat(200) @(posedge clk);
-//  bus.write(32'h00, 32'h2    );  // reset before aquisition ends
-//  repeat(200) @(posedge clk);
-//
-//  // A ch rising edge trigger
-//  bus.write(32'h04, 32'h2    );  // configure trigger mode
-//  repeat(200) @(posedge clk);
-//  bus.write(32'h00, 32'h2    );  // reset before aquisition ends
-//  repeat(200) @(posedge clk);
-//
-//  // external rising edge trigger
-//  bus.write(32'h90, 32'h0    );  // set debouncer length to zero
-//  bus.write(32'h04, 32'h6    );  // configure trigger mode
-//  bus.write(32'h00, 32'h1    );  // start aquisition (ARM, start writing data into memory
-//  repeat(200) @(posedge clk);
-//  trig_ext = 1'b1;
-//  repeat(200) @(posedge clk);
-//  trig_ext = 1'b0;
+  bus.write(20'h00000, 32'h00000001);          // control: enable RadioBox
 
-  fork
-    // provide external trigger
-    begin: scope_trg
-      // short trigger pulse
-      repeat(20) @(posedge clk);       trig_ext = 1'b1;
-      repeat( 1) @(posedge clk);       trig_ext = 1'b0;
-    end
-    // pool accumulation run status
-    begin: scope_run
-      // pooling loop
-      do begin
-        bus.read(32'h94, rdata);  // read value from memory
-        repeat(20) @(posedge clk);
-      end while (rdata & 2);
-      repeat(20) @(posedge clk);
-      // readout
-      read_blk (32'h30000, blk_size);
-      // check
-      $display ("trigger positions: %p", rdata_trg);
-      $display ("data reference: %p", rdata_ref);
-      $display ("data read     : %p", rdata_blk);
-      if (rdata_ref == rdata_blk) $display ("SUCCESS");
-      else                        $display ("FAILURE");
-    end
-  join
-*/
-
-  repeat(100) @(posedge clk) ;
+  repeat(100) @(posedge clk_adc_125mhz);
   $finish () ;
 end
 

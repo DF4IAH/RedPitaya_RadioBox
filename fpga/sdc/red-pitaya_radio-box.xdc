@@ -8,6 +8,7 @@
 # (c) Red Pitaya  http://www.redpitaya.com
 #
 
+
 ############################################################################
 # IO constraints                                                           #
 ############################################################################
@@ -91,7 +92,7 @@ set_property PACKAGE_PIN U19 [get_ports adc_clk_n_i]
 
 # Output ADC clock
 set_property IOSTANDARD LVCMOS18 [get_ports {adc_clk_o[*]}]
-set_property SLEW FAST [get_ports {adc_clk_o[*]}]
+set_property SLEW SLOW [get_ports {adc_clk_o[*]}]
 set_property DRIVE 8 [get_ports {adc_clk_o[*]}]
 #set_property IOB        TRUE     [get_ports {adc_clk_o[*]}]
 
@@ -150,7 +151,7 @@ set_property PACKAGE_PIN N15 [get_ports dac_rst_o]
 
 ### PWM DAC
 set_property IOSTANDARD LVCMOS18 [get_ports {dac_pwm_o[*]}]
-set_property SLEW FAST [get_ports {dac_pwm_o[*]}]
+set_property SLEW SLOW [get_ports {dac_pwm_o[*]}]
 set_property DRIVE 12 [get_ports {dac_pwm_o[*]}]
 set_property IOB TRUE [get_ports {dac_pwm_o[*]}]
 
@@ -238,6 +239,7 @@ set_property PACKAGE_PIN G15 [get_ports {led_o[2]}]
 set_property PACKAGE_PIN F17 [get_ports {led_o[1]}]
 set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 
+
 ############################################################################
 # Clock constraints                                                        #
 ############################################################################
@@ -245,25 +247,27 @@ set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 #NET "adc_clk" TNM_NET = "adc_clk";
 #TIMESPEC TS_adc_clk = PERIOD "adc_clk" 125 MHz;
 
-create_clock -period 8.000 -name adc_clk [get_ports adc_clk_p_i]
+#create_clock -period 8.000 -name adc_clk [get_ports adc_clk_p_i]
 
-set_input_delay -clock adc_clk -min 1.000 [get_ports {adc_dat_a_i[*]}]
-set_input_delay -clock adc_clk -max 3.400 [get_ports {adc_dat_a_i[*]}]
+set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -min 1.000 [get_ports {adc_dat_a_i[*]}]
+set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -max 3.400 [get_ports {adc_dat_a_i[*]}]
 
-set_input_delay -clock adc_clk -min 1.000 [get_ports {adc_dat_b_i[*]}]
-set_input_delay -clock adc_clk -max 3.400 [get_ports {adc_dat_b_i[*]}]
+set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -min 1.000 [get_ports {adc_dat_b_i[*]}]
+set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -max 3.400 [get_ports {adc_dat_b_i[*]}]
 
 create_clock -period 4.000 -name rx_clk [get_ports {daisy_p_i[1]}]
+
 
 #set_false_path -from [get_clocks adc_clk]     -to [get_clocks dac_clk_out]
 #set_false_path -from [get_clocks clk_fpga_0]  -to [get_clocks ser_clk_out]
 #set_false_path -from [get_clocks clk_fpga_0]  -to [get_clocks dac_2clk_out]
-set_false_path -from [get_clocks clk_fpga_0] -to [get_clocks adc_clk]
-set_false_path -from [get_clocks adc_clk] -to [get_clocks clk_fpga_0]
+set_false_path -from [get_clocks clk_fpga_0] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
+set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_clocks clk_fpga_0]
 set_false_path -from [get_clocks clk_fpga_0] -to [get_clocks par_clk]
 set_false_path -from [get_clocks par_clk] -to [get_clocks clk_fpga_0]
 #set_false_path -from [get_clocks dac_clk_out] -to [get_clocks dac_2clk_out]
 #set_false_path -from [get_clocks dac_clk_out] -to [get_clocks dac_2ph_out]
+
 
 ############################################################################
 # Bitstream constraints                                                     #

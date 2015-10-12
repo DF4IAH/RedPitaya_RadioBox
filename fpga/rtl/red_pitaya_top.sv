@@ -125,7 +125,7 @@ localparam       SMC = 8                     ;  // Sub Module Count
 //
 //  Connections to PS
 
-wire  [  4-1: 0] fclk                        ;  //[0]-125MHz, [1]-250MHz, [2]-50MHz, [3]-200MHz
+wire  [  4-1: 0] fclk                        ;  //[0] = 125 MHz, [1] = 250 MHz, [2] = 50 MHz, [3] = 200 MHz  based on PS connected oscillator
 wire  [  4-1: 0] frstn                       ;
 
 wire             ps_sys_clk                  ;
@@ -238,37 +238,31 @@ assign sys_rdata[7*32+:32] = 32'h0;
 assign sys_err  [7       ] =  1'b0;
 assign sys_ack  [7       ] =  1'b1;
 
+
 ////////////////////////////////////////////////////////////////////////////////
 // local signals
 ////////////////////////////////////////////////////////////////////////////////
 
 // PLL signals
-wire                  adc_clk_in;
-wire                  pll_adc_clk;
-wire                  pll_dac_clk_1x;
-wire                  pll_dac_clk_2x;
-wire                  pll_dac_clk_2p;
-wire                  pll_ser_clk;
-wire                  pll_pwm_clk;
+wire                  clk_adc_125mhz_000deg;
+wire                  clk_adc_250mhz_000deg;
+wire                  clk_adc_250mhz_315deg;
+wire                  clk_adc_200mhz_000deg;
+wire                  clk_adc_20mhz_000deg;
 wire                  pll_locked;
 
-// fast serial signals
-wire                  ser_clk ;
-
-// PWM clock and reset
-wire                  pwm_clk ;
+// PWM reset
 reg                   pwm_rstn;
 
 // ADC signals
-wire                  adc_clk;
 reg                   adc_rstn;
 reg          [14-1:0] adc_dat_a, adc_dat_b;
 wire  signed [14-1:0] adc_a    , adc_b    ;
 
 // DAC signals
-wire                  dac_clk_1x;
-wire                  dac_clk_2x;
-wire                  dac_clk_2p;
+//wire                dac_clk_1x;
+//wire                dac_clk_2x;
+//wire                dac_clk_2p;
 reg                   dac_rst;
 reg          [14-1:0] dac_dat_a, dac_dat_b;
 wire         [14-1:0] dac_a    , dac_b    ;
@@ -288,6 +282,24 @@ wire                  digital_loop;
 // PLL (clock and reset)
 ////////////////////////////////////////////////////////////////////////////////
 
+clk_adc_pll i_clk_adc_pll (
+  // Status and control signals
+  .rstn                     ( frstn[0]              ),
+  .pll_locked               ( pll_locked            ),
+
+ // Clock in ports
+  .adc_clk_i_p              ( adc_clk_p_i           ),
+  .adc_clk_i_n              ( adc_clk_n_i           ),
+
+  // Clock out ports
+  .clk_adc_125mhz_000deg    ( clk_adc_125mhz_000deg ),
+  .clk_adc_250mhz_000deg    ( clk_adc_250mhz_000deg ),
+  .clk_adc_250mhz_315deg    ( clk_adc_250mhz_315deg ),
+  .clk_adc_200mhz_000deg    ( clk_adc_200mhz_000deg ),
+  .clk_adc_20mhz_000deg     ( clk_adc_20mhz_000deg  )
+);
+
+/*
 // differential clock input
 IBUFDS i_clk (.I (adc_clk_p_i), .IB (adc_clk_n_i), .O (adc_clk_in));  // differential clock input
 
@@ -312,17 +324,19 @@ BUFG bufg_dac_clk_2x (.O (dac_clk_2x), .I (pll_dac_clk_2x));
 BUFG bufg_dac_clk_2p (.O (dac_clk_2p), .I (pll_dac_clk_2p));
 BUFG bufg_ser_clk    (.O (ser_clk   ), .I (pll_ser_clk   ));
 BUFG bufg_pwm_clk    (.O (pwm_clk   ), .I (pll_pwm_clk   ));
+*/
+
 
 // ADC reset (active low) 
-always @(posedge adc_clk)
+always @(posedge clk_adc_125mhz_000deg)
 adc_rstn <=  frstn[0] &  pll_locked;
 
 // DAC reset (active high)
-always @(posedge dac_clk_1x)
+always @(posedge clk_adc_125mhz_000deg)
 dac_rst  <= ~frstn[0] | ~pll_locked;
 
 // PWM reset (active low)
-always @(posedge pwm_clk)
+always @(posedge clk_adc_250mhz_000deg)
 pwm_rstn <=  frstn[0] &  pll_locked;
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -339,7 +353,7 @@ assign adc_cdcs_o = 1'b1 ;
 
 // IO block registers should be used here
 // lowest 2 bits reserved for 16bit ADC
-always @(posedge adc_clk)
+always @(posedge clk_adc_125mhz_000deg)
 begin
   adc_dat_a <= adc_dat_a_i[16-1:2];
   adc_dat_b <= adc_dat_b_i[16-1:2];
@@ -362,18 +376,18 @@ assign dac_a = (^dac_a_sum[15-1:15-2]) ? {dac_a_sum[15-1], {13{~dac_a_sum[15-1]}
 assign dac_b = (^dac_b_sum[15-1:15-2]) ? {dac_b_sum[15-1], {13{~dac_b_sum[15-1]}}} : dac_b_sum[14-1:0];
 
 // output registers + signed to unsigned (also to negative slope)
-always @(posedge dac_clk_1x)
+always @(posedge clk_adc_125mhz_000deg)
 begin
   dac_dat_a <= {dac_a[14-1], ~dac_a[14-2:0]};
   dac_dat_b <= {dac_b[14-1], ~dac_b[14-2:0]};
 end
 
 // DDR outputs
-ODDR oddr_dac_clk          (.Q(dac_clk_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2p), .CE(1'b1), .R(dac_rst), .S(1'b0));
-ODDR oddr_dac_wrt          (.Q(dac_wrt_o), .D1(1'b0     ), .D2(1'b1     ), .C(dac_clk_2x), .CE(1'b1), .R(dac_rst), .S(1'b0));
-ODDR oddr_dac_sel          (.Q(dac_sel_o), .D1(1'b1     ), .D2(1'b0     ), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
-ODDR oddr_dac_rst          (.Q(dac_rst_o), .D1(dac_rst  ), .D2(dac_rst  ), .C(dac_clk_1x), .CE(1'b1), .R(1'b0   ), .S(1'b0));
-ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(dac_clk_1x), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_clk          (.Q(dac_clk_o), .D1(1'b0     ), .D2(1'b1     ), .C(clk_adc_250mhz_315deg), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_wrt          (.Q(dac_wrt_o), .D1(1'b0     ), .D2(1'b1     ), .C(clk_adc_250mhz_000deg), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_sel          (.Q(dac_sel_o), .D1(1'b1     ), .D2(1'b0     ), .C(clk_adc_125mhz_000deg), .CE(1'b1), .R(dac_rst), .S(1'b0));
+ODDR oddr_dac_rst          (.Q(dac_rst_o), .D1(dac_rst  ), .D2(dac_rst  ), .C(clk_adc_125mhz_000deg), .CE(1'b1), .R(1'b0   ), .S(1'b0));
+ODDR oddr_dac_dat [14-1:0] (.Q(dac_dat_o), .D1(dac_dat_b), .D2(dac_dat_a), .C(clk_adc_125mhz_000deg), .CE(1'b1), .R(dac_rst), .S(1'b0));
 
 //---------------------------------------------------------------------------------
 //  House Keeping
@@ -384,7 +398,7 @@ wire  [  8-1: 0] exp_p_dir, exp_n_dir;
 
 red_pitaya_hk i_hk (
   // system signals
-  .clk_i           (  adc_clk                    ),  // clock
+  .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
   // LED
   .led_o           (  led_o                      ),  // LED output
@@ -420,7 +434,7 @@ red_pitaya_scope i_scope (
   // ADC
   .adc_a_i         (  adc_a                      ),  // CH 1
   .adc_b_i         (  adc_b                      ),  // CH 2
-  .adc_clk_i       (  adc_clk                    ),  // clock
+  .adc_clk_i       (  clk_adc_125mhz_000deg      ),  // clock
   .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
   .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
   .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
@@ -453,7 +467,7 @@ red_pitaya_asg i_asg (
    // DAC
   .dac_a_o         (  asg_a                      ),  // CH 1
   .dac_b_o         (  asg_b                      ),  // CH 2
-  .dac_clk_i       (  adc_clk                    ),  // clock
+  .dac_clk_i       (  clk_adc_125mhz_000deg      ),  // clock
   .dac_rstn_i      (  adc_rstn                   ),  // reset - active low
   .trig_a_i        (  exp_p_in[0]                ),
   .trig_b_i        (  exp_p_in[0]                ),
@@ -474,7 +488,7 @@ red_pitaya_asg i_asg (
 
 red_pitaya_pid i_pid (
    // signals
-  .clk_i           (  adc_clk                    ),  // clock
+  .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
   .dat_a_i         (  adc_a                      ),  // in 1
   .dat_b_i         (  adc_b                      ),  // in 2
@@ -502,7 +516,7 @@ wire  [ 24-1: 0] pwm_cfg_d;
 
 red_pitaya_ams i_ams (
    // power test
-  .clk_i           (  adc_clk                    ),  // clock
+  .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
   // PWM configuration
   .dac_a_o         (  pwm_cfg_a                  ),
@@ -520,9 +534,9 @@ red_pitaya_ams i_ams (
   .sys_ack         (  sys_ack[4]                 )   // acknowledge signal
 );
 
-red_pitaya_pwm pwm [4-1:0] (
+red_pitaya_pwm i_pwm [4-1:0] (
   // system signals
-  .clk   (pwm_clk ),
+  .clk   (clk_adc_250mhz_000deg),
   .rstn  (pwm_rstn),
   // configuration
   .cfg   ({pwm_cfg_d, pwm_cfg_c, pwm_cfg_b, pwm_cfg_a}),
@@ -536,7 +550,7 @@ red_pitaya_pwm pwm [4-1:0] (
 //  simple communication module
 
 wire daisy_rx_rdy ;
-wire dly_clk = fclk[3]; // 200MHz clock from PS - used for IDELAY (optionaly)
+wire dly_clk = fclk[3];                              // 200MHz clock from PS - used for IDELAY (optionaly)
 
 red_pitaya_daisy i_daisy (
    // SATA connector
@@ -545,10 +559,10 @@ red_pitaya_daisy i_daisy (
   .daisy_p_i       (  daisy_p_i                  ),  // line 1 is clock capable
   .daisy_n_i       (  daisy_n_i                  ),
    // Data
-  .ser_clk_i       (  ser_clk                    ),  // high speed serial
+  .ser_clk_i       (  clk_adc_250mhz_000deg      ),  // high speed serial
   .dly_clk_i       (  dly_clk                    ),  // delay clock
    // TX
-  .par_clk_i       (  adc_clk                    ),  // data paralel clock
+  .par_clk_i       (  clk_adc_125mhz_000deg      ),  // data paralel clock
   .par_rstn_i      (  adc_rstn                   ),  // reset - active low
   .par_rdy_o       (  daisy_rx_rdy               ),
   .par_dv_i        (  daisy_rx_rdy               ),
@@ -578,7 +592,8 @@ red_pitaya_daisy i_daisy (
 
 red_pitaya_radiobox i_radiobox (
   // ADC
-  .adc_clk_i       (  adc_clk                    ),  // clock
+  .clk_adc_125mhz  (  clk_adc_125mhz_000deg      ),  // clock 125 MHz
+  .clk_adc_20mhz   (  clk_adc_20mhz_000deg       ),  // clock  20 MHz
   .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
 /*
   .adc_a_i         (  adc_a                      ),  // CH 1

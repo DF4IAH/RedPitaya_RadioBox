@@ -12,15 +12,15 @@
 
 module red_pitaya_pll (
   // inputs
-  input  logic clk       ,  // clock
+  input  logic clk       ,  // clock 125 MHZ based on ADC data clock
   input  logic rstn      ,  // reset - active low
   // output clocks
-  output logic clk_adc   ,  // ADC clock
-  output logic clk_dac_1x,  // DAC clock
-  output logic clk_dac_2x,  // DAC clock
-  output logic clk_dac_2p,  // DAC clock
-  output logic clk_ser   ,  // fast serial clock
-  output logic clk_pwm   ,  // PWM clock
+  output logic clk_adc_125mhz_000deg ,  // ADC clock, 125 MHz
+  output logic clk_adc_250mhz_000deg ,  // DAC clock, 250 MHz  0°
+  output logic clk_adc_250mhz_315deg ,  // DAC clock, 250 MHz 45°
+  output logic clk_adc_1mhz_000deg   ,  // DAC clock, 125 MHz
+  output logic clk_free4             ,  // fast serial clock, 250 MHz
+  output logic clk_free5             ,  // PWM clock, 250 MHz
   // status outputs
   output logic pll_locked
 );

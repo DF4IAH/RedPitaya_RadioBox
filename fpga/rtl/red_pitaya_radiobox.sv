@@ -22,19 +22,6 @@
  *
  * TODO: graphics - exmaple by red_pitaya_scope.v
  *
- *                /--------\      /-----------\            /-----\
- *   ADC CHA ---> | DFILT1 | ---> | AVG & DEC | ---------> | BUF | --->  SW
- *                \--------/      \-----------/     |      \-----/
- *                                                  ˇ         ^
- *                                              /------\      |
- *   ext trigger -----------------------------> | TRIG | -----+
- *                                              \------/      |
- *                                                  ^         ˇ
- *                /--------\      /-----------\     |      /-----\
- *   ADC CHB ---> | DFILT1 | ---> | AVG & DEC | ---------> | BUF | --->  SW
- *                \--------/      \-----------/            \-----/ 
- *
- *
  * TODO: detailed information
  * 
  */
@@ -46,686 +33,275 @@ module red_pitaya_radiobox #(
   // parameter RSZ = 14  // RAM size 2^RSZ
 )(
    // ADC
-   input                 adc_clk_i     ,  // ADC clock
-   input                 adc_rstn_i    ,  // ADC reset - active low
-/*
-   input      [ 14-1: 0] adc_a_i       ,  // ADC data CHA
-   input      [ 14-1: 0] adc_b_i       ,  // ADC data CHB
-*/
+   input                 clk_adc_125mhz  ,  // ADC based clock, 125 MHz
+   input                 clk_adc_20mhz   ,  // ADC based clock,  20 MHz, for OSC2
+   input                 adc_rstn_i      ,  // ADC reset - active low
 
-/*
-   // trigger sources
-   input                 trig_ext_i    ,  // external trigger
-   input                 trig_asg_i    ,  // ASG trigger
-*/
+   /*
+   input        [ 13: 0] adc_a_i         ,  // ADC data CHA
+   input        [ 13: 0] adc_b_i         ,  // ADC data CHB
+   */
 
-/*
-   // AXI0 master
-   output                axi0_clk_o    ,  // global clock
-   output                axi0_rstn_o   ,  // global reset
-   output     [ 32-1: 0] axi0_waddr_o  ,  // system write address
-   output     [ 64-1: 0] axi0_wdata_o  ,  // system write data
-   output     [  8-1: 0] axi0_wsel_o   ,  // system write byte select
-   output                axi0_wvalid_o ,  // system write data valid
-   output     [  4-1: 0] axi0_wlen_o   ,  // system write burst length
-   output                axi0_wfixed_o ,  // system write burst type (fixed / incremental)
-   input                 axi0_werr_i   ,  // system write error
-   input                 axi0_wrdy_i   ,  // system write ready
-
-   // AXI1 master
-   output                axi1_clk_o    ,  // global clock
-   output                axi1_rstn_o   ,  // global reset
-   output     [ 32-1: 0] axi1_waddr_o  ,  // system write address
-   output     [ 64-1: 0] axi1_wdata_o  ,  // system write data
-   output     [  8-1: 0] axi1_wsel_o   ,  // system write byte select
-   output                axi1_wvalid_o ,  // system write data valid
-   output     [  4-1: 0] axi1_wlen_o   ,  // system write burst length
-   output                axi1_wfixed_o ,  // system write burst type (fixed / incremental)
-   input                 axi1_werr_i   ,  // system write error
-   input                 axi1_wrdy_i   ,  // system write ready
-*/
+   output                osc1_saxi_m_vld ,  // OSC1 output valid
+   output       [ 15: 0] osc1_saxi_m_dat ,  // OSC1 output
+   output       [ 15: 0] osc1_mixed      ,  // OSC1 amplitude mixer output
+   output                osc2_saxi_m_vld ,  // OSC2 output valid
+   output       [ 15: 0] osc2_saxi_m_dat ,  // OSC2 output
+   output       [ 15: 0] osc2_mixed      ,  // OSC2 amplitude mixer output
 
    // System bus - slave
-   input      [ 32-1: 0] sys_addr      ,  // bus saddress
-   input      [ 32-1: 0] sys_wdata     ,  // bus write data
-   input      [  4-1: 0] sys_sel       ,  // bus write byte select
-   input                 sys_wen       ,  // bus write enable
-   input                 sys_ren       ,  // bus read enable
-   output reg [ 32-1: 0] sys_rdata     ,  // bus read data
-   output reg            sys_err       ,  // bus error indicator
-   output reg            sys_ack          // bus acknowledge signal
+   input        [ 31: 0] sys_addr        ,  // bus saddress
+   input        [ 31: 0] sys_wdata       ,  // bus write data
+   input        [  3: 0] sys_sel         ,  // bus write byte select
+   input                 sys_wen         ,  // bus write enable
+   input                 sys_ren         ,  // bus read enable
+   output reg   [ 31: 0] sys_rdata       ,  // bus read data
+   output reg            sys_err         ,  // bus error indicator
+   output reg            sys_ack            // bus acknowledge signal
 );
+
 
 
 //---------------------------------------------------------------------------------
 //  Registers accessed by the system bus
 
-reg  [32-1: 0]  reg_rw_add_a   ;
-reg  [32-1: 0]  reg_rw_add_b   ;
-reg  [32-1: 0]  reg_rd_add_res ;
+enum {
+    REG_RW_RB_CTRL          = 0,          // RB control register
+    REG_RD_RB_STATUS,                     // EB status register
+    REG_RW_RB_ICR,                        // RB interrupt control register
+    REG_RD_RB_ISR,                        // RB interrupt status register
+    REG_RW_RB_DMA_CTRL,                   // RB DMA control register
 
-/*
+    REG_RW_RB_OSC1_INC_LO,                // RB OSC1 increment register LSB (Bit 15.. 0), 16'b0
+    REG_RW_RB_OSC1_INC_HI,                // RB OSC1 increment register MSB (Bit 47..16)
+    REG_RW_RB_OSC1_PHASE,                 // RB OSC1 phase register
+
+    REG_RW_RB_OSC2_INC,                   // RB OSC2 increment register
+    REG_RW_RB_OSC2_PHASE,                 // RB OSC2 phase register
+
+    REG_RB_COUNT
+} REG_RB_ENUMS;
+
+reg  [31: 0]    regs    [REG_RB_COUNT];   // registers to be accessed by the system bus
+
+
+enum {
+    RB_CTRL_ENABLE                  = 0,  // enabling the RadioBox sub-module
+    RB_CTRL_RSVD01,
+    RB_CTRL_RSVD02,
+    RB_CTRL_RSVD03,
+    RB_CTRL_OSC1_INC_SRC_STREAM,
+    RB_CTRL_OSC1_PHASE_SRC_STREAM,
+    RB_CTRL_RSVD06,
+    RB_CTRL_RSVD07,
+    RB_CTRL_OSC2_INC_SRC_STREAM,
+    RB_CTRL_OSC2_PHASE_SRC_STREAM,
+    RB_CTRL_RSVD10,
+    RB_CTRL_RSVD11,
+    RB_CTRL_RSVD12,
+    RB_CTRL_RSVD13,
+    RB_CTRL_RSVD14,
+    RB_CTRL_RSVD15,
+    RB_CTRL_RSVD16,
+    RB_CTRL_RSVD17,
+    RB_CTRL_RSVD18,
+    RB_CTRL_RSVD19,
+    RB_CTRL_RSVD20,
+    RB_CTRL_RSVD21,
+    RB_CTRL_RSVD22,
+    RB_CTRL_RSVD23,
+    RB_CTRL_RSVD24,
+    RB_CTRL_RSVD25,
+    RB_CTRL_RSVD26,
+    RB_CTRL_RSVD27,
+    RB_CTRL_RSVD28,
+    RB_CTRL_RSVD29,
+    RB_CTRL_RSVD30,
+    RB_CTRL_RSVD31
+} RB_CTRL_BITS_ENUM;
+
+
+wire rb_enable = regs[REG_RW_RB_CTRL][RB_CTRL_ENABLE];
+wire rb_reset_n = !(adc_rstn_i && rb_enable);
+
+
 //---------------------------------------------------------------------------------
-//  Input filtering
+//  Signal generation OSC1
 
-wire [ 14-1: 0] adc_a_filt_in  ;
-wire [ 14-1: 0] adc_a_filt_out ;
-wire [ 14-1: 0] adc_b_filt_in  ;
-wire [ 14-1: 0] adc_b_filt_out ;
-reg  [ 18-1: 0] set_a_filt_aa  ;
-reg  [ 25-1: 0] set_a_filt_bb  ;
-reg  [ 25-1: 0] set_a_filt_kk  ;
-reg  [ 25-1: 0] set_a_filt_pp  ;
-reg  [ 18-1: 0] set_b_filt_aa  ;
-reg  [ 25-1: 0] set_b_filt_bb  ;
-reg  [ 25-1: 0] set_b_filt_kk  ;
-reg  [ 25-1: 0] set_b_filt_pp  ;
+wire        osc1_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STREAM];
+wire [47:0] osc1_inc_stream = 48'b0;
+wire [47:0] osc1_inc = ( osc1_inc_mux_stream ?  osc1_inc_stream : {regs[REG_RW_RB_OSC1_INC_HI], regs[REG_RW_RB_OSC1_INC_LO][31:16]} );
 
-assign adc_a_filt_in = adc_a_i ;
-assign adc_b_filt_in = adc_b_i ;
+wire        osc1_phase_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_PHASE_SRC_STREAM];
+wire [31:0] osc1_phase_stream = 32'b0;
+wire [47:0] osc1_phase = ( osc1_phase_mux_stream ?  {osc1_phase_stream, {16'b0}} : {regs[REG_RW_RB_OSC1_PHASE], {16'b0}} );  // min: 29 mHz
 
-red_pitaya_dfilt1 i_dfilt1_cha (
-   // ADC
-  .adc_clk_i   ( adc_clk_i       ),  // ADC clock
-  .adc_rstn_i  ( adc_rstn_i      ),  // ADC reset - active low
-  .adc_dat_i   ( adc_a_filt_in   ),  // ADC data
-  .adc_dat_o   ( adc_a_filt_out  ),  // ADC data
+wire        osc1_saxi_s_vld = rb_reset_n;  // TODO
+wire [95:0] osc1_saxi_s_dat = {osc1_phase, osc1_inc};
 
-   // configuration
-  .cfg_aa_i    ( set_a_filt_aa   ),  // config AA coefficient
-  .cfg_bb_i    ( set_a_filt_bb   ),  // config BB coefficient
-  .cfg_kk_i    ( set_a_filt_kk   ),  // config KK coefficient
-  .cfg_pp_i    ( set_a_filt_pp   )   // config PP coefficient
+//wire        osc1_saxi_m_vld;
+//wire [15:0] osc1_saxi_m_dat;
+
+rb_osc1_dds i_rb_osc1_dds (
+  // global signals
+  .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
+
+  // simple-AXI slave in port: streaming data for OSC1 modulation
+  .s_axis_phase_tvalid  ( osc1_saxi_s_vld   ),  // AXI slave data valid
+  .s_axis_phase_tdata   ( osc1_saxi_s_dat   ),  // AXI slave data   // : IN STD_LOGIC_VECTOR(95 DOWNTO 0);
+
+  // simple-AXI master out port: OSC1 signal
+  .m_axis_data_tvalid   ( osc1_saxi_m_vld   ),  // AXI master data valid
+  .m_axis_data_tdata    ( osc1_saxi_m_dat   )   // AXI master data  // : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
 );
 
-red_pitaya_dfilt1 i_dfilt1_chb (
-   // ADC
-  .adc_clk_i   ( adc_clk_i       ),  // ADC clock
-  .adc_rstn_i  ( adc_rstn_i      ),  // ADC reset - active low
-  .adc_dat_i   ( adc_b_filt_in   ),  // ADC data
-  .adc_dat_o   ( adc_b_filt_out  ),  // ADC data
 
-   // configuration
-  .cfg_aa_i    ( set_b_filt_aa   ),  // config AA coefficient
-  .cfg_bb_i    ( set_b_filt_bb   ),  // config BB coefficient
-  .cfg_kk_i    ( set_b_filt_kk   ),  // config KK coefficient
-  .cfg_pp_i    ( set_b_filt_pp   )   // config PP coefficient
-);
-*/
-
-/*
 //---------------------------------------------------------------------------------
-//  Decimate input data
+//  Signal generation OSC2
 
-reg  [ 14-1: 0] adc_a_dat     ;
-reg  [ 14-1: 0] adc_b_dat     ;
-reg  [ 32-1: 0] adc_a_sum     ;
-reg  [ 32-1: 0] adc_b_sum     ;
-reg  [ 17-1: 0] set_dec       ;
-reg  [ 17-1: 0] adc_dec_cnt   ;
-reg             set_avg_en    ;
-reg             adc_dv        ;
+wire        osc2_resync = 1'b0;
+wire        osc2_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_INC_SRC_STREAM];
+wire [31:0] osc2_inc_stream = 32'b0;
+wire [31:0] osc2_inc = ( osc2_inc_mux_stream ?  osc2_inc_stream : regs[REG_RW_RB_OSC2_INC] );  // max: 20 MHz / 2^4 = 1.25 MHz  -  min: 20 MHz / 2^36 = 291 �Hz
 
-always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
-   adc_a_sum   <= 32'h0 ;
-   adc_b_sum   <= 32'h0 ;
-   adc_dec_cnt <= 17'h0 ;
-   adc_dv      <=  1'b0 ;
-end else begin
-   if ((adc_dec_cnt >= set_dec) || adc_arm_do) begin // start again or arm
-      adc_dec_cnt <= 17'h1                   ;
-      adc_a_sum   <= $signed(adc_a_filt_out) ;
-      adc_b_sum   <= $signed(adc_b_filt_out) ;
-   end else begin
-      adc_dec_cnt <= adc_dec_cnt + 17'h1 ;
-      adc_a_sum   <= $signed(adc_a_sum) + $signed(adc_a_filt_out) ;
-      adc_b_sum   <= $signed(adc_b_sum) + $signed(adc_b_filt_out) ;
-   end
+wire        osc2_phase_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_PHASE_SRC_STREAM];
+wire [31:0] osc2_phase_stream = 32'b0;
+wire [31:0] osc2_phase = ( osc2_phase_mux_stream ?  osc2_phase_stream : regs[REG_RW_RB_OSC2_PHASE] );
 
-   adc_dv <= (adc_dec_cnt >= set_dec) ;
+wire        osc2_saxi_s_vld = rb_reset_n;
+wire [71:0] osc2_saxi_s_dat = { {7'b0} , osc2_resync, osc2_phase, osc2_inc};
 
-   case (set_dec & {17{set_avg_en}})
-      17'h0     : begin adc_a_dat <= adc_a_filt_out;            adc_b_dat <= adc_b_filt_out;        end
-      17'h1     : begin adc_a_dat <= adc_a_sum[15+0 :  0];      adc_b_dat <= adc_b_sum[15+0 :  0];  end
-      17'h8     : begin adc_a_dat <= adc_a_sum[15+3 :  3];      adc_b_dat <= adc_b_sum[15+3 :  3];  end
-      17'h40    : begin adc_a_dat <= adc_a_sum[15+6 :  6];      adc_b_dat <= adc_b_sum[15+6 :  6];  end
-      17'h400   : begin adc_a_dat <= adc_a_sum[15+10: 10];      adc_b_dat <= adc_b_sum[15+10: 10];  end
-      17'h2000  : begin adc_a_dat <= adc_a_sum[15+13: 13];      adc_b_dat <= adc_b_sum[15+13: 13];  end
-      17'h10000 : begin adc_a_dat <= adc_a_sum[15+16: 16];      adc_b_dat <= adc_b_sum[15+16: 16];  end
-      default   : begin adc_a_dat <= adc_a_sum[15+0 :  0];      adc_b_dat <= adc_b_sum[15+0 :  0];  end
-   endcase
-end
-*/
+//wire        osc2_saxi_m_vld;
+//wire [15:0] osc2_saxi_m_dat;
 
-/*
-//---------------------------------------------------------------------------------
-//  ADC buffer RAM
+rb_osc2_dds i_rb_osc2_dds (
+  // global signals
+  .aclk                 ( clk_adc_20mhz     ),  // global 20 MHz clock
+  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
 
-reg   [  14-1: 0] adc_a_buf [0:(1<<RSZ)-1] ;
-reg   [  14-1: 0] adc_b_buf [0:(1<<RSZ)-1] ;
-reg   [  14-1: 0] adc_a_rd      ;
-reg   [  14-1: 0] adc_b_rd      ;
-reg   [ RSZ-1: 0] adc_wp        ;
-reg   [ RSZ-1: 0] adc_raddr     ;
-reg   [ RSZ-1: 0] adc_a_raddr   ;
-reg   [ RSZ-1: 0] adc_b_raddr   ;
-reg   [   4-1: 0] adc_rval      ;
-wire              adc_rd_dv     ;
-reg               adc_we        ;
-reg               adc_trig      ;
+  // simple-AXI slave in port: streaming data for OSC2 modulation
+  .s_axis_phase_tvalid  ( osc2_saxi_s_vld   ),  // AXI slave data valid
+  .s_axis_phase_tdata   ( osc2_saxi_s_dat   ),  // AXI slave data   // : IN STD_LOGIC_VECTOR(71 DOWNTO 0);
 
-reg   [ RSZ-1: 0] adc_wp_trig   ;
-reg   [ RSZ-1: 0] adc_wp_cur    ;
-reg   [  32-1: 0] set_dly       ;
-reg   [  32-1: 0] adc_we_cnt    ;
-reg   [  32-1: 0] adc_dly_cnt   ;
-reg               adc_dly_do    ;
-reg    [ 20-1: 0] set_deb_len   ; // debouncing length (glitch free time after a posedge)
-
-// Write
-always @(posedge adc_clk_i) begin
-   if (adc_rstn_i == 1'b0) begin
-      adc_wp      <= {RSZ{1'b0}};
-      adc_we      <=  1'b0      ;
-      adc_wp_trig <= {RSZ{1'b0}};
-      adc_wp_cur  <= {RSZ{1'b0}};
-      adc_we_cnt  <= 32'h0      ;
-      adc_dly_cnt <= 32'h0      ;
-      adc_dly_do  <=  1'b0      ;
-   end
-   else begin
-      if (adc_arm_do)
-         adc_we <= 1'b1 ;
-      else if (((adc_dly_do || adc_trig) && (adc_dly_cnt == 32'h0)) || adc_rst_do) //delayed reached or reset
-         adc_we <= 1'b0 ;
-
-      // count how much data was written into the buffer before trigger
-      if (adc_rst_do | adc_arm_do)
-         adc_we_cnt <= 32'h0;
-      if (adc_we & ~adc_dly_do & adc_dv & ~&adc_we_cnt)
-         adc_we_cnt <= adc_we_cnt + 1;
-
-      if (adc_rst_do)
-         adc_wp <= {RSZ{1'b0}};
-      else if (adc_we && adc_dv)
-         adc_wp <= adc_wp + 1;
-
-      if (adc_rst_do)
-         adc_wp_trig <= {RSZ{1'b0}};
-      else if (adc_trig && !adc_dly_do)
-         adc_wp_trig <= adc_wp_cur ; // save write pointer at trigger arrival
-
-      if (adc_rst_do)
-         adc_wp_cur <= {RSZ{1'b0}};
-      else if (adc_we && adc_dv)
-         adc_wp_cur <= adc_wp ; // save current write pointer
-
-
-      if (adc_trig)
-         adc_dly_do  <= 1'b1 ;
-      else if ((adc_dly_do && (adc_dly_cnt == 32'b0)) || adc_rst_do || adc_arm_do) //delayed reached or reset
-         adc_dly_do  <= 1'b0 ;
-
-      if (adc_dly_do && adc_we && adc_dv)
-         adc_dly_cnt <= adc_dly_cnt - 1;
-      else if (!adc_dly_do)
-         adc_dly_cnt <= set_dly ;
-
-   end
-end
-
-always @(posedge adc_clk_i) begin
-   if (adc_we && adc_dv) begin
-      adc_a_buf[adc_wp] <= adc_a_dat ;
-      adc_b_buf[adc_wp] <= adc_b_dat ;
-   end
-end
-
-// Read
-always @(posedge adc_clk_i) begin
-   if (adc_rstn_i == 1'b0)
-      adc_rval <= 4'h0 ;
-   else
-      adc_rval <= {adc_rval[2:0], (sys_ren || sys_wen)};
-end
-assign adc_rd_dv = adc_rval[3];
-
-always @(posedge adc_clk_i) begin
-   adc_raddr   <= sys_addr[RSZ+1:2] ; // address synchronous to clock
-   adc_a_raddr <= adc_raddr     ; // double register 
-   adc_b_raddr <= adc_raddr     ; // otherwise memory corruption at reading
-   adc_a_rd    <= adc_a_buf[adc_a_raddr] ;
-   adc_b_rd    <= adc_b_buf[adc_b_raddr] ;
-end
-*/
-
-/*
-//---------------------------------------------------------------------------------
-//
-//  AXI CHA connection
-
-reg  [ 32-1: 0] set_a_axi_start    ;
-reg  [ 32-1: 0] set_a_axi_stop     ;
-reg  [ 32-1: 0] set_a_axi_dly      ;
-reg             set_a_axi_en       ;
-reg  [ 32-1: 0] set_a_axi_trig     ;
-reg  [ 32-1: 0] set_a_axi_cur      ;
-reg             axi_a_we           ;
-reg  [ 64-1: 0] axi_a_dat          ;
-reg  [  2-1: 0] axi_a_dat_sel      ;
-reg  [  1-1: 0] axi_a_dat_dv       ;
-reg  [ 32-1: 0] axi_a_dly_cnt      ;
-reg             axi_a_dly_do       ;
-wire            axi_a_clr          ;
-wire [ 32-1: 0] axi_a_cur_addr     ;
-
-assign axi_a_clr = adc_rst_do ;
-
-
-always @(posedge axi0_clk_o) begin
-   if (axi0_rstn_o == 1'b0) begin
-      axi_a_dat_sel <=  2'h0 ;
-      axi_a_dat_dv  <=  1'b0 ;
-      axi_a_dly_cnt <= 32'h0 ;
-      axi_a_dly_do  <=  1'b0 ;
-   end
-   else begin
-      if (adc_arm_do && set_a_axi_en)
-         axi_a_we <= 1'b1 ;
-      else if (((axi_a_dly_do || adc_trig) && (axi_a_dly_cnt == 32'h0)) || adc_rst_do) //delayed reached or reset
-         axi_a_we <= 1'b0 ;
-
-      if (adc_trig && axi_a_we)
-         axi_a_dly_do  <= 1'b1 ;
-      else if ((axi_a_dly_do && (axi_a_dly_cnt == 32'b0)) || axi_a_clr || adc_arm_do) //delayed reached or reset
-         axi_a_dly_do  <= 1'b0 ;
-
-      if (axi_a_dly_do && axi_a_we && adc_dv)
-         axi_a_dly_cnt <= axi_a_dly_cnt - 1;
-      else if (!axi_a_dly_do)
-         axi_a_dly_cnt <= set_a_axi_dly ;
-
-      if (axi_a_clr)
-         axi_a_dat_sel <= 2'h0 ;
-      else if (axi_a_we && adc_dv)
-         axi_a_dat_sel <= axi_a_dat_sel + 2'h1 ;
-
-      axi_a_dat_dv <= axi_a_we && (axi_a_dat_sel == 2'b11) && adc_dv ;
-   end
-
-   if (axi_a_we && adc_dv) begin
-      if (axi_a_dat_sel == 2'b00) axi_a_dat[ 16-1:  0] <= $signed(adc_a_dat);
-      if (axi_a_dat_sel == 2'b01) axi_a_dat[ 32-1: 16] <= $signed(adc_a_dat);
-      if (axi_a_dat_sel == 2'b10) axi_a_dat[ 48-1: 32] <= $signed(adc_a_dat);
-      if (axi_a_dat_sel == 2'b11) axi_a_dat[ 64-1: 48] <= $signed(adc_a_dat);
-   end
-
-   if (axi_a_clr)
-      set_a_axi_trig <= {RSZ{1'b0}};
-   else if (adc_trig && !axi_a_dly_do && axi_a_we)
-      set_a_axi_trig <= {axi_a_cur_addr[32-1:3],axi_a_dat_sel,1'b0} ; // save write pointer at trigger arrival
-
-   if (axi_a_clr)
-      set_a_axi_cur <= set_a_axi_start ;
-   else if (axi0_wvalid_o)
-      set_a_axi_cur <= axi_a_cur_addr ;
-end
-
-axi_wr_fifo #(
-  .DW  (  64    ), // data width (8,16,...,1024)
-  .AW  (  32    ), // address width
-  .FW  (   8    )  // address width of FIFO pointers
-) i_wr0 (
-   // global signals
-  .axi_clk_i          (  axi0_clk_o        ), // global clock
-  .axi_rstn_i         (  axi0_rstn_o       ), // global reset
-
-   // Connection to AXI master
-  .axi_waddr_o        (  axi0_waddr_o      ), // write address
-  .axi_wdata_o        (  axi0_wdata_o      ), // write data
-  .axi_wsel_o         (  axi0_wsel_o       ), // write byte select
-  .axi_wvalid_o       (  axi0_wvalid_o     ), // write data valid
-  .axi_wlen_o         (  axi0_wlen_o       ), // write burst length
-  .axi_wfixed_o       (  axi0_wfixed_o     ), // write burst type (fixed / incremental)
-  .axi_werr_i         (  axi0_werr_i       ), // write error
-  .axi_wrdy_i         (  axi0_wrdy_i       ), // write ready
-
-   // data and configuration
-  .wr_data_i          (  axi_a_dat         ), // write data
-  .wr_val_i           (  axi_a_dat_dv      ), // write data valid
-  .ctrl_start_addr_i  (  set_a_axi_start   ), // range start address
-  .ctrl_stop_addr_i   (  set_a_axi_stop    ), // range stop address
-  .ctrl_trig_size_i   (  4'hF              ), // trigger level
-  .ctrl_wrap_i        (  1'b1              ), // start from begining when reached stop
-  .ctrl_clr_i         (  axi_a_clr         ), // clear / flush
-  .stat_overflow_o    (                    ), // overflow indicator
-  .stat_cur_addr_o    (  axi_a_cur_addr    ), // current write address
-  .stat_write_data_o  (                    )  // write data indicator
+  // simple-AXI master out port: OSC2 signal
+  .m_axis_data_tvalid   ( osc2_saxi_m_vld   ),  // AXI master data valid
+  .m_axis_data_tdata    ( osc2_saxi_m_dat   )   // AXI master data  // : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
 );
 
-assign axi0_clk_o  = adc_clk_i ;
-assign axi0_rstn_o = adc_rstn_i;
-
 
 //---------------------------------------------------------------------------------
-//
-//  AXI CHB connection
+//  Signal amplitude multiplications
 
-reg  [ 32-1: 0] set_b_axi_start    ;
-reg  [ 32-1: 0] set_b_axi_stop     ;
-reg  [ 32-1: 0] set_b_axi_dly      ;
-reg             set_b_axi_en       ;
-reg  [ 32-1: 0] set_b_axi_trig     ;
-reg  [ 32-1: 0] set_b_axi_cur      ;
-reg             axi_b_we           ;
-reg  [ 64-1: 0] axi_b_dat          ;
-reg  [  2-1: 0] axi_b_dat_sel      ;
-reg  [  1-1: 0] axi_b_dat_dv       ;
-reg  [ 32-1: 0] axi_b_dly_cnt      ;
-reg             axi_b_dly_do       ;
-wire            axi_b_clr          ;
-wire [ 32-1: 0] axi_b_cur_addr     ;
+wire [15:0] osc1_gain = 16'h8000;
+wire [15:0] osc2_gain = 16'h8000;
 
-assign axi_b_clr = adc_rst_do ;
+//wire [15:0] osc1_mixed;
+//wire [15:0] osc2_mixed;
 
+wire [15:0] osc1_void;                           // LSB data to be voided
+wire [15:0] osc2_void;                           // LSB data to be voided
 
-always @(posedge axi1_clk_o) begin
-   if (axi1_rstn_o == 1'b0) begin
-      axi_b_dat_sel <=  2'h0 ;
-      axi_b_dat_dv  <=  1'b0 ;
-      axi_b_dly_cnt <= 32'h0 ;
-      axi_b_dly_do  <=  1'b0 ;
-   end
-   else begin
-      if (adc_arm_do && set_b_axi_en)
-         axi_b_we <= 1'b1 ;
-      else if (((axi_b_dly_do || adc_trig) && (axi_b_dly_cnt == 32'h0)) || adc_rst_do) //delayed reached or reset
-         axi_b_we <= 1'b0 ;
+rb_osc2_cpxmult i_rb_osc2_cpxmult (
+  // global signals
+  .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
 
-      if (adc_trig && axi_b_we)
-         axi_b_dly_do  <= 1'b1 ;
-      else if ((axi_b_dly_do && (axi_b_dly_cnt == 32'b0)) || axi_b_clr || adc_arm_do) //delayed reached or reset
-         axi_b_dly_do  <= 1'b0 ;
+  // simple-AXI slave in ports: signals to be multiplied with each other
+  .s_axis_a_tvalid      ( rb_reset_n        ),
+  .s_axis_a_tdata       ( {osc2_saxi_m_dat, osc1_saxi_m_dat} ),  // OSCx signals - MSB part for OSC2 out port, LSB part for OSC1 out port
+  .s_axis_b_tvalid      ( rb_reset_n        ),
+  .s_axis_b_tdata       ( {osc2_gain, osc1_gain} ),  // gain settings - MSB part for OSC2 out port, LSB part for OSC1 out port
 
-      if (axi_b_dly_do && axi_b_we && adc_dv)
-         axi_b_dly_cnt <= axi_b_dly_cnt - 1;
-      else if (!axi_b_dly_do)
-         axi_b_dly_cnt <= set_b_axi_dly ;
-
-      if (axi_b_clr)
-         axi_b_dat_sel <= 2'h0 ;
-      else if (axi_b_we && adc_dv)
-         axi_b_dat_sel <= axi_b_dat_sel + 2'h1 ;
-
-      axi_b_dat_dv <= axi_b_we && (axi_b_dat_sel == 2'b11) && adc_dv ;
-   end
-
-   if (axi_b_we && adc_dv) begin
-      if (axi_b_dat_sel == 2'b00) axi_b_dat[ 16-1:  0] <= $signed(adc_b_dat);
-      if (axi_b_dat_sel == 2'b01) axi_b_dat[ 32-1: 16] <= $signed(adc_b_dat);
-      if (axi_b_dat_sel == 2'b10) axi_b_dat[ 48-1: 32] <= $signed(adc_b_dat);
-      if (axi_b_dat_sel == 2'b11) axi_b_dat[ 64-1: 48] <= $signed(adc_b_dat);
-   end
-
-   if (axi_b_clr)
-      set_b_axi_trig <= {RSZ{1'b0}};
-   else if (adc_trig && !axi_b_dly_do && axi_b_we)
-      set_b_axi_trig <= {axi_b_cur_addr[32-1:3],axi_b_dat_sel,1'b0} ; // save write pointer at trigger arrival
-
-   if (axi_b_clr)
-      set_b_axi_cur <= set_b_axi_start ;
-   else if (axi1_wvalid_o)
-      set_b_axi_cur <= axi_b_cur_addr ;
-end
-
-axi_wr_fifo #(
-  .DW  (  64    ), // data width (8,16,...,1024)
-  .AW  (  32    ), // address width
-  .FW  (   8    )  // address width of FIFO pointers
-) i_wr1 (
-   // global signals
-  .axi_clk_i          (  axi1_clk_o        ), // global clock
-  .axi_rstn_i         (  axi1_rstn_o       ), // global reset
-
-   // Connection to AXI master
-  .axi_waddr_o        (  axi1_waddr_o      ), // write address
-  .axi_wdata_o        (  axi1_wdata_o      ), // write data
-  .axi_wsel_o         (  axi1_wsel_o       ), // write byte select
-  .axi_wvalid_o       (  axi1_wvalid_o     ), // write data valid
-  .axi_wlen_o         (  axi1_wlen_o       ), // write burst length
-  .axi_wfixed_o       (  axi1_wfixed_o     ), // write burst type (fixed / incremental)
-  .axi_werr_i         (  axi1_werr_i       ), // write error
-  .axi_wrdy_i         (  axi1_wrdy_i       ), // write ready
-
-   // data and configuration
-  .wr_data_i          (  axi_b_dat         ), // write data
-  .wr_val_i           (  axi_b_dat_dv      ), // write data valid
-  .ctrl_start_addr_i  (  set_b_axi_start   ), // range start address
-  .ctrl_stop_addr_i   (  set_b_axi_stop    ), // range stop address
-  .ctrl_trig_size_i   (  4'hF              ), // trigger level
-  .ctrl_wrap_i        (  1'b1              ), // start from begining when reached stop
-  .ctrl_clr_i         (  axi_b_clr         ), // clear / flush
-  .stat_overflow_o    (                    ), // overflow indicator
-  .stat_cur_addr_o    (  axi_b_cur_addr    ), // current write address
-  .stat_write_data_o  (                    )  // write data indicator
+  // simple-AXI master out ports: multiplicated signals
+  .m_axis_dout_tvalid   (                   ),
+  .m_axis_dout_tdata    ( {osc2_mixed, osc2_void, osc1_mixed, osc1_void} )
 );
 
-assign axi1_clk_o  = adc_clk_i ;
-assign axi1_rstn_o = adc_rstn_i;
-*/
-
-
-/*
 //---------------------------------------------------------------------------------
-//  Trigger source selector
-
-reg               adc_trig_ap      ;
-reg               adc_trig_an      ;
-reg               adc_trig_bp      ;
-reg               adc_trig_bn      ;
-reg               adc_trig_sw      ;
-reg   [   4-1: 0] set_trig_src     ;
-wire              ext_trig_p       ;
-wire              ext_trig_n       ;
-wire              asg_trig_p       ;
-wire              asg_trig_n       ;
-
-always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
-   adc_arm_do    <= 1'b0 ;
-   adc_rst_do    <= 1'b0 ;
-   adc_trig_sw   <= 1'b0 ;
-   set_trig_src  <= 4'h0 ;
-   adc_trig      <= 1'b0 ;
-end else begin
-   adc_arm_do  <= sys_wen && (sys_addr[19:0]==20'h0) && sys_wdata[0] ; // SW ARM
-   adc_rst_do  <= sys_wen && (sys_addr[19:0]==20'h0) && sys_wdata[1] ;
-   adc_trig_sw <= sys_wen && (sys_addr[19:0]==20'h4) && (sys_wdata[3:0]==4'h1); // SW trigger
-
-      if (sys_wen && (sys_addr[19:0]==20'h4))
-         set_trig_src <= sys_wdata[3:0] ;
-      else if (((adc_dly_do || adc_trig) && (adc_dly_cnt == 32'h0)) || adc_rst_do) //delayed reached or reset
-         set_trig_src <= 4'h0 ;
-
-   case (set_trig_src)
-       4'd1 : adc_trig <= adc_trig_sw   ; // manual
-       4'd2 : adc_trig <= adc_trig_ap   ; // A ch rising edge
-       4'd3 : adc_trig <= adc_trig_an   ; // A ch falling edge
-       4'd4 : adc_trig <= adc_trig_bp   ; // B ch rising edge
-       4'd5 : adc_trig <= adc_trig_bn   ; // B ch falling edge
-       4'd6 : adc_trig <= ext_trig_p    ; // external - rising edge
-       4'd7 : adc_trig <= ext_trig_n    ; // external - falling edge
-       4'd8 : adc_trig <= asg_trig_p    ; // ASG - rising edge
-       4'd9 : adc_trig <= asg_trig_n    ; // ASG - falling edge
-    default : adc_trig <= 1'b0          ;
-   endcase
-end
-
-
-//---------------------------------------------------------------------------------
-//  Trigger created from input signal
-
-reg  [  2-1: 0] adc_scht_ap  ;
-reg  [  2-1: 0] adc_scht_an  ;
-reg  [  2-1: 0] adc_scht_bp  ;
-reg  [  2-1: 0] adc_scht_bn  ;
-reg  [ 14-1: 0] set_a_tresh  ;
-reg  [ 14-1: 0] set_a_treshp ;
-reg  [ 14-1: 0] set_a_treshm ;
-reg  [ 14-1: 0] set_b_tresh  ;
-reg  [ 14-1: 0] set_b_treshp ;
-reg  [ 14-1: 0] set_b_treshm ;
-reg  [ 14-1: 0] set_a_hyst   ;
-reg  [ 14-1: 0] set_b_hyst   ;
-
-always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
-   adc_scht_ap  <=  2'h0 ;
-   adc_scht_an  <=  2'h0 ;
-   adc_scht_bp  <=  2'h0 ;
-   adc_scht_bn  <=  2'h0 ;
-   adc_trig_ap  <=  1'b0 ;
-   adc_trig_an  <=  1'b0 ;
-   adc_trig_bp  <=  1'b0 ;
-   adc_trig_bn  <=  1'b0 ;
-end else begin
-   set_a_treshp <= set_a_tresh + set_a_hyst ; // calculate positive
-   set_a_treshm <= set_a_tresh - set_a_hyst ; // and negative treshold
-   set_b_treshp <= set_b_tresh + set_b_hyst ;
-   set_b_treshm <= set_b_tresh - set_b_hyst ;
-
-   if (adc_dv) begin
-           if ($signed(adc_a_dat) >= $signed(set_a_tresh ))      adc_scht_ap[0] <= 1'b1 ;  // treshold reached
-      else if ($signed(adc_a_dat) <  $signed(set_a_treshm))      adc_scht_ap[0] <= 1'b0 ;  // wait until it goes under hysteresis
-           if ($signed(adc_a_dat) <= $signed(set_a_tresh ))      adc_scht_an[0] <= 1'b1 ;  // treshold reached
-      else if ($signed(adc_a_dat) >  $signed(set_a_treshp))      adc_scht_an[0] <= 1'b0 ;  // wait until it goes over hysteresis
-
-           if ($signed(adc_b_dat) >= $signed(set_b_tresh ))      adc_scht_bp[0] <= 1'b1 ;
-      else if ($signed(adc_b_dat) <  $signed(set_b_treshm))      adc_scht_bp[0] <= 1'b0 ;
-           if ($signed(adc_b_dat) <= $signed(set_b_tresh ))      adc_scht_bn[0] <= 1'b1 ;
-      else if ($signed(adc_b_dat) >  $signed(set_b_treshp))      adc_scht_bn[0] <= 1'b0 ;
-   end
-
-   adc_scht_ap[1] <= adc_scht_ap[0] ;
-   adc_scht_an[1] <= adc_scht_an[0] ;
-   adc_scht_bp[1] <= adc_scht_bp[0] ;
-   adc_scht_bn[1] <= adc_scht_bn[0] ;
-
-   adc_trig_ap <= adc_scht_ap[0] && !adc_scht_ap[1] ; // make 1 cyc pulse 
-   adc_trig_an <= adc_scht_an[0] && !adc_scht_an[1] ;
-   adc_trig_bp <= adc_scht_bp[0] && !adc_scht_bp[1] ;
-   adc_trig_bn <= adc_scht_bn[0] && !adc_scht_bn[1] ;
-end
-
-
-//---------------------------------------------------------------------------------
-//  External trigger
-
-reg  [  3-1: 0] ext_trig_in    ;
-reg  [  2-1: 0] ext_trig_dp    ;
-reg  [  2-1: 0] ext_trig_dn    ;
-reg  [ 20-1: 0] ext_trig_debp  ;
-reg  [ 20-1: 0] ext_trig_debn  ;
-reg  [  3-1: 0] asg_trig_in    ;
-reg  [  2-1: 0] asg_trig_dp    ;
-reg  [  2-1: 0] asg_trig_dn    ;
-reg  [ 20-1: 0] asg_trig_debp  ;
-reg  [ 20-1: 0] asg_trig_debn  ;
-
-always @(posedge adc_clk_i)
-if (adc_rstn_i == 1'b0) begin
-   ext_trig_in   <=  3'h0 ;
-   ext_trig_dp   <=  2'h0 ;
-   ext_trig_dn   <=  2'h0 ;
-   ext_trig_debp <= 20'h0 ;
-   ext_trig_debn <= 20'h0 ;
-   asg_trig_in   <=  3'h0 ;
-   asg_trig_dp   <=  2'h0 ;
-   asg_trig_dn   <=  2'h0 ;
-   asg_trig_debp <= 20'h0 ;
-   asg_trig_debn <= 20'h0 ;
-end else begin
-   //----------- External trigger
-   // synchronize FFs
-   ext_trig_in <= {ext_trig_in[1:0],trig_ext_i} ;
-
-   // look for input changes
-   if ((ext_trig_debp == 20'h0) && (ext_trig_in[1] && !ext_trig_in[2]))
-      ext_trig_debp <= set_deb_len ; // ~0.5ms
-   else if (ext_trig_debp != 20'h0)
-      ext_trig_debp <= ext_trig_debp - 20'd1 ;
-
-   if ((ext_trig_debn == 20'h0) && (!ext_trig_in[1] && ext_trig_in[2]))
-      ext_trig_debn <= set_deb_len ; // ~0.5ms
-   else if (ext_trig_debn != 20'h0)
-      ext_trig_debn <= ext_trig_debn - 20'd1 ;
-
-   // update output values
-   ext_trig_dp[1] <= ext_trig_dp[0] ;
-   if (ext_trig_debp == 20'h0)
-      ext_trig_dp[0] <= ext_trig_in[1] ;
-
-   ext_trig_dn[1] <= ext_trig_dn[0] ;
-   if (ext_trig_debn == 20'h0)
-      ext_trig_dn[0] <= ext_trig_in[1] ;
-
-   //----------- ASG trigger
-   // synchronize FFs
-   asg_trig_in <= {asg_trig_in[1:0],trig_asg_i} ;
-
-   // look for input changes
-   if ((asg_trig_debp == 20'h0) && (asg_trig_in[1] && !asg_trig_in[2]))
-      asg_trig_debp <= set_deb_len ; // ~0.5ms
-   else if (asg_trig_debp != 20'h0)
-      asg_trig_debp <= asg_trig_debp - 20'd1 ;
-
-   if ((asg_trig_debn == 20'h0) && (!asg_trig_in[1] && asg_trig_in[2]))
-      asg_trig_debn <= set_deb_len ; // ~0.5ms
-   else if (asg_trig_debn != 20'h0)
-      asg_trig_debn <= asg_trig_debn - 20'd1 ;
-
-   // update output values
-   asg_trig_dp[1] <= asg_trig_dp[0] ;
-   if (asg_trig_debp == 20'h0)
-      asg_trig_dp[0] <= asg_trig_in[1] ;
-
-   asg_trig_dn[1] <= asg_trig_dn[0] ;
-   if (asg_trig_debn == 20'h0)
-      asg_trig_dn[0] <= asg_trig_in[1] ;
-end
-
-assign ext_trig_p = (ext_trig_dp == 2'b01) ;
-assign ext_trig_n = (ext_trig_dn == 2'b10) ;
-assign asg_trig_p = (asg_trig_dp == 2'b01) ;
-assign asg_trig_n = (asg_trig_dn == 2'b10) ;
-*/
+//  Signal connection matrix
 
 
 //---------------------------------------------------------------------------------
 //  System bus connection
 
 // write access to the registers
-always @(posedge adc_clk_i)
+always @(posedge clk_adc_125mhz)
 if (!adc_rstn_i) begin
-   reg_rw_add_a   <= 32'd0 ;
-   reg_rw_add_b   <= 32'd0 ;
-   reg_rd_add_res <= 32'd0 ;
+   regs[REG_RW_RB_CTRL]         <= 32'h00000000;
+   regs[REG_RD_RB_STATUS]       <= 32'h00000000;
+   regs[REG_RW_RB_ICR]          <= 32'h00000000;
+   regs[REG_RD_RB_ISR]          <= 32'h00000000;
+   regs[REG_RW_RB_DMA_CTRL]     <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_INC_LO]  <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_INC_HI]  <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_PHASE]   <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_INC]     <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_PHASE]   <= 32'h00000000;
    end
 
 else begin
    if (sys_wen) begin
       casez (sys_addr[19:0])
-      20'h00000 : begin
-         reg_rw_add_a   <= sys_wdata[32-1:0] ;
-         reg_rd_add_res <= sys_wdata[32-1:0] + reg_rw_add_b ;
+
+      /* control */
+      20'h00000: begin
+         regs[REG_RW_RB_CTRL]           <= sys_wdata[31:0];
          end
-      20'h00004 : begin
-         reg_rw_add_b   <= sys_wdata[32-1:0] ;
-         reg_rd_add_res <= sys_wdata[32-1:0] + reg_rw_add_a ;
+      20'h00004: begin
+         /* RD  REG_RD_RB_STATUS */
          end
-//    default : begin
-//       end
+      20'h00008: begin
+         regs[REG_RW_RB_ICR]            <= sys_wdata[31:0];
+         end
+      20'h0000C: begin
+         /* RD  REG_RD_RB_ISR */
+         end
+      20'h00010: begin
+         regs[REG_RW_RB_DMA_CTRL]       <= sys_wdata[31:0];
+         end
+      20'h00014: begin
+         /*  n/a  */
+         end
+      20'h00018: begin
+         /*  n/a  */
+         end
+      20'h0001C: begin
+         /*  n/a  */
+         end
+
+      /* OSC1 */
+      20'h00020: begin
+         regs[REG_RW_RB_OSC1_INC_LO]    <= sys_wdata[31:0];
+         end
+      20'h00024: begin
+         regs[REG_RW_RB_OSC1_INC_HI]    <= sys_wdata[31:0];
+         end
+      20'h00028: begin
+         regs[REG_RW_RB_OSC1_PHASE]     <= sys_wdata[31:0];
+         end
+      20'h0002C: begin
+         /*  n/a  */
+         end
+
+      /* OSC2 */
+      20'h00030: begin
+         regs[REG_RW_RB_OSC2_INC]       <= sys_wdata[31:0];
+         end
+      20'h00034: begin
+         /*  n/a  */
+         end
+      20'h00038: begin
+         regs[REG_RW_RB_OSC2_PHASE]     <= sys_wdata[31:0];
+         end
+      20'h0003C: begin
+         end
+
+      default:   begin
+         end
+
       endcase
    end
 end
@@ -734,42 +310,78 @@ wire sys_en;
 assign sys_en = sys_wen | sys_ren;
 
 // read access to the registers
-always @(posedge adc_clk_i)
+always @(posedge clk_adc_125mhz)
 if (!adc_rstn_i) begin
-   sys_err <= 1'b0 ;
-   sys_ack <= 1'b0 ;
-   sys_rdata <= 32'h0000 ;
+   sys_err      <= 1'b0;
+   sys_ack      <= 1'b0;
+   sys_rdata    <= 32'h00000000;
    end
 
 else begin
-   sys_err <= 1'b0 ;
+   sys_err <= 1'b0;
    if (sys_ren) begin
       casez (sys_addr[19:0])
-      20'h00000 : begin
-         sys_ack   <= sys_en ;
-         sys_rdata <= reg_rw_add_a ;
+
+      /* control */
+      20'h00000: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_CTRL];
          end
-      20'h00004 : begin
-         sys_ack   <= sys_en ;
-         sys_rdata <= reg_rw_add_b ;
+      20'h00004: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RD_RB_STATUS];
          end
-      20'h00008 : begin
-         sys_ack   <= sys_en ;
-         sys_rdata <= reg_rd_add_res ;
+      20'h00008: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_ICR];
          end
-      default : begin
-         sys_ack   <= sys_en ;
-         sys_rdata <= 32'h0000 ;
+      20'h0000C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RD_RB_ISR];
          end
+      20'h00010: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_DMA_CTRL];
+         end
+
+      /* OSC1 */
+      20'h00020: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC1_INC_LO];
+         end
+      20'h00024: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC1_INC_HI];
+         end
+      20'h00028: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC1_PHASE];
+         end
+
+      /* OSC2 */
+      20'h00030: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_INC];
+         end
+      20'h00038: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_PHASE];
+         end
+
+      default:   begin
+         sys_ack   <= sys_en;
+         sys_rdata <= 32'h00000000;
+         end
+
       endcase
    end
 
    else if (sys_wen) begin                      // keep sys_ack assignment in this process
-      sys_ack <= sys_en ;
+      sys_ack <= sys_en;
    end
 
    else begin
-      sys_ack <= 1'b0 ;
+      sys_ack <= 1'b0;
    end
 end
 

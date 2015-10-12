@@ -24,17 +24,19 @@ module red_pitaya_pwm #(
   output logic           pwm_s    // PWM synchronization
 );
 
-reg  [ 4-1: 0] bcnt  ;
-reg  [16-1: 0] b     ;
+reg  [ 4-1: 0] bcnt;
+reg  [16-1: 0] b;
 reg  [ 8-1: 0] vcnt, vcnt_r;
-reg  [ 8-1: 0] v   , v_r   ;
+reg  [ 8-1: 0] v, v_r;
 
 always @(posedge clk)
 if (~rstn) begin
-   vcnt <=  8'h0 ;
-   bcnt <=  4'h0 ;
-   pwm_o    <=  1'b0 ;
-end else begin
+   vcnt  <=  8'h0;
+   bcnt  <=  4'h0;
+   pwm_o <=  1'b0;
+   end 
+
+else begin
    vcnt   <= (vcnt == FULL) ? 8'h1 : (vcnt + 8'd1) ;
    vcnt_r <= vcnt;
    v_r    <= (v + b[0]) ; // add decimal bit to current value
