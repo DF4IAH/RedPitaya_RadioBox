@@ -31,23 +31,18 @@
   <FileSets Version="1" Minor="31">
     <FileSet Name="sources_1" Type="DesignSrcs" RelSrcDir="$PSRCDIR/sources_1">
       <Filter Type="Srcs"/>
-      <File Path="$PSRCDIR/sources_1/bd/system/system.bd">
+      <File Path="$PPRDIR/../bd/system/system.bd">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="hdl/system.v"/>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_xlconcat_0_0/system_xlconcat_0_0.xci"/>
         <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_proc_sys_reset_0_0/system_proc_sys_reset_0_0.xci"/>
         <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_axi_protocol_converter_0_0/system_axi_protocol_converter_0_0.xci"/>
         <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_xlconstant_0_0/system_xlconstant_0_0.xci"/>
+        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_xlconcat_0_0/system_xlconcat_0_0.xci"/>
         <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_xadc_wiz_0_0/system_xadc_wiz_0_0.xci"/>
         <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="ip/system_processing_system7_0_0/system_processing_system7_0_0.xci"/>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="system_ooc.xdc"/>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="hdl/system.hwdef"/>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="hw_handoff/system_bd.tcl"/>
-        <CompFileExtendedInfo CompFileName="system.bd" FileRelPathName="hw_handoff/system.hwh"/>
       </File>
       <File Path="$PPRDIR/../rtl/red_pitaya_pid_block.sv">
         <FileInfo>
@@ -112,7 +107,7 @@
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/bd/system/hdl/system_wrapper.v">
+      <File Path="$PPRDIR/../bd/system/hdl/system_wrapper.v">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -357,153 +352,15 @@
         <Option Name="XSimWcfgFile" Val="$PPRDIR/red_pitaya_radiobox_tb_behav.wcfg"/>
       </Config>
     </FileSet>
-    <FileSet Name="rb_osc1_dds" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc1_dds">
-      <File Path="$PSRCDIR/sources_1/ip/rb_osc1_dds.xcix">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PSRCDIR/sources_1/ip/rb_osc1_dds/rb_osc1_dds.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds_sim_netlist.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds_sim_netlist.v"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds_stub.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds_stub.v"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds.veo"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds.vho"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds.xml"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="demo_tb/tb_rb_osc1_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="rb_osc1_dds_ooc.xdc"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="synth/rb_osc1_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="dds_compiler_v6_0_10/hdl/dds_compiler_v6_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_dsp48_multadd_v3_0_0/hdl/xbip_dsp48_multadd_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_dsp48_multadd_v3_0_0/hdl/xbip_dsp48_multadd_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="cmodel/dds_compiler_v6_0_bitacc_cmodel_nt64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="axi_utils_v2_0_0/hdl/axi_utils_v2_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="cmodel/dds_compiler_v6_0_bitacc_cmodel_lin64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_dsp48_addsub_v3_0_0/hdl/xbip_dsp48_addsub_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_dsp48_addsub_v3_0_0/hdl/xbip_dsp48_addsub_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="dds_compiler_v6_0_10/hdl/dds_compiler_v6_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="sim/rb_osc1_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_utils_v3_0_4/hdl/xbip_utils_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_dsp48_wrapper_v3_0_4/hdl/xbip_dsp48_wrapper_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="doc/dds_compiler_v6_0_changelog.txt"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc1_dds.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0_vh_rfs.vhd"/>
-      </File>
-      <Config>
-        <Option Name="TopModule" Val="rb_osc1_dds"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-        <Define Name="TOOL_VIVADO"/>
-      </Config>
-    </FileSet>
-    <FileSet Name="rb_osc2_dds" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc2_dds">
-      <File Path="$PSRCDIR/sources_1/ip/rb_osc2_dds/rb_osc2_dds.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="dds_compiler_v6_0_10/hdl/dds_compiler_v6_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_dsp48_multadd_v3_0_0/hdl/xbip_dsp48_multadd_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_dsp48_multadd_v3_0_0/hdl/xbip_dsp48_multadd_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds.veo"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds.vho"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_dsp48_addsub_v3_0_0/hdl/xbip_dsp48_addsub_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_dsp48_wrapper_v3_0_4/hdl/xbip_dsp48_wrapper_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_dsp48_addsub_v3_0_0/hdl/xbip_dsp48_addsub_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="axi_utils_v2_0_0/hdl/axi_utils_v2_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="xbip_utils_v3_0_4/hdl/xbip_utils_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="cmodel/dds_compiler_v6_0_bitacc_cmodel_nt64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="cmodel/dds_compiler_v6_0_bitacc_cmodel_lin64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="doc/dds_compiler_v6_0_changelog.txt"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds_ooc.xdc"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="synth/rb_osc2_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="sim/rb_osc2_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="demo_tb/tb_rb_osc2_dds.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="dds_compiler_v6_0_10/hdl/dds_compiler_v6_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds.xml"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds_stub.v"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds_stub.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds_sim_netlist.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_dds.xci" FileRelPathName="rb_osc2_dds_sim_netlist.v"/>
-      </File>
-      <Config>
-        <Option Name="TopModule" Val="rb_osc2_dds"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-        <Define Name="TOOL_VIVADO"/>
-      </Config>
-    </FileSet>
-    <FileSet Name="rb_osc2_cpxmult" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc2_cpxmult">
-      <File Path="$PSRCDIR/sources_1/ip/rb_osc2_cpxmult.xcix">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-      </File>
-      <File Path="$PSRCDIR/sources_1/ip/rb_osc2_cpxmult/rb_osc2_cpxmult.xci">
-        <FileInfo>
-          <Attr Name="UsedIn" Val="synthesis"/>
-          <Attr Name="UsedIn" Val="implementation"/>
-          <Attr Name="UsedIn" Val="simulation"/>
-        </FileInfo>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult.vho"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult.veo"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="axi_utils_v2_0_0/hdl/axi_utils_v2_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="xbip_utils_v3_0_4/hdl/xbip_utils_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult_ooc.xdc"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="synth/rb_osc2_cpxmult.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="sim/rb_osc2_cpxmult.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="cmpy_v6_0_9/hdl/cmpy_v6_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="cmpy_v6_0_9/hdl/cmpy_v6_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="mult_gen_v12_0_9/hdl/mult_gen_v12_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="xbip_bram18k_v3_0_0/hdl/xbip_bram18k_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="demo_tb/tb_rb_osc2_cpxmult.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="cmodel/cmpy_v6_0_bitacc_cmodel_nt64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="cmodel/cmpy_v6_0_bitacc_cmodel_lin64.zip"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="doc/cmpy_v6_0_changelog.txt"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="xbip_pipe_v3_0_0/hdl/xbip_pipe_v3_0_vh_rfs.vhd"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult_stub.v"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult_sim_netlist.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult_sim_netlist.v"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult_stub.vhdl"/>
-        <CompFileExtendedInfo CompFileName="rb_osc2_cpxmult.xci" FileRelPathName="rb_osc2_cpxmult.xml"/>
-      </File>
-      <Config>
-        <Option Name="TopModule" Val="rb_osc2_cpxmult"/>
-        <Option Name="UseBlackboxStub" Val="1"/>
-        <Define Name="TOOL_VIVADO"/>
-      </Config>
-    </FileSet>
     <FileSet Name="clk_adc_pll" Type="BlockSrcs" RelSrcDir="$PSRCDIR/clk_adc_pll">
-      <File Path="$PSRCDIR/sources_1/ip/clk_adc_pll_1.xcix">
+      <File Path="$PPRDIR/../ip/clk_adc_pll.xcix">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
           <Attr Name="UsedIn" Val="simulation"/>
         </FileInfo>
       </File>
-      <File Path="$PSRCDIR/sources_1/ip/clk_adc_pll_1/clk_adc_pll.xci">
+      <File Path="$PPRDIR/../ip/clk_adc_pll/clk_adc_pll.xci">
         <FileInfo>
           <Attr Name="UsedIn" Val="synthesis"/>
           <Attr Name="UsedIn" Val="implementation"/>
@@ -512,6 +369,69 @@
       </File>
       <Config>
         <Option Name="TopModule" Val="clk_adc_pll"/>
+        <Option Name="UseBlackboxStub" Val="1"/>
+        <Define Name="TOOL_VIVADO"/>
+      </Config>
+    </FileSet>
+    <FileSet Name="rb_osc1_dds" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc1_dds">
+      <File Path="$PPRDIR/../ip/rb_osc1_dds.xcix">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../ip/rb_osc1_dds/rb_osc1_dds.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <Config>
+        <Option Name="TopModule" Val="rb_osc1_dds"/>
+        <Option Name="UseBlackboxStub" Val="1"/>
+        <Define Name="TOOL_VIVADO"/>
+      </Config>
+    </FileSet>
+    <FileSet Name="rb_osc2_cpxmult" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc2_cpxmult">
+      <File Path="$PPRDIR/../ip/rb_osc2_cpxmult.xcix">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../ip/rb_osc2_cpxmult/rb_osc2_cpxmult.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <Config>
+        <Option Name="TopModule" Val="rb_osc2_cpxmult"/>
+        <Option Name="UseBlackboxStub" Val="1"/>
+        <Define Name="TOOL_VIVADO"/>
+      </Config>
+    </FileSet>
+    <FileSet Name="rb_osc2_dds" Type="BlockSrcs" RelSrcDir="$PSRCDIR/rb_osc2_dds">
+      <File Path="$PPRDIR/../ip/rb_osc2_dds.xcix">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <File Path="$PPRDIR/../ip/rb_osc2_dds/rb_osc2_dds.xci">
+        <FileInfo>
+          <Attr Name="UsedIn" Val="synthesis"/>
+          <Attr Name="UsedIn" Val="implementation"/>
+          <Attr Name="UsedIn" Val="simulation"/>
+        </FileInfo>
+      </File>
+      <Config>
+        <Option Name="TopModule" Val="rb_osc2_dds"/>
         <Option Name="UseBlackboxStub" Val="1"/>
         <Define Name="TOOL_VIVADO"/>
       </Config>
@@ -551,7 +471,7 @@
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
     </Run>
-    <Run Id="rb_osc1_dds_synth_1" Type="Ft3:Synth" SrcSet="rb_osc1_dds" Part="xc7z010clg400-1" ConstrsSet="rb_osc1_dds" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/rb_osc1_dds_synth_1" IncludeInArchive="true">
+    <Run Id="clk_adc_pll_synth_1" Type="Ft3:Synth" SrcSet="clk_adc_pll" Part="xc7z010clg400-1" ConstrsSet="clk_adc_pll" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/clk_adc_pll_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2015">
           <Desc>Vivado Synthesis Defaults</Desc>
@@ -560,7 +480,7 @@
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
     </Run>
-    <Run Id="rb_osc2_dds_synth_1" Type="Ft3:Synth" SrcSet="rb_osc2_dds" Part="xc7z010clg400-1" ConstrsSet="rb_osc2_dds" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/rb_osc2_dds_synth_1" IncludeInArchive="true">
+    <Run Id="rb_osc1_dds_synth_1" Type="Ft3:Synth" SrcSet="rb_osc1_dds" Part="xc7z010clg400-1" ConstrsSet="rb_osc1_dds" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/rb_osc1_dds_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2015">
           <Desc>Vivado Synthesis Defaults</Desc>
@@ -578,7 +498,7 @@
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
     </Run>
-    <Run Id="clk_adc_pll_synth_1" Type="Ft3:Synth" SrcSet="clk_adc_pll" Part="xc7z010clg400-1" ConstrsSet="clk_adc_pll" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/clk_adc_pll_synth_1" IncludeInArchive="true">
+    <Run Id="rb_osc2_dds_synth_1" Type="Ft3:Synth" SrcSet="rb_osc2_dds" Part="xc7z010clg400-1" ConstrsSet="rb_osc2_dds" Description="Vivado Synthesis Defaults" Dir="$PRUNDIR/rb_osc2_dds_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Synthesis Defaults" Flow="Vivado Synthesis 2015">
           <Desc>Vivado Synthesis Defaults</Desc>
@@ -587,7 +507,7 @@
       </Strategy>
       <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
     </Run>
-    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="constrs_1" Description="Vivado Implementation Defaults" State="current" Dir="$PRUNDIR/impl_1" SynthRun="synth_1" IncludeInArchive="true">
+    <Run Id="impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="constrs_1" Description="Vivado Implementation Defaults" State="current" SynthRun="synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2015"/>
         <Step Id="init_design"/>
@@ -600,9 +520,8 @@
         <Step Id="post_route_phys_opt_design"/>
         <Step Id="write_bitstream"/>
       </Strategy>
-      <GeneratedRun Dir="$PRUNDIR" File="gen_run.xml"/>
     </Run>
-    <Run Id="rb_osc1_dds_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="rb_osc1_dds" Description="Vivado Implementation Defaults" SynthRun="rb_osc1_dds_synth_1" IncludeInArchive="true">
+    <Run Id="clk_adc_pll_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="clk_adc_pll" Description="Vivado Implementation Defaults" SynthRun="clk_adc_pll_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2015">
           <Desc>Vivado Implementation Defaults</Desc>
@@ -618,7 +537,7 @@
         <Step Id="write_bitstream"/>
       </Strategy>
     </Run>
-    <Run Id="rb_osc2_dds_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="rb_osc2_dds" Description="Vivado Implementation Defaults" SynthRun="rb_osc2_dds_synth_1" IncludeInArchive="true">
+    <Run Id="rb_osc1_dds_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="rb_osc1_dds" Description="Vivado Implementation Defaults" SynthRun="rb_osc1_dds_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2015">
           <Desc>Vivado Implementation Defaults</Desc>
@@ -650,7 +569,7 @@
         <Step Id="write_bitstream"/>
       </Strategy>
     </Run>
-    <Run Id="clk_adc_pll_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="clk_adc_pll" Description="Vivado Implementation Defaults" SynthRun="clk_adc_pll_synth_1" IncludeInArchive="true">
+    <Run Id="rb_osc2_dds_impl_1" Type="Ft2:EntireDesign" Part="xc7z010clg400-1" ConstrsSet="rb_osc2_dds" Description="Vivado Implementation Defaults" SynthRun="rb_osc2_dds_synth_1" IncludeInArchive="true">
       <Strategy Version="1" Minor="2">
         <StratHandle Name="Vivado Implementation Defaults" Flow="Vivado Implementation 2015">
           <Desc>Vivado Implementation Defaults</Desc>
