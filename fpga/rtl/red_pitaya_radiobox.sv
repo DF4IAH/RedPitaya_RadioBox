@@ -48,7 +48,6 @@ module red_pitaya_radiobox #(
    output                osc2_axis_m_vld ,      // OSC2 output valid
    output       [ 15: 0] osc2_axis_m_data,      // OSC2 output
    output       [ 15: 0] osc2_mixed      ,      // OSC2 amplitude mixer output
-   output                mixed_vld       ,      // multiplier output valid
 
    // System bus - slave
    input        [ 31: 0] sys_addr        ,      // bus saddress
@@ -232,32 +231,48 @@ rb_osc2_dds i_rb_osc2_dds (
 
 
 //---------------------------------------------------------------------------------
-//  Signal amplitude multiplications
+//  OSC1 signal amplitude multiplications
 
 wire [15:0] osc1_gain = 16'h7fff;
-wire [15:0] osc2_gain = 16'h7fff;
 
 //wire [15:0] osc1_mixed;
+
+rb_osc1_mlt i_rb_osc1_mlt (
+  // global signals
+  .clk                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .ce                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .sclr                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+
+  // multiplier input
+  .a                    ( osc1_axis_m_data  ),  // OSC1 signal
+  .b                    ( osc1_gain         ),  // OSC1 gain setting
+
+  // multiplier output
+  .p                    ( osc1_mixed        )
+);
+
+
+//---------------------------------------------------------------------------------
+//  OSC2 signal amplitude multiplications
+
+wire [15:0] osc2_gain = 16'h7fff;
+
 //wire [15:0] osc2_mixed;
 
-wire [15:0] osc1_void;                           // LSB data to be voided
-wire [15:0] osc2_void;                           // LSB data to be voided
-
-rb_osc2_cpxmult i_rb_osc2_cpxmult (
+rb_osc2_mlt i_rb_osc2_mlt (
   // global signals
-  .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
-  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
+  .clk                  ( clk_adc_20mhz     ),  // global 20 MHz clock
+  .ce                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .sclr                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
 
-  // simple-AXI slave in ports: signals to be multiplied with each other
-  .s_axis_a_tvalid      ( osc2_axis_m_vld & osc1_axis_m_vld    ),
-  .s_axis_a_tdata       ( {osc2_axis_m_data, osc1_axis_m_data} ),  // OSCx signals - MSB part for OSC2 out port, LSB part for OSC1 out port
-  .s_axis_b_tvalid      ( rb_reset_n                           ),
-  .s_axis_b_tdata       ( {osc2_gain, osc1_gain}               ),  // gain settings - MSB part for OSC2 out port, LSB part for OSC1 out port
+  // multiplier input
+  .a                    ( osc2_axis_m_data  ),  // OSC2 signal
+  .b                    ( osc2_gain         ),  // OSC2 gain setting
 
-  // simple-AXI master out ports: multiplicated signals
-  .m_axis_dout_tvalid   ( mixed_vld                                      ),
-  .m_axis_dout_tdata    ( {osc2_mixed, osc2_void, osc1_mixed, osc1_void} )
+  // multiplier output
+  .p                    ( osc2_mixed        )
 );
+
 
 //---------------------------------------------------------------------------------
 //  Signal connection matrix
