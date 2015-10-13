@@ -33,31 +33,32 @@ module red_pitaya_radiobox #(
   // parameter RSZ = 14  // RAM size 2^RSZ
 )(
    // ADC
-   input                 clk_adc_125mhz  ,  // ADC based clock, 125 MHz
-   input                 clk_adc_20mhz   ,  // ADC based clock,  20 MHz, for OSC2
-   input                 adc_rstn_i      ,  // ADC reset - active low
+   input                 clk_adc_125mhz  ,      // ADC based clock, 125 MHz
+   input                 clk_adc_20mhz   ,      // ADC based clock,  20 MHz, for OSC2
+   input                 adc_rstn_i      ,      // ADC reset - active low
 
    /*
-   input        [ 13: 0] adc_a_i         ,  // ADC data CHA
-   input        [ 13: 0] adc_b_i         ,  // ADC data CHB
+   input        [ 13: 0] adc_a_i         ,      // ADC data CHA
+   input        [ 13: 0] adc_b_i         ,      // ADC data CHB
    */
 
-   output                osc1_saxi_m_vld ,  // OSC1 output valid
-   output       [ 15: 0] osc1_saxi_m_dat ,  // OSC1 output
-   output       [ 15: 0] osc1_mixed      ,  // OSC1 amplitude mixer output
-   output                osc2_saxi_m_vld ,  // OSC2 output valid
-   output       [ 15: 0] osc2_saxi_m_dat ,  // OSC2 output
-   output       [ 15: 0] osc2_mixed      ,  // OSC2 amplitude mixer output
+   output                osc1_axis_m_vld ,      // OSC1 output valid
+   output       [ 15: 0] osc1_axis_m_data,      // OSC1 output
+   output       [ 15: 0] osc1_mixed      ,      // OSC1 amplitude mixer output
+   output                osc2_axis_m_vld ,      // OSC2 output valid
+   output       [ 15: 0] osc2_axis_m_data,      // OSC2 output
+   output       [ 15: 0] osc2_mixed      ,      // OSC2 amplitude mixer output
+   output                mixed_vld       ,      // multiplier output valid
 
    // System bus - slave
-   input        [ 31: 0] sys_addr        ,  // bus saddress
-   input        [ 31: 0] sys_wdata       ,  // bus write data
-   input        [  3: 0] sys_sel         ,  // bus write byte select
-   input                 sys_wen         ,  // bus write enable
-   input                 sys_ren         ,  // bus read enable
-   output reg   [ 31: 0] sys_rdata       ,  // bus read data
-   output reg            sys_err         ,  // bus error indicator
-   output reg            sys_ack            // bus acknowledge signal
+   input        [ 31: 0] sys_addr        ,      // bus saddress
+   input        [ 31: 0] sys_wdata       ,      // bus write data
+   input        [  3: 0] sys_sel         ,      // bus write byte select
+   input                 sys_wen         ,      // bus write enable
+   input                 sys_ren         ,      // bus read enable
+   output reg   [ 31: 0] sys_rdata       ,      // bus read data
+   output reg            sys_err         ,      // bus error indicator
+   output reg            sys_ack                // bus acknowledge signal
 );
 
 
@@ -66,37 +67,37 @@ module red_pitaya_radiobox #(
 //  Registers accessed by the system bus
 
 enum {
-    REG_RW_RB_CTRL          = 0,          // RB control register
-    REG_RD_RB_STATUS,                     // EB status register
-    REG_RW_RB_ICR,                        // RB interrupt control register
-    REG_RD_RB_ISR,                        // RB interrupt status register
-    REG_RW_RB_DMA_CTRL,                   // RB DMA control register
+    REG_RW_RB_CTRL                      = 0,    // RB control register
+    REG_RD_RB_STATUS,                           // EB status register
+    REG_RW_RB_ICR,                              // RB interrupt control register
+    REG_RD_RB_ISR,                              // RB interrupt status register
+    REG_RW_RB_DMA_CTRL,                         // RB DMA control register
 
-    REG_RW_RB_OSC1_INC_LO,                // RB OSC1 increment register LSB (Bit 15.. 0), 16'b0
-    REG_RW_RB_OSC1_INC_HI,                // RB OSC1 increment register MSB (Bit 47..16)
-    REG_RW_RB_OSC1_PHASE,                 // RB OSC1 phase register
+    REG_RW_RB_OSC1_INC_LO,                      // RB OSC1 increment register LSB (Bit 15.. 0), 16'b0
+    REG_RW_RB_OSC1_INC_HI,                      // RB OSC1 increment register MSB (Bit 47..16)
+    REG_RW_RB_OSC1_OFS,                         // RB OSC1 offset register
 
-    REG_RW_RB_OSC2_INC,                   // RB OSC2 increment register
-    REG_RW_RB_OSC2_PHASE,                 // RB OSC2 phase register
+    REG_RW_RB_OSC2_INC,                         // RB OSC2 increment register
+    REG_RW_RB_OSC2_OFS,                         // RB OSC2 offset register
 
     REG_RB_COUNT
 } REG_RB_ENUMS;
 
-reg  [31: 0]    regs    [REG_RB_COUNT];   // registers to be accessed by the system bus
+reg  [31: 0]    regs    [REG_RB_COUNT];         // registers to be accessed by the system bus
 
 
 enum {
-    RB_CTRL_ENABLE                  = 0,  // enabling the RadioBox sub-module
+    RB_CTRL_ENABLE                      = 0,    // enabling the RadioBox sub-module
     RB_CTRL_RSVD01,
     RB_CTRL_RSVD02,
     RB_CTRL_RSVD03,
-    RB_CTRL_OSC1_INC_SRC_STREAM,
-    RB_CTRL_OSC1_PHASE_SRC_STREAM,
-    RB_CTRL_RSVD06,
+    RB_CTRL_RSVD04,
+    RB_CTRL_OSC1_INC_SRC_STREAM,                // OSC1 incrementing: use stream instead of register setting
+    RB_CTRL_OSC1_OFS_SRC_STREAM,                // OSC1 offset: use stream instead of register setting
     RB_CTRL_RSVD07,
-    RB_CTRL_OSC2_INC_SRC_STREAM,
-    RB_CTRL_OSC2_PHASE_SRC_STREAM,
-    RB_CTRL_RSVD10,
+    RB_CTRL_OSC2_RESYNC,                    
+    RB_CTRL_OSC2_INC_SRC_STREAM,                // OSC2 incrementing: use stream instead of register setting
+    RB_CTRL_OSC2_OFS_SRC_STREAM,                // OSC2 offset: use stream instead of register setting
     RB_CTRL_RSVD11,
     RB_CTRL_RSVD12,
     RB_CTRL_RSVD13,
@@ -122,8 +123,44 @@ enum {
 
 
 wire rb_enable = regs[REG_RW_RB_CTRL][RB_CTRL_ENABLE];
-wire rb_reset_n = !(adc_rstn_i && rb_enable);
 
+reg          rb_enable_last = 1'b0;
+reg          rb_clk_en      = 1'b0;
+reg          rb_reset_n     = 1'b0;
+reg  [ 1: 0] rb_enable_ctr  = 2'b0;
+
+//wire         mixed_vld;
+
+
+//---------------------------------------------------------------------------------
+//  RadioBox sub-module activation
+
+always @(posedge clk_adc_20mhz)
+begin
+   if (!adc_rstn_i) begin
+      rb_clk_en     <= 1'b0;
+      rb_reset_n    <= 1'b0;
+      rb_enable_ctr <= 2'b0;
+   end else begin
+      if (rb_enable != rb_enable_last) begin
+         rb_enable_ctr <= 2'b11;                // load timer on enable bit change
+         if (rb_enable)                         // just enabled
+            rb_clk_en <= 1'b1;                  // firing up
+         else                                   // just disabled
+            rb_reset_n <= 1'b0;                 // resetting before sleep
+      end else if (rb_enable_ctr)               // counter runs
+         rb_enable_ctr <= rb_enable_ctr - 1;
+
+      if (rb_enable == rb_enable_last && 
+          !rb_enable_ctr)                       // after the counter has stopped
+         if (rb_enable)                         // when enabling counter elapsed
+            rb_reset_n <= 1'b1;                 // release reset
+         else                                   // when disabling counter elapsed
+            rb_clk_en <= 1'b0;                  // going to sleep
+   end
+
+   rb_enable_last <= rb_enable;
+end
 
 //---------------------------------------------------------------------------------
 //  Signal generation OSC1
@@ -132,71 +169,73 @@ wire        osc1_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STRE
 wire [47:0] osc1_inc_stream = 48'b0;
 wire [47:0] osc1_inc = ( osc1_inc_mux_stream ?  osc1_inc_stream : {regs[REG_RW_RB_OSC1_INC_HI], regs[REG_RW_RB_OSC1_INC_LO][31:16]} );
 
-wire        osc1_phase_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_PHASE_SRC_STREAM];
-wire [31:0] osc1_phase_stream = 32'b0;
-wire [47:0] osc1_phase = ( osc1_phase_mux_stream ?  {osc1_phase_stream, {16'b0}} : {regs[REG_RW_RB_OSC1_PHASE], {16'b0}} );  // min: 29 mHz
+wire        osc1_ofs_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_OFS_SRC_STREAM];
+wire [31:0] osc1_ofs_stream = 32'b0;
+wire [47:0] osc1_ofs = ( osc1_ofs_mux_stream ?  {osc1_ofs_stream, {16'b0}} : {regs[REG_RW_RB_OSC1_OFS], {16'b0}} );  // min: 29 mHz
 
-wire        osc1_saxi_s_vld = rb_reset_n;  // TODO
-wire [95:0] osc1_saxi_s_dat = {osc1_phase, osc1_inc};
+wire        osc1_axis_s_vld  = rb_reset_n;  // TODO
+wire [95:0] osc1_axis_s_phase = {osc1_ofs, osc1_inc};
 
-//wire        osc1_saxi_m_vld;
-//wire [15:0] osc1_saxi_m_dat;
+//wire        osc1_axis_m_vld;
+//wire [15:0] osc1_axis_m_data;
 
 rb_osc1_dds i_rb_osc1_dds (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
-  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
+  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
   .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
 
   // simple-AXI slave in port: streaming data for OSC1 modulation
-  .s_axis_phase_tvalid  ( osc1_saxi_s_vld   ),  // AXI slave data valid
-  .s_axis_phase_tdata   ( osc1_saxi_s_dat   ),  // AXI slave data   // : IN STD_LOGIC_VECTOR(95 DOWNTO 0);
+  .s_axis_phase_tvalid  ( osc1_axis_s_vld   ),  // AXI slave data valid
+  .s_axis_phase_tdata   ( osc1_axis_s_phase ),  // AXI slave data
 
   // simple-AXI master out port: OSC1 signal
-  .m_axis_data_tvalid   ( osc1_saxi_m_vld   ),  // AXI master data valid
-  .m_axis_data_tdata    ( osc1_saxi_m_dat   )   // AXI master data  // : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+  .m_axis_data_tvalid   ( osc1_axis_m_vld   ),  // AXI master data valid
+  .m_axis_data_tdata    ( osc1_axis_m_data  )   // AXI master data
 );
 
 
 //---------------------------------------------------------------------------------
 //  Signal generation OSC2
 
-wire        osc2_resync = 1'b0;
+//wire        osc2_resync = 1'b0;
 wire        osc2_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_INC_SRC_STREAM];
 wire [31:0] osc2_inc_stream = 32'b0;
 wire [31:0] osc2_inc = ( osc2_inc_mux_stream ?  osc2_inc_stream : regs[REG_RW_RB_OSC2_INC] );  // max: 20 MHz / 2^4 = 1.25 MHz  -  min: 20 MHz / 2^36 = 291 µHz
 
-wire        osc2_phase_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_PHASE_SRC_STREAM];
-wire [31:0] osc2_phase_stream = 32'b0;
-wire [31:0] osc2_phase = ( osc2_phase_mux_stream ?  osc2_phase_stream : regs[REG_RW_RB_OSC2_PHASE] );
+wire        osc2_ofs_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_OFS_SRC_STREAM];
+wire [31:0] osc2_ofs_stream = 32'b0;
+wire [31:0] osc2_ofs = ( osc2_ofs_mux_stream ?  osc2_ofs_stream : regs[REG_RW_RB_OSC2_OFS] );
 
-wire        osc2_saxi_s_vld = rb_reset_n;
-wire [71:0] osc2_saxi_s_dat = { {7'b0} , osc2_resync, osc2_phase, osc2_inc};
+wire        osc2_resync = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_RESYNC];
 
-//wire        osc2_saxi_m_vld;
-//wire [15:0] osc2_saxi_m_dat;
+wire        osc2_axis_s_vld  = rb_reset_n;  // TODO
+wire [71:0] osc2_axis_s_phase = {{7'b0}, osc2_resync, osc2_ofs, osc2_inc};
+
+//wire        osc2_axis_m_vld;
+//wire [15:0] osc2_axis_m_data;
 
 rb_osc2_dds i_rb_osc2_dds (
   // global signals
   .aclk                 ( clk_adc_20mhz     ),  // global 20 MHz clock
-  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
+  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
   .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
 
-  // simple-AXI slave in port: streaming data for OSC2 modulation
-  .s_axis_phase_tvalid  ( osc2_saxi_s_vld   ),  // AXI slave data valid
-  .s_axis_phase_tdata   ( osc2_saxi_s_dat   ),  // AXI slave data   // : IN STD_LOGIC_VECTOR(71 DOWNTO 0);
+  // AXI-Stream slave in port: streaming data for OSC2 modulation
+  .s_axis_phase_tvalid  ( osc2_axis_s_vld   ),  // AXI slave data valid
+  .s_axis_phase_tdata   ( osc2_axis_s_phase ),  // AXI slave data
 
-  // simple-AXI master out port: OSC2 signal
-  .m_axis_data_tvalid   ( osc2_saxi_m_vld   ),  // AXI master data valid
-  .m_axis_data_tdata    ( osc2_saxi_m_dat   )   // AXI master data  // : OUT STD_LOGIC_VECTOR(15 DOWNTO 0)
+  // AXI-Stream master out port: OSC2 signal
+  .m_axis_data_tvalid   ( osc2_axis_m_vld   ),  // AXI master data valid
+  .m_axis_data_tdata    ( osc2_axis_m_data  )   // AXI master data
 );
 
 
 //---------------------------------------------------------------------------------
 //  Signal amplitude multiplications
 
-wire [15:0] osc1_gain = 16'h8000;
-wire [15:0] osc2_gain = 16'h8000;
+wire [15:0] osc1_gain = 16'h7fff;
+wire [15:0] osc2_gain = 16'h7fff;
 
 //wire [15:0] osc1_mixed;
 //wire [15:0] osc2_mixed;
@@ -207,16 +246,16 @@ wire [15:0] osc2_void;                           // LSB data to be voided
 rb_osc2_cpxmult i_rb_osc2_cpxmult (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
-  .aclken               ( rb_enable         ),  // enable of RadioBox sub-module
+  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
 
   // simple-AXI slave in ports: signals to be multiplied with each other
-  .s_axis_a_tvalid      ( rb_reset_n        ),
-  .s_axis_a_tdata       ( {osc2_saxi_m_dat, osc1_saxi_m_dat} ),  // OSCx signals - MSB part for OSC2 out port, LSB part for OSC1 out port
-  .s_axis_b_tvalid      ( rb_reset_n        ),
-  .s_axis_b_tdata       ( {osc2_gain, osc1_gain} ),  // gain settings - MSB part for OSC2 out port, LSB part for OSC1 out port
+  .s_axis_a_tvalid      ( osc2_axis_m_vld & osc1_axis_m_vld    ),
+  .s_axis_a_tdata       ( {osc2_axis_m_data, osc1_axis_m_data} ),  // OSCx signals - MSB part for OSC2 out port, LSB part for OSC1 out port
+  .s_axis_b_tvalid      ( rb_reset_n                           ),
+  .s_axis_b_tdata       ( {osc2_gain, osc1_gain}               ),  // gain settings - MSB part for OSC2 out port, LSB part for OSC1 out port
 
   // simple-AXI master out ports: multiplicated signals
-  .m_axis_dout_tvalid   (                   ),
+  .m_axis_dout_tvalid   ( mixed_vld                                      ),
   .m_axis_dout_tdata    ( {osc2_mixed, osc2_void, osc1_mixed, osc1_void} )
 );
 
@@ -237,9 +276,9 @@ if (!adc_rstn_i) begin
    regs[REG_RW_RB_DMA_CTRL]     <= 32'h00000000;
    regs[REG_RW_RB_OSC1_INC_LO]  <= 32'h00000000;
    regs[REG_RW_RB_OSC1_INC_HI]  <= 32'h00000000;
-   regs[REG_RW_RB_OSC1_PHASE]   <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_OFS]     <= 32'h00000000;
    regs[REG_RW_RB_OSC2_INC]     <= 32'h00000000;
-   regs[REG_RW_RB_OSC2_PHASE]   <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_OFS]     <= 32'h00000000;
    end
 
 else begin
@@ -280,7 +319,7 @@ else begin
          regs[REG_RW_RB_OSC1_INC_HI]    <= sys_wdata[31:0];
          end
       20'h00028: begin
-         regs[REG_RW_RB_OSC1_PHASE]     <= sys_wdata[31:0];
+         regs[REG_RW_RB_OSC1_OFS]       <= sys_wdata[31:0];
          end
       20'h0002C: begin
          /*  n/a  */
@@ -294,7 +333,7 @@ else begin
          /*  n/a  */
          end
       20'h00038: begin
-         regs[REG_RW_RB_OSC2_PHASE]     <= sys_wdata[31:0];
+         regs[REG_RW_RB_OSC2_OFS]       <= sys_wdata[31:0];
          end
       20'h0003C: begin
          end
@@ -355,7 +394,7 @@ else begin
          end
       20'h00028: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_OSC1_PHASE];
+         sys_rdata <= regs[REG_RW_RB_OSC1_OFS];
          end
 
       /* OSC2 */
@@ -365,7 +404,7 @@ else begin
          end
       20'h00038: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_OSC2_PHASE];
+         sys_rdata <= regs[REG_RW_RB_OSC2_OFS];
          end
 
       default:   begin

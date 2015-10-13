@@ -47,8 +47,7 @@ module red_pitaya_radiobox_tb #(
 //
 // Settings
 
-localparam TASK01_FREE1 = 32'd0;
-localparam TASK01_FREE2 = 32'd0;
+//localparam TASK01_FREE1 = 32'd0;
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -62,11 +61,11 @@ reg                        clk_adc_20mhz     ;
 reg                        adc_rstn_i        ;
 
 // Output signals
-wire                    osc1_saxi_m_vld      ;  // OSC1 output valid
-wire           [ 15: 0] osc1_saxi_m_dat      ;  // OSC1 output
+wire                    osc1_axis_m_vld      ;  // OSC1 output valid
+wire           [ 15: 0] osc1_axis_m_data     ;  // OSC1 output
 wire           [ 15: 0] osc1_mixed           ;  // OSC1 amplitude mixer output
-wire                    osc2_saxi_m_vld      ;  // OSC2 output valid
-wire           [ 15: 0] osc2_saxi_m_dat      ;  // OSC2 output
+wire                    osc2_axis_m_vld      ;  // OSC2 output valid
+wire           [ 15: 0] osc2_axis_m_data     ;  // OSC2 output
 wire           [ 15: 0] osc2_mixed           ;  // OSC2 amplitude mixer output
 
 // System bus
@@ -128,12 +127,12 @@ red_pitaya_radiobox #(
   .adc_b_i        (                         ),  // ADC data CHB
   */
 
-  .osc1_saxi_m_vld ( osc1_saxi_m_vld        ),  //  OSC1 output valid
-  .osc1_saxi_m_dat ( osc1_saxi_m_dat        ),  //  OSC1 output
-  .osc1_mixed      ( osc1_mixed             ),  //  OSC1 amplitude mixer output
-  .osc2_saxi_m_vld ( osc2_saxi_m_vld        ),  //  OSC2 output valid
-  .osc2_saxi_m_dat ( osc2_saxi_m_dat        ),  //  OSC2 output
-  .osc2_mixed      ( osc2_mixed             ),  //  OSC2 amplitude mixer output
+  .osc1_axis_m_vld  ( osc1_axis_m_vld       ),  //  OSC1 output valid
+  .osc1_axis_m_data ( osc1_axis_m_data      ),  //  OSC1 output
+  .osc1_mixed       ( osc1_mixed            ),  //  OSC1 amplitude mixer output
+  .osc2_axis_m_vld  ( osc2_axis_m_vld       ),  //  OSC2 output valid
+  .osc2_axis_m_data ( osc2_axis_m_data      ),  //  OSC2 output
+  .osc2_mixed       ( osc2_mixed            ),  //  OSC2 amplitude mixer output
 
   // System bus
   .sys_addr       ( sys_addr                ),
@@ -221,12 +220,12 @@ initial begin
   bus.write(20'h00008, 32'h00000000);          // clear ICR
   bus.write(20'h00010, 32'h00000000);          // clear DMA
 
-  bus.write(20'h00020, 32'h00010000);          // OSC1 INC LO - lowest value possible
-  bus.write(20'h00024, 32'h10000000);          // OSC1 INC HI
-  bus.write(20'h00028, 32'h00000000);          // OSC1 PHASE
+  bus.write(20'h00020, 32'h9abcdef0);          // OSC1 INC LO - lowest value possible, discarding the lower 16 bits
+  bus.write(20'h00024, 32'h12345678);          // OSC1 INC HI
+  bus.write(20'h00028, 32'h00000000);          // OSC1 OFS
 
-  bus.write(20'h00030, 32'h00000001);          // OSC2 INC - lowest value possible
-  bus.write(20'h00038, 32'h00000000);          // OSC2 PHASE
+  bus.write(20'h00030, 32'h12345678);          // OSC2 INC
+  bus.write(20'h00038, 32'h00000000);          // OSC2 OFS
 
 
   bus.read (20'h00000, task_check);            // read result register
@@ -247,8 +246,16 @@ initial begin
   else
      $display("PASS - Task:01.03 read REG_RW_RB_DMA_CTRL");
 
+  bus.write(20'h00000, 32'h00000001);          // control: enable RadioBox - starts DDS oscillators
 
-  bus.write(20'h00000, 32'h00000001);          // control: enable RadioBox
+  repeat(25) @(posedge clk_adc_20mhz);         // OSC1 / OSC2 having 9 stages
+  bus.write(20'h00000, 32'h00000101);          // control: resync OSC2
+  @(posedge clk_adc_20mhz);
+  bus.write(20'h00000, 32'h00000001);          // control: normal enabled state
+
+
+  repeat(15) @(posedge clk_adc_20mhz);
+  bus.write(20'h00000, 32'h00000000);          // control: disable RadioBox - switches off OSC1, OSC2, OSC1/OSC2 mixer
 
   repeat(100) @(posedge clk_adc_125mhz);
   $finish () ;
