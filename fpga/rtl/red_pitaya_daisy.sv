@@ -101,7 +101,7 @@ module red_pitaya_daisy
 
 //---------------------------------------------------------------------------------
 //
-//  Transmiter
+//  Transmitter
 
 reg            cfg_tx_en     ;
 reg  [32-1: 0] cfg_tx_sys    ;
@@ -156,7 +156,7 @@ red_pitaya_daisy_tx i_tx
 
 //---------------------------------------------------------------------------------
 //
-//  Reciever
+//  Receiver
 
 reg            cfg_rx_en        ;
 reg            cfg_rx_train     ;
@@ -293,7 +293,7 @@ always @(posedge par_clk_i) begin
 end
 
 // output data selector
-always @(*) begin
+always @(posedge par_clk_i) begin
    case (tx_cfg_sel)
       3'h0 : begin txp_dat <= 16'h0         ;   txp_dv <= 1'b0         ; end
       3'h1 : begin txp_dat <= par_dat_i     ;   txp_dv <= par_dv_i     ; end  // working data
