@@ -34,20 +34,20 @@ module red_pitaya_radiobox #(
 )(
    // ADC
    input                 clk_adc_125mhz  ,      // ADC based clock, 125 MHz
-   input                 clk_adc_20mhz   ,      // ADC based clock,  20 MHz, for OSC2
    input                 adc_rstn_i      ,      // ADC reset - active low
+
+   // LEDs
+   output reg            rb_leds_en      ,      // RB does overwrite LEDs state
+   output reg   [  7: 0] rb_leds_data    ,      // RB LEDs data
 
    /*
    input        [ 13: 0] adc_a_i         ,      // ADC data CHA
    input        [ 13: 0] adc_b_i         ,      // ADC data CHB
    */
 
-   output                osc1_axis_m_vld ,      // OSC1 output valid
-   output       [ 15: 0] osc1_axis_m_data,      // OSC1 output
-   output       [ 15: 0] osc1_mixed      ,      // OSC1 amplitude mixer output
-   output                osc2_axis_m_vld ,      // OSC2 output valid
-   output       [ 15: 0] osc2_axis_m_data,      // OSC2 output
-   output       [ 15: 0] osc2_mixed      ,      // OSC2 amplitude mixer output
+   // DAC data
+   output                rb_en           ,      // RadioBox is enabled
+   output       [ 15: 0] rb_out_ch [1:0] ,      // RadioBox output signals
 
    // System bus - slave
    input        [ 31: 0] sys_addr        ,      // bus saddress
@@ -61,80 +61,151 @@ module red_pitaya_radiobox #(
 );
 
 
-
 //---------------------------------------------------------------------------------
 //  Registers accessed by the system bus
 
 enum {
-    REG_RW_RB_CTRL                      = 0,    // RB control register
-    REG_RD_RB_STATUS,                           // EB status register
-    REG_RW_RB_ICR,                              // RB interrupt control register
-    REG_RD_RB_ISR,                              // RB interrupt status register
-    REG_RW_RB_DMA_CTRL,                         // RB DMA control register
+    REG_RW_RB_CTRL                      = 0,    // h00: RB control register
+    REG_RD_RB_STATUS,                           // h04: EB status register
+    REG_RW_RB_ICR,                              // h08: RB interrupt control register
+    REG_RD_RB_ISR,                              // h0C: RB interrupt status register
+    REG_RW_RB_DMA_CTRL,                         // h10: RB DMA control register
+    //REG_RD_RB_RSVD_H14,
+    //REG_RD_RB_RSVD_H18,
+    REG_RW_RB_LED_MAG,                          // h1C: RB LED magnitude indicator
 
-    REG_RW_RB_OSC1_INC_LO,                      // RB OSC1 increment register LSB (Bit 15.. 0), 16'b0
-    REG_RW_RB_OSC1_INC_HI,                      // RB OSC1 increment register MSB (Bit 47..16)
-    REG_RW_RB_OSC1_OFS,                         // RB OSC1 offset register
+    REG_RW_RB_OSC1_INC_LO,                      // h20: RB OSC1 increment register              LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC1_INC_HI,                      // h24: RB OSC1 increment register              MSB: 16'b0, (Bit 47:32)
+    REG_RW_RB_OSC1_OFS_LO,                      // h28: RB OSC1 offset register                 LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC1_OFS_HI,                      // h2C: RB OSC1 offset register                 MSB: 16'b0, (Bit 47:32)
 
-    REG_RW_RB_OSC2_INC,                         // RB OSC2 increment register
-    REG_RW_RB_OSC2_OFS,                         // RB OSC2 offset register
+    REG_RW_RB_OSC1_MIX_GAIN,                    // h30: RB OSC1 mixer gain:     SIGNED 32 bit
+    //REG_RD_RB_RSVD_H34,
+    REG_RW_RB_OSC1_MIX_OFS_LO,                  // h38: RB OSC1 mixer offset: UNSIGNED 48 bit   LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC1_MIX_OFS_HI,                  // h3C: RB OSC1 mixer offset: UNSIGNED 48 bit   MSB: 16'b0, (Bit 47:32)
+
+    REG_RW_RB_OSC2_INC_LO,                      // h40: RB OSC2 increment register              LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC2_INC_HI,                      // h44: RB OSC2 increment register              MSB: 16'b0, (Bit 47:32)
+    REG_RW_RB_OSC2_OFS_LO,                      // h48: RB OSC2 offset register                 LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC2_OFS_HI,                      // h4C: RB OSC2 offset register                 MSB: 16'b0, (Bit 47:32)
+
+    REG_RW_RB_OSC2_MIX_GAIN,                    // h50: RB OSC2 mixer gain:     SIGNED 32 bit
+    //REG_RD_RB_RSVD_H54,
+    REG_RW_RB_OSC2_MIX_OFS_LO,                  // h58: RB OSC2 mixer offset: UNSIGNED 48 bit   LSB:        (Bit 31: 0)
+    REG_RW_RB_OSC2_MIX_OFS_HI,                  // h5C: RB OSC2 mixer offset: UNSIGNED 48 bit   MSB: 16'b0, (Bit 47:32)
 
     REG_RB_COUNT
 } REG_RB_ENUMS;
 
 reg  [31: 0]    regs    [REG_RB_COUNT];         // registers to be accessed by the system bus
 
-
 enum {
     RB_CTRL_ENABLE                      = 0,    // enabling the RadioBox sub-module
-    RB_CTRL_RSVD01,
-    RB_CTRL_RSVD02,
-    RB_CTRL_RSVD03,
-    RB_CTRL_RSVD04,
-    RB_CTRL_OSC1_INC_SRC_STREAM,                // OSC1 incrementing: use stream instead of register setting
-    RB_CTRL_OSC1_OFS_SRC_STREAM,                // OSC1 offset: use stream instead of register setting
-    RB_CTRL_RSVD07,
-    RB_CTRL_OSC2_RESYNC,                    
-    RB_CTRL_OSC2_INC_SRC_STREAM,                // OSC2 incrementing: use stream instead of register setting
-    RB_CTRL_OSC2_OFS_SRC_STREAM,                // OSC2 offset: use stream instead of register setting
-    RB_CTRL_RSVD11,
-    RB_CTRL_RSVD12,
-    RB_CTRL_RSVD13,
-    RB_CTRL_RSVD14,
-    RB_CTRL_RSVD15,
-    RB_CTRL_RSVD16,
-    RB_CTRL_RSVD17,
-    RB_CTRL_RSVD18,
-    RB_CTRL_RSVD19,
-    RB_CTRL_RSVD20,
-    RB_CTRL_RSVD21,
-    RB_CTRL_RSVD22,
-    RB_CTRL_RSVD23,
-    RB_CTRL_RSVD24,
-    RB_CTRL_RSVD25,
-    RB_CTRL_RSVD26,
-    RB_CTRL_RSVD27,
-    RB_CTRL_RSVD28,
-    RB_CTRL_RSVD29,
-    RB_CTRL_RSVD30,
-    RB_CTRL_RSVD31
+    RB_CTRL_RESET_OSC1,                         // reset OSC1, does not touch clock enable
+    RB_CTRL_RESET_OSC2,                         // reset OSC2, does not touch clock enable
+    RB_CTRL_RSVD_D03,
+
+    RB_CTRL_OSC1_RESYNC,                        // OSC1 restart with phase register = 0
+    RB_CTRL_OSC1_INC_SRC_STREAM,                // OSC1 DDS incrementing: use stream instead of register setting
+    RB_CTRL_OSC1_OFS_SRC_STREAM,                // OSC1 DDS offset: use stream instead of register setting
+    RB_CTRL_OSC1_GAIN_SRC_STREAM,
+
+    RB_CTRL_RSVD_D08,
+    RB_CTRL_RSVD_D09,
+    RB_CTRL_RSVD_D10,
+    RB_CTRL_RSVD_D11,
+
+    RB_CTRL_OSC2_RESYNC,                        // OSC2 restart with phase register = 0
+    RB_CTRL_OSC2_INC_SRC_STREAM,                // OSC2 DDS incrementing: use stream instead of register setting
+    RB_CTRL_OSC2_OFS_SRC_STREAM,                // OSC2 DDS offset: use stream instead of register setting
+    RB_CTRL_RSVD_D15,
+
+    RB_CTRL_RSVD_D16,
+    RB_CTRL_RSVD_D17,
+    RB_CTRL_RSVD_D18,
+    RB_CTRL_RSVD_D19,
+
+    RB_CTRL_RSVD_D20,
+    RB_CTRL_RSVD_D21,
+    RB_CTRL_RSVD_D22,
+    RB_CTRL_RSVD_D23,
+
+    RB_CTRL_RSVD_D24,
+    RB_CTRL_RSVD_D25,
+    RB_CTRL_RSVD_D26,
+    RB_CTRL_RSVD_D27,
+
+    RB_CTRL_RSVD_D28,
+    RB_CTRL_RSVD_D29,
+    RB_CTRL_RSVD_D30,
+    RB_CTRL_RSVD_D31
 } RB_CTRL_BITS_ENUM;
 
+enum {
+    RB_STAT_CLK_EN                      = 0,    // RB clock enable
+    RB_STAT_RESET,                              // RB reset
+    RB_STAT_LEDS_EN,                            // RB LEDs enabled
+    RB_STAT_RSVD_D03,
+
+    RB_STAT_OSC1_ZERO,                          // OSC1 output is zero
+    RB_STAT_OSC1_VALID,                         // OSC1 output valid
+    RB_STAT_OSC1_MIX_VALID,                     // OSC1 mixer output valid
+    RB_STAT_RSVD_D07,
+
+    RB_STAT_OSC2_ZERO,                          // OSC2 output is zero
+    RB_STAT_OSC2_VALID,                         // OSC2 output valid
+    RB_STAT_OSC2_MIX_VALID,                     // OSC2 mixer output valid
+    RB_STAT_RSVD_D11,
+
+    RB_STAT_RSVD_D12,
+    RB_STAT_RSVD_D13,
+    RB_STAT_RSVD_D14,
+    RB_STAT_RSVD_D15,
+
+    RB_STAT_RSVD_D16,
+    RB_STAT_RSVD_D17,
+    RB_STAT_RSVD_D18,
+    RB_STAT_RSVD_D19,
+    RB_STAT_RSVD_D20,
+    RB_STAT_RSVD_D21,
+    RB_STAT_RSVD_D22,
+    RB_STAT_RSVD_D23,
+
+    RB_STAT_LED0_ON,                            // LED0 on
+    RB_STAT_LED1_ON,                            // LED1 on
+    RB_STAT_LED2_ON,                            // LED2 on
+    RB_STAT_LED3_ON,                            // LED3 on
+    RB_STAT_LED4_ON,                            // LED4 on
+    RB_STAT_LED5_ON,                            // LED5 on
+    RB_STAT_LED6_ON,                            // LED6 on
+    RB_STAT_LED7_ON                             // LED7 on
+} RB_STAT_BITS_ENUM;
+
+enum {
+    RB_LED_MAG_NUM_DISABLED             = 0,    // LEDs not touched
+    RB_LED_MAG_NUM_OFF,                         // all LEDs off (ro be used before switching to DISABLED)
+    RB_LED_MAG_NUM_MIX1_MAG,                    // Magnitude indicator @ OSC1 mixer output
+    RB_LED_MAG_NUM_OSC1_MAG,                    // Magnitude indicator @ OSC1 output
+    RB_LED_MAG_NUM_MIX2_MAG,                    // Magnitude indicator @ OSC2 mixer output
+    RB_LED_MAG_NUM_OSC2_MAG                     // Magnitude indicator @ OSC2 output
+    //RB_LED_MAG_NUM_ADCIN_MAG                  // Magnitude indicator @ ADC streaming input
+} RB_LED_MAG_ENUM;
 
 wire rb_enable = regs[REG_RW_RB_CTRL][RB_CTRL_ENABLE];
 
-reg          rb_enable_last = 1'b0;
-reg          rb_clk_en      = 1'b0;
-reg          rb_reset_n     = 1'b0;
-reg  [ 1: 0] rb_enable_ctr  = 2'b0;
+reg          rb_enable_last     = 1'b0;
+reg          rb_clk_en          = 1'b0;
+reg          rb_reset_n         = 1'b0;
+reg  [ 1: 0] rb_enable_ctr      = 2'b0;
 
-//wire         mixed_vld;
+wire         rb_reset_osc1_n    = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_OSC1];
+wire         rb_reset_osc2_n    = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_OSC2];
 
 
 //---------------------------------------------------------------------------------
 //  RadioBox sub-module activation
 
-always @(posedge clk_adc_20mhz)
+always @(posedge clk_adc_125mhz)
 begin
    if (!adc_rstn_i) begin
       rb_clk_en     <= 1'b0;
@@ -161,121 +232,274 @@ begin
    rb_enable_last <= rb_enable;
 end
 
+
 //---------------------------------------------------------------------------------
-//  Signal generation OSC1
+//  Signal input matrix
 
-wire        osc1_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STREAM];
-wire [47:0] osc1_inc_stream = 48'b0;
-wire [47:0] osc1_inc = ( osc1_inc_mux_stream ?  osc1_inc_stream : {regs[REG_RW_RB_OSC1_INC_HI], regs[REG_RW_RB_OSC1_INC_LO][31:16]} );
 
-wire        osc1_ofs_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_OFS_SRC_STREAM];
-wire [31:0] osc1_ofs_stream = 32'b0;
-wire [47:0] osc1_ofs = ( osc1_ofs_mux_stream ?  {osc1_ofs_stream, {16'b0}} : {regs[REG_RW_RB_OSC1_OFS], {16'b0}} );  // min: 29 mHz
+//---------------------------------------------------------------------------------
+//  Signal generation OSC2 (modulation)
 
-wire        osc1_axis_s_vld  = rb_reset_n;  // TODO
-wire [95:0] osc1_axis_s_phase = {osc1_ofs, osc1_inc};
+wire         osc2_inc_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_INC_SRC_STREAM];
+wire         osc2_ofs_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_OFS_SRC_STREAM];
+wire         osc2_resync  = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_RESYNC];
 
-//wire        osc1_axis_m_vld;
-//wire [15:0] osc1_axis_m_data;
+wire [ 47:0] osc2_inc_stream = 48'b0;  // TODO: ADC
+wire [ 47:0] osc2_ofs_stream = 48'b0;  // TODO: ADC
 
-rb_osc1_dds i_rb_osc1_dds (
+wire [ 47:0] osc2_inc = ( osc2_inc_mux ?  osc2_inc_stream : { regs[REG_RW_RB_OSC2_INC_HI][15:0], regs[REG_RW_RB_OSC2_INC_LO][31:0] });
+wire [ 47:0] osc2_ofs = ( osc2_ofs_mux ?  osc2_ofs_stream : { regs[REG_RW_RB_OSC2_OFS_HI][15:0], regs[REG_RW_RB_OSC2_OFS_LO][31:0] });
+
+wire         osc2_axis_s_vld   = rb_reset_n;  // TODO: ADC
+wire [103:0] osc2_axis_s_phase = { 7'b0, osc2_resync, osc2_ofs, osc2_inc };
+
+wire         osc2_axis_m_vld;
+wire [ 15:0] osc2_axis_m_data;
+
+rb_dds_48_16_125 i_rb_osc2_dds (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
-  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
-  .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
-
-  // simple-AXI slave in port: streaming data for OSC1 modulation
-  .s_axis_phase_tvalid  ( osc1_axis_s_vld   ),  // AXI slave data valid
-  .s_axis_phase_tdata   ( osc1_axis_s_phase ),  // AXI slave data
-
-  // simple-AXI master out port: OSC1 signal
-  .m_axis_data_tvalid   ( osc1_axis_m_vld   ),  // AXI master data valid
-  .m_axis_data_tdata    ( osc1_axis_m_data  )   // AXI master data
-);
-
-
-//---------------------------------------------------------------------------------
-//  Signal generation OSC2
-
-//wire        osc2_resync = 1'b0;
-wire        osc2_inc_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_INC_SRC_STREAM];
-wire [31:0] osc2_inc_stream = 32'b0;
-wire [31:0] osc2_inc = ( osc2_inc_mux_stream ?  osc2_inc_stream : regs[REG_RW_RB_OSC2_INC] );  // max: 20 MHz / 2^4 = 1.25 MHz  -  min: 20 MHz / 2^36 = 291 µHz
-
-wire        osc2_ofs_mux_stream = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_OFS_SRC_STREAM];
-wire [31:0] osc2_ofs_stream = 32'b0;
-wire [31:0] osc2_ofs = ( osc2_ofs_mux_stream ?  osc2_ofs_stream : regs[REG_RW_RB_OSC2_OFS] );
-
-wire        osc2_resync = regs[REG_RW_RB_CTRL][RB_CTRL_OSC2_RESYNC];
-
-wire        osc2_axis_s_vld  = rb_reset_n;  // TODO
-wire [71:0] osc2_axis_s_phase = {{7'b0}, osc2_resync, osc2_ofs, osc2_inc};
-
-//wire        osc2_axis_m_vld;
-//wire [15:0] osc2_axis_m_data;
-
-rb_osc2_dds i_rb_osc2_dds (
-  // global signals
-  .aclk                 ( clk_adc_20mhz     ),  // global 20 MHz clock
-  .aclken               ( rb_clk_en         ),  // enable of RadioBox sub-module
-  .aresetn              ( rb_reset_n        ),  // enable of RadioBox sub-module
+  .aclken               ( rb_clk_en         ),  // clock enable of RadioBox sub-module
+  .aresetn              ( rb_reset_osc2_n   ),  // reset of OSC2
 
   // AXI-Stream slave in port: streaming data for OSC2 modulation
-  .s_axis_phase_tvalid  ( osc2_axis_s_vld   ),  // AXI slave data valid
-  .s_axis_phase_tdata   ( osc2_axis_s_phase ),  // AXI slave data
+  .s_axis_phase_tvalid  ( osc2_axis_s_vld   ),  // AXIS slave data valid
+  .s_axis_phase_tdata   ( osc2_axis_s_phase ),  // AXIS slave data
 
   // AXI-Stream master out port: OSC2 signal
-  .m_axis_data_tvalid   ( osc2_axis_m_vld   ),  // AXI master data valid
-  .m_axis_data_tdata    ( osc2_axis_m_data  )   // AXI master data
+  .m_axis_data_tvalid   ( osc2_axis_m_vld   ),  // AXIS master data valid
+  .m_axis_data_tdata    ( osc2_axis_m_data  )   // AXIS master OSC2 output: SIGNED 16 bit
 );
 
 
 //---------------------------------------------------------------------------------
-//  OSC1 signal amplitude multiplications
+//  OSC2 (modulation) - signal amplitude multiplications
 
-wire [15:0] osc1_gain = 16'h7fff;
+wire [32:0] osc2_mix_gain   = { regs[REG_RW_RB_OSC2_MIX_GAIN][31:0], 1'b0 };
+wire [47:0] osc2_mix_ofs    = { regs[REG_RW_RB_OSC2_MIX_OFS_HI][15:0], regs[REG_RW_RB_OSC2_MIX_OFS_LO][31:0] };
 
-//wire [15:0] osc1_mixed;
+wire [ 0:0] osc2_mix_vld;
 
-rb_osc1_mlt i_rb_osc1_mlt (
+wire [47:0] osc2_mixed;
+
+rb_multadd_16s_33s_48u_07lat i_rb_osc2_multadd (
   // global signals
-  .clk                  ( clk_adc_125mhz    ),  // global 125 MHz clock
-  .ce                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
-  .sclr                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+  .CLK                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .CE                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
 
   // multiplier input
-  .a                    ( osc1_axis_m_data  ),  // OSC1 signal
-  .b                    ( osc1_gain         ),  // OSC1 gain setting
+  .A                    ( osc2_axis_m_data  ),  // OSC2 signal:           SIGNED 16 bit
+  .B                    ( osc2_mix_gain     ),  // OSC2 gain setting:     SIGNED 33 bit
+  .C                    ( osc2_mix_ofs      ),  // OSC2 offset setting: UNSIGNED 48 bit
+
+  .SUBTRACT             ( 1'b0              ),  // not used due to signed data
 
   // multiplier output
-  .p                    ( osc1_mixed        )
+  .P                    ( osc2_mixed        ),  // mixer output     UNSIGNED 49 bit
+
+  .PCOUT                (                   )   // not used
+);
+
+rb_pipe_07delay i_rb_osc2_multadd_pipe_delay (
+  // global signals
+  .CLK                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .CE                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+
+  .D                    ( osc2_axis_m_vld   ),  // transport OSC2 valid state through the multiplier pipe
+
+  .Q                    ( osc2_mix_vld      )
 );
 
 
 //---------------------------------------------------------------------------------
-//  OSC2 signal amplitude multiplications
+//  Signal generation OSC1 (carrier)
 
-wire [15:0] osc2_gain = 16'h7fff;
+wire         osc1_inc_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STREAM];
+wire         osc1_ofs_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_OFS_SRC_STREAM];
+wire         osc1_resync  = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_RESYNC];
 
-//wire [15:0] osc2_mixed;
+wire [ 47:0] osc1_inc = ( osc1_inc_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_INC_HI][15:0], regs[REG_RW_RB_OSC1_INC_LO][31:0] });
+wire [ 47:0] osc1_ofs = ( osc1_ofs_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_OFS_HI][15:0], regs[REG_RW_RB_OSC1_OFS_LO][31:0] });
 
-rb_osc2_mlt i_rb_osc2_mlt (
+wire         osc1_axis_s_vld   = rb_reset_n;  // TODO
+wire [103:0] osc1_axis_s_phase = { 7'b0, osc1_resync, osc1_ofs, osc1_inc };
+
+wire         osc1_axis_m_vld;
+wire [ 15:0] osc1_axis_m_data;
+
+rb_dds_48_16_125 i_rb_osc1_dds (
   // global signals
-  .clk                  ( clk_adc_20mhz     ),  // global 20 MHz clock
-  .ce                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
-  .sclr                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+  .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .aclken               ( rb_clk_en         ),  // clock enable of RadioBox sub-module
+  .aresetn              ( rb_reset_osc1_n   ),  // reset of OSC1
+
+  // simple-AXI slave in port: streaming data for OSC1 modulation
+  .s_axis_phase_tvalid  ( osc1_axis_s_vld   ),  // AXIS slave data valid
+  .s_axis_phase_tdata   ( osc1_axis_s_phase ),  // AXIS slave data
+
+  // simple-AXI master out port: OSC1 signal
+  .m_axis_data_tvalid   ( osc1_axis_m_vld   ),  // AXIS master data valid
+  .m_axis_data_tdata    ( osc1_axis_m_data  )   // AXIS master OSC2 output: SIGNED 16 bit
+);
+
+
+//---------------------------------------------------------------------------------
+//  OSC1 (carrier) - signal amplitude multiplications
+
+wire        osc1_gain_mux   = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_GAIN_SRC_STREAM];
+
+wire [32:0] osc1_mix_gain   = ( osc1_gain_mux ?  osc2_mixed[47:15] : { regs[REG_RW_RB_OSC1_MIX_GAIN][31:0], 1'b0 });
+wire [47:0] osc1_mix_ofs    = { regs[REG_RW_RB_OSC1_MIX_OFS_HI][15:0], regs[REG_RW_RB_OSC1_MIX_OFS_LO][31:0] };
+
+wire [ 0:0] osc1_mix_vld;
+
+wire [47:0] osc1_mixed;
+
+rb_multadd_16s_33s_48u_07lat i_rb_osc1_multadd (
+  // global signals
+  .CLK                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .CE                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
 
   // multiplier input
-  .a                    ( osc2_axis_m_data  ),  // OSC2 signal
-  .b                    ( osc2_gain         ),  // OSC2 gain setting
+  .A                    ( osc1_axis_m_data  ),  // OSC1 signal:           SIGNED 16 bit
+  .B                    ( osc1_mix_gain     ),  // OSC1 gain setting:     SIGNED 32 bit
+  .C                    ( osc1_mix_ofs      ),  // OSC1 offset setting: UNSIGNED 48 bit
+
+  .SUBTRACT             ( 1'b0              ),  // not used due to signed data
 
   // multiplier output
-  .p                    ( osc2_mixed        )
+  .P                    ( osc1_mixed        ),  // mixer output
+
+  .PCOUT                (                   )   // not used
+);
+
+rb_pipe_07delay i_rb_osc1_multadd_pipe_delay (
+  // global signals
+  .CLK                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .CE                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+
+  .D                    ( osc1_axis_m_vld   ),  // transport OSC1 valid state through the multiplier pipe  
+
+  .Q                    ( osc1_mix_vld      )
 );
 
 
 //---------------------------------------------------------------------------------
-//  Signal connection matrix
+//  Status register
+
+always @(posedge clk_adc_125mhz)
+begin
+   if (!adc_rstn_i) begin
+      regs[REG_RD_RB_STATUS] <= 32'b0;
+   end else begin
+      regs[REG_RD_RB_STATUS][RB_STAT_CLK_EN]                    <= rb_clk_en;
+      regs[REG_RD_RB_STATUS][RB_STAT_RESET]                     <= rb_reset_n;
+      regs[REG_RD_RB_STATUS][RB_STAT_LEDS_EN]                   <= rb_leds_en;
+
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC1_ZERO]                 <= !osc1_axis_m_data;
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC1_VALID]                <= osc1_axis_m_vld;
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC1_MIX_VALID]            <= osc1_mix_vld;
+
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC2_ZERO]                 <= !osc2_axis_m_data;
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC2_VALID]                <= osc2_axis_m_vld;
+      regs[REG_RD_RB_STATUS][RB_STAT_OSC2_MIX_VALID]            <= osc2_mix_vld;
+
+      regs[REG_RD_RB_STATUS][RB_STAT_LED7_ON : RB_STAT_LED0_ON] <= rb_leds_data;
+   end
+end
+
+
+//---------------------------------------------------------------------------------
+//  LEDs Magnitude indicator
+
+wire [3:0] led_mag = regs[REG_RW_RB_LED_MAG][3:0];
+
+//reg         rb_leds_en          =  1'b0;
+//reg  [ 7:0] rb_leds_data        =  8'b0;
+reg    [19:0] led_ctr             = 20'b0;
+
+function bit [7:0] fct_mag (input bit [15:0] val);
+   automatic bit [7:0] leds = 8'b0;             // exakt zero indicator
+
+   if (!val[15]) begin                          // positive value
+      if (val[14])
+         leds = 8'b11110000;
+      else if (val[14:13] == 2'b01)
+         leds = 8'b01110000;
+      else if (val[14:12] == 3'b001)
+         leds = 8'b00110000;
+      else if (val[14:11] == 4'b0001)
+         leds = 8'b00010000;
+      else if (val)
+         leds = 8'b10000000;                    // minimal positive indicator
+
+   end else begin                               // negative value
+      if (!val[14])
+         leds = 8'b00001111;
+      else if (val[14:13] == 2'b10)
+         leds = 8'b00001110;
+      else if (val[14:12] == 3'b110)
+         leds = 8'b00001100;
+      else if (val[14:11] == 4'b1110)
+         leds = 8'b00001000;
+      else
+         leds = 8'b00000001;                    // minimal negative indicator
+   end
+
+   fct_mag = leds;
+endfunction: fct_mag
+
+always @(posedge clk_adc_125mhz)
+begin
+   if (!adc_rstn_i || !rb_reset_n) begin
+      rb_leds_en      <=  1'b0;
+      rb_leds_data    <=  8'b0;
+      led_ctr         <= 20'b0;
+   end else begin
+      if (led_mag && rb_en) begin
+         rb_leds_en   <=  1'b1;                 // LEDs magnitude indicator active
+
+         if (!led_ctr) begin                    // reduce updating to about 120 Hz
+            casez (led_mag[3:0])
+            RB_LED_MAG_NUM_OFF: begin
+               rb_leds_data <=  8'b0;           // turn all LEDs off
+               end
+            RB_LED_MAG_NUM_MIX1_MAG: begin
+               rb_leds_data <= fct_mag(osc1_mixed[47:32]);
+               end
+            RB_LED_MAG_NUM_OSC1_MAG: begin
+               rb_leds_data <= fct_mag(osc1_axis_m_data);
+               end
+            RB_LED_MAG_NUM_MIX2_MAG: begin
+               rb_leds_data <= fct_mag(osc2_mixed[47:32]);
+               end
+            RB_LED_MAG_NUM_OSC2_MAG: begin
+               rb_leds_data <= fct_mag(osc2_axis_m_data);
+               end
+            //RB_LED_MAG_NUM_ADCIN_MAG: begin
+            //   end
+            endcase
+         end
+         led_ctr <= led_ctr + 1;
+      end else begin                            // RB_LED_MAG_NUM_DISABLED
+         rb_leds_en     <=  1'b0;
+         rb_leds_data   <=  8'b0;
+         led_ctr        <= 20'b0;
+      end
+   end
+end
+
+
+//---------------------------------------------------------------------------------
+//  RB output signal assignments
+
+assign rb_en        = osc1_mix_vld && osc2_mix_vld;
+assign rb_out_ch[0] = osc1_mixed[47:32];
+assign rb_out_ch[1] = osc2_mixed[47:32];
 
 
 //---------------------------------------------------------------------------------
@@ -284,16 +508,25 @@ rb_osc2_mlt i_rb_osc2_mlt (
 // write access to the registers
 always @(posedge clk_adc_125mhz)
 if (!adc_rstn_i) begin
-   regs[REG_RW_RB_CTRL]         <= 32'h00000000;
-   regs[REG_RD_RB_STATUS]       <= 32'h00000000;
-   regs[REG_RW_RB_ICR]          <= 32'h00000000;
-   regs[REG_RD_RB_ISR]          <= 32'h00000000;
-   regs[REG_RW_RB_DMA_CTRL]     <= 32'h00000000;
-   regs[REG_RW_RB_OSC1_INC_LO]  <= 32'h00000000;
-   regs[REG_RW_RB_OSC1_INC_HI]  <= 32'h00000000;
-   regs[REG_RW_RB_OSC1_OFS]     <= 32'h00000000;
-   regs[REG_RW_RB_OSC2_INC]     <= 32'h00000000;
-   regs[REG_RW_RB_OSC2_OFS]     <= 32'h00000000;
+   regs[REG_RW_RB_CTRL]             <= 32'h00000000;
+   regs[REG_RW_RB_ICR]              <= 32'h00000000;
+   regs[REG_RD_RB_ISR]              <= 32'h00000000;
+   regs[REG_RW_RB_DMA_CTRL]         <= 32'h00000000;
+   regs[REG_RW_RB_LED_MAG]          <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_INC_LO]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_INC_HI]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_OFS_LO]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_OFS_HI]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_MIX_GAIN]    <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_MIX_OFS_LO]  <= 32'h00000000;
+   regs[REG_RW_RB_OSC1_MIX_OFS_HI]  <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_INC_LO]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_INC_HI]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_OFS_LO]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_OFS_HI]      <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_MIX_GAIN]    <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_MIX_OFS_LO]  <= 32'h00000000;
+   regs[REG_RW_RB_OSC2_MIX_OFS_HI]  <= 32'h00000000;
    end
 
 else begin
@@ -302,55 +535,62 @@ else begin
 
       /* control */
       20'h00000: begin
-         regs[REG_RW_RB_CTRL]           <= sys_wdata[31:0];
-         end
-      20'h00004: begin
-         /* RD  REG_RD_RB_STATUS */
+         regs[REG_RW_RB_CTRL]               <= sys_wdata[31:0];
          end
       20'h00008: begin
-         regs[REG_RW_RB_ICR]            <= sys_wdata[31:0];
-         end
-      20'h0000C: begin
-         /* RD  REG_RD_RB_ISR */
+         regs[REG_RW_RB_ICR]                <= sys_wdata[31:0];
          end
       20'h00010: begin
-         regs[REG_RW_RB_DMA_CTRL]       <= sys_wdata[31:0];
-         end
-      20'h00014: begin
-         /*  n/a  */
-         end
-      20'h00018: begin
-         /*  n/a  */
+         regs[REG_RW_RB_DMA_CTRL]           <= sys_wdata[31:0];
          end
       20'h0001C: begin
-         /*  n/a  */
+         regs[REG_RW_RB_LED_MAG]            <= sys_wdata[31:0];
          end
 
       /* OSC1 */
       20'h00020: begin
-         regs[REG_RW_RB_OSC1_INC_LO]    <= sys_wdata[31:0];
+         regs[REG_RW_RB_OSC1_INC_LO]        <= sys_wdata[31:0];
          end
       20'h00024: begin
-         regs[REG_RW_RB_OSC1_INC_HI]    <= sys_wdata[31:0];
+         regs[REG_RW_RB_OSC1_INC_HI]        <= { 16'b0, sys_wdata[15:0] };
          end
       20'h00028: begin
-         regs[REG_RW_RB_OSC1_OFS]       <= sys_wdata[31:0];
+         regs[REG_RW_RB_OSC1_OFS_LO]        <= sys_wdata[31:0];
          end
       20'h0002C: begin
-         /*  n/a  */
+         regs[REG_RW_RB_OSC1_OFS_HI]        <= { 16'b0, sys_wdata[15:0] };
+         end
+      20'h00030: begin
+         regs[REG_RW_RB_OSC1_MIX_GAIN]      <= sys_wdata[31:0];
+         end
+      20'h00038: begin
+         regs[REG_RW_RB_OSC1_MIX_OFS_LO]    <= sys_wdata[31:0];
+         end
+      20'h0003C: begin
+         regs[REG_RW_RB_OSC1_MIX_OFS_HI]    <= { 16'b0, sys_wdata[15:0] };
          end
 
       /* OSC2 */
-      20'h00030: begin
-         regs[REG_RW_RB_OSC2_INC]       <= sys_wdata[31:0];
+      20'h00040: begin
+         regs[REG_RW_RB_OSC2_INC_LO]        <= sys_wdata[31:0];
          end
-      20'h00034: begin
-         /*  n/a  */
+      20'h00044: begin
+         regs[REG_RW_RB_OSC2_INC_HI]        <= { 16'b0, sys_wdata[15:0] };
          end
-      20'h00038: begin
-         regs[REG_RW_RB_OSC2_OFS]       <= sys_wdata[31:0];
+      20'h00048: begin
+         regs[REG_RW_RB_OSC2_OFS_LO]        <= sys_wdata[31:0];
          end
-      20'h0003C: begin
+      20'h0004C: begin
+         regs[REG_RW_RB_OSC2_OFS_HI]        <= { 16'b0, sys_wdata[15:0] };
+         end
+      20'h00050: begin
+         regs[REG_RW_RB_OSC2_MIX_GAIN]      <= sys_wdata[31:0];
+         end
+      20'h00058: begin
+         regs[REG_RW_RB_OSC2_MIX_OFS_LO]    <= sys_wdata[31:0];
+         end
+      20'h0005C: begin
+         regs[REG_RW_RB_OSC2_MIX_OFS_HI]    <= { 16'b0, sys_wdata[15:0] };
          end
 
       default:   begin
@@ -359,6 +599,7 @@ else begin
       endcase
    end
 end
+
 
 wire sys_en;
 assign sys_en = sys_wen | sys_ren;
@@ -397,6 +638,10 @@ else begin
          sys_ack   <= sys_en;
          sys_rdata <= regs[REG_RW_RB_DMA_CTRL];
          end
+      20'h0001C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_LED_MAG];
+         end
 
       /* OSC1 */
       20'h00020: begin
@@ -409,17 +654,53 @@ else begin
          end
       20'h00028: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_OSC1_OFS];
+         sys_rdata <= regs[REG_RW_RB_OSC1_OFS_LO];
          end
-
-      /* OSC2 */
+      20'h0002C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC1_OFS_HI];
+         end
       20'h00030: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_OSC2_INC];
+         sys_rdata <= regs[REG_RW_RB_OSC1_MIX_GAIN];
          end
       20'h00038: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_OSC2_OFS];
+         sys_rdata <= regs[REG_RW_RB_OSC1_MIX_OFS_LO];
+         end
+      20'h0003C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC1_MIX_OFS_HI];
+         end
+
+      /* OSC2 */
+      20'h00040: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_INC_LO];
+         end
+      20'h00044: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_INC_HI];
+         end
+      20'h00048: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_OFS_LO];
+         end
+      20'h0004C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_OFS_HI];
+         end
+      20'h00050: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_MIX_GAIN];
+         end
+      20'h00058: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_MIX_OFS_LO];
+         end
+      20'h0005C: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_OSC2_MIX_OFS_HI];
          end
 
       default:   begin

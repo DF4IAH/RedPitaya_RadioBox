@@ -248,7 +248,6 @@ wire                  clk_adc_125mhz_000deg;
 wire                  clk_adc_250mhz_000deg;
 wire                  clk_adc_250mhz_315deg;
 wire                  clk_adc_200mhz_000deg;
-wire                  clk_adc_20mhz_000deg;
 wire                  pll_locked;
 
 // PWM reset
@@ -277,6 +276,12 @@ wire  signed [14-1:0] pid_a    , pid_b    ;
 // configuration
 wire                  digital_loop;
 
+// RadioBox out signals
+wire                  rb_leds_en;
+wire         [ 8-1:0] rb_leds_data;
+wire                  rb_en               ;  // RadioBox is enabled
+wire         [16-1:0] rb_out_ch     [1:0] ;  // RadioBox output signals
+
 
 ////////////////////////////////////////////////////////////////////////////////
 // PLL (clock and reset)
@@ -295,37 +300,8 @@ clk_adc_pll i_clk_adc_pll (
   .clk_adc_125mhz_000deg    ( clk_adc_125mhz_000deg ),
   .clk_adc_250mhz_000deg    ( clk_adc_250mhz_000deg ),
   .clk_adc_250mhz_315deg    ( clk_adc_250mhz_315deg ),
-  .clk_adc_200mhz_000deg    ( clk_adc_200mhz_000deg ),
-  .clk_adc_20mhz_000deg     ( clk_adc_20mhz_000deg  )
+  .clk_adc_200mhz_000deg    ( clk_adc_200mhz_000deg )
 );
-
-/*
-// differential clock input
-IBUFDS i_clk (.I (adc_clk_p_i), .IB (adc_clk_n_i), .O (adc_clk_in));  // differential clock input
-
-red_pitaya_pll i_pll (
-  // inputs
-  .clk         (adc_clk_in),  // clock
-  .rstn        (frstn[0]  ),  // reset - active low
-  // output clocks
-  .clk_adc     (pll_adc_clk   ),  // ADC clock
-  .clk_dac_1x  (pll_dac_clk_1x),  // DAC clock 125MHz
-  .clk_dac_2x  (pll_dac_clk_2x),  // DAC clock 250MHz
-  .clk_dac_2p  (pll_dac_clk_2p),  // DAC clock 250MHz -45DGR
-  .clk_ser     (pll_ser_clk   ),  // fast serial clock 200MHz
-  .clk_pwm     (pll_pwm_clk   ),  // PWM clock
-  // status outputs
-  .pll_locked  (pll_locked)
-);
-
-BUFG bufg_adc_clk    (.O (adc_clk   ), .I (pll_adc_clk   ));
-BUFG bufg_dac_clk_1x (.O (dac_clk_1x), .I (pll_dac_clk_1x));
-BUFG bufg_dac_clk_2x (.O (dac_clk_2x), .I (pll_dac_clk_2x));
-BUFG bufg_dac_clk_2p (.O (dac_clk_2p), .I (pll_dac_clk_2p));
-BUFG bufg_ser_clk    (.O (ser_clk   ), .I (pll_ser_clk   ));
-BUFG bufg_pwm_clk    (.O (pwm_clk   ), .I (pll_pwm_clk   ));
-*/
-
 
 // ADC reset (active low) 
 always @(posedge clk_adc_125mhz_000deg)
@@ -368,8 +344,8 @@ assign adc_b = digital_loop ? dac_b : {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
 ////////////////////////////////////////////////////////////////////////////////
 
 // Summation of ASG and PID signal perform saturation before sending to DAC 
-assign dac_a_sum = asg_a + pid_a;
-assign dac_b_sum = asg_b + pid_b;
+assign dac_a_sum = rb_en ?  rb_out_ch[0][16-1:2] : (asg_a + pid_a);
+assign dac_b_sum = rb_en ?  rb_out_ch[1][16-1:2] : (asg_b + pid_b);
 
 // saturation
 assign dac_a = (^dac_a_sum[15-1:15-2]) ? {dac_a_sum[15-1], {13{~dac_a_sum[15-1]}}} : dac_a_sum[14-1:0];
@@ -402,6 +378,8 @@ red_pitaya_hk i_hk (
   .rstn_i          (  adc_rstn                   ),  // reset - active low
   // LED
   .led_o           (  led_o                      ),  // LED output
+  .rb_led_en_i     (  rb_leds_en                 ),  // RadioBox does overwrite LEDs state
+  .rb_led_d_i      (  rb_leds_data               ),  // RadioBox LEDs data
   // global configuration
   .digital_loop    (  digital_loop               ),
   // Expansion connector
@@ -592,39 +570,26 @@ red_pitaya_daisy i_daisy (
 
 red_pitaya_radiobox i_radiobox (
   // ADC
-  .clk_adc_125mhz  (  clk_adc_125mhz_000deg      ),  // clock 125 MHz
-  .clk_adc_20mhz   (  clk_adc_20mhz_000deg       ),  // clock  20 MHz
-  .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
-/*
-  .adc_a_i         (  adc_a                      ),  // CH 1
-  .adc_b_i         (  adc_b                      ),  // CH 2
-  .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
-  .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
-*/
+  .clk_adc_125mhz  ( clk_adc_125mhz_000deg       ),  // clock 125 MHz
+  .adc_rstn_i      ( adc_rstn                    ),  // reset - active low
 
-/*
-  // AXI1 master                         // AXI0 master
-  .axi1_clk_o      (  axi_clk   [1]  ),  .axi0_clk_o      (  axi_clk   [0]  ),
-  .axi1_rstn_o     (  axi_rstn  [1]  ),  .axi0_rstn_o     (  axi_rstn  [0]  ),
-  .axi1_waddr_o    (  axi_waddr [1]  ),  .axi0_waddr_o    (  axi_waddr [0]  ),
-  .axi1_wdata_o    (  axi_wdata [1]  ),  .axi0_wdata_o    (  axi_wdata [0]  ),
-  .axi1_wsel_o     (  axi_wsel  [1]  ),  .axi0_wsel_o     (  axi_wsel  [0]  ),
-  .axi1_wvalid_o   (  axi_wvalid[1]  ),  .axi0_wvalid_o   (  axi_wvalid[0]  ),
-  .axi1_wlen_o     (  axi_wlen  [1]  ),  .axi0_wlen_o     (  axi_wlen  [0]  ),
-  .axi1_wfixed_o   (  axi_wfixed[1]  ),  .axi0_wfixed_o   (  axi_wfixed[0]  ),
-  .axi1_werr_i     (  axi_werr  [1]  ),  .axi0_werr_i     (  axi_werr  [0]  ),
-  .axi1_wrdy_i     (  axi_wrdy  [1]  ),  .axi0_wrdy_i     (  axi_wrdy  [0]  ),
-*/
+  // LEDs
+  .rb_leds_en      ( rb_leds_en                  ),  // RB does overwrite LEDs state
+  .rb_leds_data    ( rb_leds_data                ),  // RB LEDs data
+
+  // DAC data
+  .rb_en           ( rb_en                       ),  // RadioBox is enabled
+  .rb_out_ch       ( rb_out_ch                   ),  // RadioBox output signals
 
   // System bus
-  .sys_addr        (  sys_addr                   ),  // address
-  .sys_wdata       (  sys_wdata                  ),  // write data
-  .sys_sel         (  sys_sel                    ),  // write byte select
-  .sys_wen         (  sys_wen[6]                 ),  // write enable
-  .sys_ren         (  sys_ren[6]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 6*32+:32]       ),  // read data
-  .sys_err         (  sys_err[6]                 ),  // error indicator
-  .sys_ack         (  sys_ack[6]                 )   // acknowledge signal
+  .sys_addr        ( sys_addr                    ),  // address
+  .sys_wdata       ( sys_wdata                   ),  // write data
+  .sys_sel         ( sys_sel                     ),  // write byte select
+  .sys_wen         ( sys_wen[6]                  ),  // write enable
+  .sys_ren         ( sys_ren[6]                  ),  // read enable
+  .sys_rdata       ( sys_rdata[ 6*32+:32]        ),  // read data
+  .sys_err         ( sys_err[6]                  ),  // error indicator
+  .sys_ack         ( sys_ack[6]                  )   // acknowledge signal
 );
 
 endmodule

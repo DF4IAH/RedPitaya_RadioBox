@@ -40,6 +40,8 @@ fpga/bd/system/ip/**/*.upgrade_log
 fpga/ip/.Xil
 fpga/red-pitaya_radio-box.cache
 fpga/red-pitaya_radio-box.hw
+fpga/red-pitaya_radio-box.runs
+fpga/red-pitaya_radio-box.sim
 fpga/vivado*
 
 # Results of building process

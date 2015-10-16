@@ -36,6 +36,8 @@ module red_pitaya_hk #(
   input                rstn_i     ,  // reset - active low
   // LED
   output reg [DWL-1:0] led_o      ,  // LED output
+  input                rb_led_en_i,  // RadioBox does overwrite LEDs state
+  input      [DWL-1:0] rb_led_d_i ,  // RadioBox LEDs data
   // global configuration
   output reg           digital_loop,
   // Expansion connector
@@ -61,7 +63,8 @@ module red_pitaya_hk #(
 //  Read device DNA
 
 wire           dna_dout ;
-reg            dna_clk  ;
+reg            dna_clk_i;
+wire           dna_clk  ;
 reg            dna_read ;
 reg            dna_shift;
 reg  [ 9-1: 0] dna_cnt  ;
@@ -70,7 +73,7 @@ reg            dna_done ;
 
 always @(posedge clk_i)
 if (rstn_i == 1'b0) begin
-  dna_clk   <=  1'b0;
+  dna_clk_i <=  1'b0;
   dna_read  <=  1'b0;
   dna_shift <=  1'b0;
   dna_cnt   <=  9'd0;
@@ -80,7 +83,7 @@ end else begin
   if (!dna_done)
     dna_cnt <= dna_cnt + 1'd1;
 
-  dna_clk <= dna_cnt[2] ;
+  dna_clk_i <= dna_cnt[2];
   dna_read  <= (dna_cnt < 9'd10);
   dna_shift <= (dna_cnt > 9'd18);
 
@@ -90,6 +93,11 @@ end else begin
   if (dna_cnt > 9'd465)
     dna_done <= 1'b1;
 end
+
+BUFG bufg_dna_clk  (
+  .O     (dna_clk),
+  .I     (dna_clk_i)
+);
 
 // parameter specifies a sample 57-bit DNA value for simulation
 DNA_PORT #(.SIM_DNA_VALUE (DNA)) i_DNA (
@@ -120,15 +128,21 @@ if (rstn_i == 1'b0) begin
   exp_p_dir_o  <= {DWE{1'b0}};
   exp_n_dat_o  <= {DWE{1'b0}};
   exp_n_dir_o  <= {DWE{1'b0}};
-end else if (sys_wen) begin
-  if (sys_addr[19:0]==20'h0c)   digital_loop <= sys_wdata[0];
+end else begin
+  if (rb_led_en_i)
+    led_o <= rb_led_d_i;
 
-  if (sys_addr[19:0]==20'h10)   exp_p_dir_o  <= sys_wdata[DWE-1:0];
-  if (sys_addr[19:0]==20'h14)   exp_n_dir_o  <= sys_wdata[DWE-1:0];
-  if (sys_addr[19:0]==20'h18)   exp_p_dat_o  <= sys_wdata[DWE-1:0];
-  if (sys_addr[19:0]==20'h1C)   exp_n_dat_o  <= sys_wdata[DWE-1:0];
+  if (sys_wen) begin
+    if (sys_addr[19:0]==20'h0C)   digital_loop <= sys_wdata[0];
 
-  if (sys_addr[19:0]==20'h30)   led_o        <= sys_wdata[DWL-1:0];
+    if (sys_addr[19:0]==20'h10)   exp_p_dir_o  <= sys_wdata[DWE-1:0];
+    if (sys_addr[19:0]==20'h14)   exp_n_dir_o  <= sys_wdata[DWE-1:0];
+    if (sys_addr[19:0]==20'h18)   exp_p_dat_o  <= sys_wdata[DWE-1:0];
+    if (sys_addr[19:0]==20'h1C)   exp_n_dat_o  <= sys_wdata[DWE-1:0];
+
+    if (!rb_led_en_i)
+      if (sys_addr[19:0]==20'h30) led_o        <= sys_wdata[DWL-1:0];
+  end
 end
 
 wire sys_en;
@@ -145,7 +159,7 @@ end else begin
     20'h00000: begin sys_ack <= sys_en;  sys_rdata <= {                id_value          }; end
     20'h00004: begin sys_ack <= sys_en;  sys_rdata <= {                dna_value[32-1: 0]}; end
     20'h00008: begin sys_ack <= sys_en;  sys_rdata <= {{64- 57{1'b0}}, dna_value[57-1:32]}; end
-    20'h0000c: begin sys_ack <= sys_en;  sys_rdata <= {{32-  1{1'b0}}, digital_loop      }; end
+    20'h0000C: begin sys_ack <= sys_en;  sys_rdata <= {{32-  1{1'b0}}, digital_loop      }; end
 
     20'h00010: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWE{1'b0}}, exp_p_dir_o}       ; end
     20'h00014: begin sys_ack <= sys_en;  sys_rdata <= {{32-DWE{1'b0}}, exp_n_dir_o}       ; end

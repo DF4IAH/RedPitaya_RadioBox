@@ -32,8 +32,7 @@
 
 module red_pitaya_radiobox_tb #(
   // time periods
-  realtime  TP125 =  8.0ns,                     // 125 MHz
-  realtime  TP20  = 50.0ns                      //  20 MHz
+  realtime  TP125 =  8.0ns                      // 125 MHz
 
   // DUT configuration
 /*
@@ -57,16 +56,13 @@ module red_pitaya_radiobox_tb #(
 // System signals
 int unsigned               clk_cntr = 999999 ;
 reg                        clk_adc_125mhz    ;
-reg                        clk_adc_20mhz     ;
 reg                        adc_rstn_i        ;
 
 // Output signals
-wire                    osc1_axis_m_vld      ;  // OSC1 output valid
-wire           [ 15: 0] osc1_axis_m_data     ;  // OSC1 output
-wire           [ 15: 0] osc1_mixed           ;  // OSC1 amplitude mixer output
-wire                    osc2_axis_m_vld      ;  // OSC2 output valid
-wire           [ 15: 0] osc2_axis_m_data     ;  // OSC2 output
-wire           [ 15: 0] osc2_mixed           ;  // OSC2 amplitude mixer output
+wire                       rb_leds_en        ;  // RB does overwrite LEDs state
+wire           [  8-1: 0]  rb_leds_data      ;  // RB LEDs data
+wire                       rb_en             ;  // RadioBox is enabled
+wire           [ 16-1: 0]  rb_out_ch   [1:0] ;  // RadioBox output signals
 
 // System bus
 wire           [ 32-1: 0]  sys_addr          ;
@@ -119,20 +115,19 @@ red_pitaya_radiobox #(
 ) radiobox        (
   // ADC
   .clk_adc_125mhz ( clk_adc_125mhz          ),  // ADC based clock, 125 MHz
-  .clk_adc_20mhz  ( clk_adc_20mhz           ),  // ADC based clock,  20 MHz, for OSC2
   .adc_rstn_i     ( adc_rstn_i              ),  // ADC reset - active low
+
+  .rb_leds_en     ( rb_leds_en              ),  // RB does overwrite LEDs state
+  .rb_leds_data   ( rb_leds_data            ),  // RB LEDs data
 
   /*
   .adc_a_i        (                         ),  // ADC data CHA
   .adc_b_i        (                         ),  // ADC data CHB
   */
 
-  .osc1_axis_m_vld  ( osc1_axis_m_vld       ),  //  OSC1 output valid
-  .osc1_axis_m_data ( osc1_axis_m_data      ),  //  OSC1 output
-  .osc1_mixed       ( osc1_mixed            ),  //  OSC1 amplitude mixer output
-  .osc2_axis_m_vld  ( osc2_axis_m_vld       ),  //  OSC2 output valid
-  .osc2_axis_m_data ( osc2_axis_m_data      ),  //  OSC2 output
-  .osc2_mixed       ( osc2_mixed            ),  //  OSC2 amplitude mixer output
+  // DAC data
+  .rb_en          ( rb_en                   ),  // RadioBox is enabled
+  .rb_out_ch      ( rb_out_ch               ),  // RadioBox output signals
 
   // System bus
   .sys_addr       ( sys_addr                ),
@@ -173,7 +168,6 @@ endtask: read_blk
 // Clock and Reset generation
 initial begin
    clk_adc_125mhz   = 1'b0;
-   clk_adc_20mhz    = 1'b0;
    adc_rstn_i       = 1'b0;
 
    repeat(10) @(negedge clk_adc_125mhz);
@@ -194,14 +188,6 @@ always begin
    clk_adc_125mhz = 1'b0;
 end
 
-always begin
-   #(TP20 / 2)
-   clk_adc_20mhz = 1'b1;
-
-   #(TP20 / 2)
-   clk_adc_20mhz = 1'b0;
-end
-
 
 // main FSM
 initial begin
@@ -216,48 +202,123 @@ initial begin
   repeat(2) @(posedge clk_adc_125mhz);
 
   // TASK 01: addition - set two registers and request the result
-  bus.write(20'h00000, 32'h00000000);          // control
-  bus.write(20'h00008, 32'h00000000);          // clear ICR
-  bus.write(20'h00010, 32'h00000000);          // clear DMA
+  bus.write(20'h00000, 32'h00000000);           // control
+  bus.write(20'h00008, 32'h00000000);           // clear ICR
+  bus.write(20'h00010, 32'h00000000);           // clear DMA
 
-  bus.write(20'h00020, 32'h9abcdef0);          // OSC1 INC LO - lowest value possible, discarding the lower 16 bits
-  bus.write(20'h00024, 32'h12345678);          // OSC1 INC HI
-  bus.write(20'h00028, 32'h00000000);          // OSC1 OFS
+  //bus.write(20'h0001C, 32'h00000005);         // LEDs: showing OSC2 output
+  bus.write(20'h0001C, 32'h00000004);           // LEDs: showing OSC2 mixer output
+  //bus.write(20'h0001C, 32'h00000003);         // LEDs: showing OSC1 output
+  //bus.write(20'h0001C, 32'h00000002);         // LEDs: showing OSC1 mixer output
 
-  bus.write(20'h00030, 32'h12345678);          // OSC2 INC
-  bus.write(20'h00038, 32'h00000000);          // OSC2 OFS
+  bus.write(20'h00020, 32'h56789abc);           // OSC1 INC LO
+  bus.write(20'h00024, 32'h00001234);           // OSC1 INC HI --> 160,127.987 Hz
+  bus.write(20'h00028, 32'h00000000);           // OSC1 OFS LO
+  bus.write(20'h0002C, 32'h00000000);           // OSC1 OFS HI
+  bus.write(20'h00030, 32'h7fffffff);           // OSC1 MIX GAIN, SIGNED
+  bus.write(20'h00038, 32'h00000000);           // OSC1 MIX OFS LO
+  bus.write(20'h0003C, 32'h00000000);           // OSC1 MIX OFS HI
 
+  bus.write(20'h00040, 32'h6789abcd);           // OSC2 INC LO
+  bus.write(20'h00044, 32'h00000345);           // OSC2 INC HI -->  28,772.998 Hz
+  bus.write(20'h00048, 32'h00000000);           // OSC2 OFS LO
+  bus.write(20'h0004C, 32'h00000000);           // OSC2 OFS HI
+  bus.write(20'h00050, 32'h7fffffff);           // OSC2 MIX GAIN, SIGNED
+  bus.write(20'h00058, 32'h00000000);           // OSC2 MIX OFS LO
+  bus.write(20'h0005C, 32'h00000000);           // OSC2 MIX OFS HI
 
-  bus.read (20'h00000, task_check);            // read result register
+  bus.read (20'h00000, task_check);             // read result register
   if (task_check != 32'h00000000)
      $display("FAIL - Task:01.01 read REG_RW_RB_CTRL, read=%d, (should be: %d)", task_check, 32'h00000000);
   else
      $display("PASS - Task:01.01 read REG_RW_RB_CTRL");
 
-  bus.read (20'h00008, task_check);            // read result register
+  bus.read (20'h00008, task_check);             // read result register
   if (task_check != 32'h00000000)
      $display("FAIL - Task:01.02 read REG_RW_RB_ICR, read=%d, (should be: %d)", task_check, 32'h00000000);
   else
      $display("PASS - Task:01.02 read REG_RW_RB_ICR");
 
-  bus.read (20'h00010, task_check);            // read result register
+  bus.read (20'h00010, task_check);             // read result register
   if (task_check != 32'h00000000)
      $display("FAIL - Task:01.03 read REG_RW_RB_DMA_CTRL, read=%d, (should be: %d)", task_check, 32'h00000000);
   else
      $display("PASS - Task:01.03 read REG_RW_RB_DMA_CTRL");
 
-  bus.write(20'h00000, 32'h00000001);          // control: enable RadioBox - starts DDS oscillators
 
-  repeat(25) @(posedge clk_adc_20mhz);         // OSC1 / OSC2 having 9 stages
-  bus.write(20'h00000, 32'h00000101);          // control: resync OSC2
-  @(posedge clk_adc_20mhz);
-  bus.write(20'h00000, 32'h00000001);          // control: normal enabled state
+  $display("INFO - Task:11 Start DDS OSC1 & OSC2");
+  bus.write(20'h00000, 32'h00000001);           // control: enable RadioBox - starts DDS oscillators
+  repeat(100) @(posedge clk_adc_125mhz);        // OSC1 / OSC2 having 9 stages
+
+  $display("INFO - Task:12 Resync DDS OSC1 & OSC2");
+  bus.write(20'h00000, 32'h00001011);           // control: resync OSC1 & OSC2
+  repeat(5) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00001017);           // control: resync OSC1 & OSC2 and reset OSC1 & OSC2
+  repeat(10) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00001011);           // control: resync OSC1 & OSC2
+  repeat(5) @(posedge clk_adc_125mhz);
+
+  $display("INFO - Task:13 Resync off, going to normal enabled state");
+  bus.write(20'h00000, 32'h00000001);           // control: normal enabled state
+  repeat(250) @(posedge clk_adc_125mhz);
+
+  $display("INFO - Task:14 reversing OSC1 mixer and OSC2 mixer output");
+  bus.write(20'h00030, 32'h80000000);           // OSC1 MIX GAIN, SIGNED
+  bus.write(20'h00050, 32'h80000000);           // OSC2 MIX GAIN, SIGNED
+  repeat(250) @(posedge clk_adc_125mhz);
 
 
-  repeat(15) @(posedge clk_adc_20mhz);
-  bus.write(20'h00000, 32'h00000000);          // control: disable RadioBox - switches off OSC1, OSC2, OSC1/OSC2 mixer
+  $display("INFO - Task:21 AM modulated signal: OSC1 RF, OSC2 Modulation, AM 100%% modulation");
+  bus.write(20'h00000, 32'h00001017);           // control: resync OSC1 & OSC2
+  bus.write(20'h00040, 32'h56789abc);           // OSC2 INC LO
+  bus.write(20'h00044, 32'h00000234);           // OSC2 INC HI -->  19,390.498 Hz
+  bus.write(20'h00050, 32'h3fffffff);           // OSC2 MIX GAIN,     SIGNED
+  bus.write(20'h00058, 32'hffffffff);           // OSC2 MIX OFS LO, UNSIGNED - 100% modulation
+  bus.write(20'h0005C, 32'h00003fff);           // OSC2 MIX OFS HI, UNSIGNED
+  repeat(20) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00000081);           // control: amplitude modulation
+  repeat(250) @(posedge clk_adc_125mhz);
 
+  $display("INFO - Task:22 AM modulated signal: OSC1 RF, OSC2 Modulation, AM 100%% modulation, Phase reversed");
+  bus.write(20'h00050, 32'hc0000000);           // OSC2 MIX GAIN,     SIGNED
+  repeat(250) @(posedge clk_adc_125mhz);
+
+
+  $display("INFO - Task:31 FM modulated signal: OSC1 RF, OSC2 Modulation, FM 100%% modulation");
+  bus.write(20'h00000, 32'h00001017);           // control: resync OSC1 & OSC2
+  bus.write(20'h00050, 32'h12345677);           // OSC2 MIX GAIN, SIGNED
+  bus.write(20'h00058, 32'h56789abc);           // OSC2 MIX OFS LO - FM base frequency
+  bus.write(20'h0005C, 32'h00001234);           // OSC2 MIX OFS HI - FM base frequency
+  repeat(20) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00000021);           // control: frequency modulation
+  repeat(250) @(posedge clk_adc_125mhz);
+
+  $display("INFO - Task:32 FM modulated signal: OSC1 RF, OSC2 Modulation, FM 100%% modulation, Phase 90°");
+  bus.write(20'h00050, (32'hffffffff - 32'h12345676));  // OSC2 MIX GAIN, SIGNED
+  repeat(250) @(posedge clk_adc_125mhz);
+
+
+  $display("INFO - Task:41 PM modulated signal: OSC1 RF, OSC2 Modulation, PM 360° modulation");
+  bus.write(20'h00000, 32'h00001017);           // control: resync OSC1 & OSC2
+  bus.write(20'h00050, 32'h12345677);           // OSC2 MIX GAIN, SIGNED
+  bus.write(20'h00058, 32'h00000000);           // OSC2 MIX OFS  - no PM offset
+  bus.write(20'h0005C, 32'h00000000);           // OSC2 MIX OFS  - no PM offset
+  repeat(20) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00000041);           // control: phase modulation
+  repeat(250) @(posedge clk_adc_125mhz);
+
+  $display("INFO - Task:42 PM modulated signal: OSC1 RF, OSC2 Modulation, PM 360° modulation, Phase reversed");
+  bus.write(20'h00050, (32'hffffffff - 32'h12345676));  // OSC2 MIX GAIN, SIGNED
+  repeat(250) @(posedge clk_adc_125mhz);
+
+
+  $display("INFO - Task:99 disabling RadioBox sub-module");
+  bus.write(20'h00000, 32'h00001017);           // control: resync OSC1 & OSC2
+  repeat(20) @(posedge clk_adc_125mhz);
+  bus.write(20'h00000, 32'h00000000);           // control: disable RadioBox - switches off OSC1, OSC2, OSC1/OSC2 mixer
   repeat(100) @(posedge clk_adc_125mhz);
+
+  $display("FINISH");
   $finish () ;
 end
 

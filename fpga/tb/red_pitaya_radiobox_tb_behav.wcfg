@@ -11,13 +11,13 @@
       </db_ref>
    </db_ref_list>
    <zoom_setting>
-      <ZoomStartTime time="689154600fs"></ZoomStartTime>
-      <ZoomEndTime time="1289654601fs"></ZoomEndTime>
-      <Cursor1Time time="3356000000fs"></Cursor1Time>
+      <ZoomStartTime time="0fs"></ZoomStartTime>
+      <ZoomEndTime time="12630000001fs"></ZoomEndTime>
+      <Cursor1Time time="6116000000fs"></Cursor1Time>
    </zoom_setting>
-   <WVObjectSize size="14" />
+   <WVObjectSize size="10" />
    <wave_markers>
-      <marker time="460000000" label="" />
+      <marker time="588000000" label="" />
    </wave_markers>
    <wvobject type="divider" fp_name="divider83">
       <obj_property name="label">Contstants</obj_property>
@@ -26,12 +26,6 @@
    <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/TP125" type="other">
       <obj_property name="ElementShortName">TP125</obj_property>
       <obj_property name="ObjectShortName">TP125</obj_property>
-      <obj_property name="CustomSignalColor">#A0A0A4</obj_property>
-      <obj_property name="UseCustomSignalColor">true</obj_property>
-   </wvobject>
-   <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/TP20" type="other">
-      <obj_property name="ElementShortName">TP20</obj_property>
-      <obj_property name="ObjectShortName">TP20</obj_property>
       <obj_property name="CustomSignalColor">#A0A0A4</obj_property>
       <obj_property name="UseCustomSignalColor">true</obj_property>
    </wvobject>
@@ -46,12 +40,6 @@
       <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/clk_adc_125mhz" type="logic">
          <obj_property name="ElementShortName">clk_adc_125mhz</obj_property>
          <obj_property name="ObjectShortName">clk_adc_125mhz</obj_property>
-         <obj_property name="CustomSignalColor">#FFFF00</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/clk_adc_20mhz" type="logic">
-         <obj_property name="ElementShortName">clk_adc_20mhz</obj_property>
-         <obj_property name="ObjectShortName">clk_adc_20mhz</obj_property>
          <obj_property name="CustomSignalColor">#FFFF00</obj_property>
          <obj_property name="UseCustomSignalColor">true</obj_property>
       </wvobject>
@@ -76,7 +64,6 @@
       <wvobject fp_name="group116" type="group">
          <obj_property name="label">RB-Enable_FSM</obj_property>
          <obj_property name="DisplayName">label</obj_property>
-         <obj_property name="isExpanded"></obj_property>
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/rb_enable" type="logic">
             <obj_property name="ElementShortName">rb_enable</obj_property>
             <obj_property name="ObjectShortName">rb_enable</obj_property>
@@ -109,59 +96,115 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
       </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc1_axis_m_vld" type="logic">
-         <obj_property name="ElementShortName">osc1_axis_m_vld</obj_property>
-         <obj_property name="ObjectShortName">osc1_axis_m_vld</obj_property>
-         <obj_property name="CustomSignalColor">#008000</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
+      <wvobject fp_name="group182" type="group">
+         <obj_property name="label">RB_LEDs</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_en" type="logic">
+            <obj_property name="ElementShortName">rb_leds_en</obj_property>
+            <obj_property name="ObjectShortName">rb_leds_en</obj_property>
+            <obj_property name="CustomSignalColor">#FFA500</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data" type="array">
+            <obj_property name="ElementShortName">rb_leds_data[7:0]</obj_property>
+            <obj_property name="ObjectShortName">rb_leds_data[7:0]</obj_property>
+            <obj_property name="CustomSignalColor">#FFD700</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">BINARYRADIX</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[7]" type="logic">
+               <obj_property name="ElementShortName">[7]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[7]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[6]" type="logic">
+               <obj_property name="ElementShortName">[6]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[6]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[5]" type="logic">
+               <obj_property name="ElementShortName">[5]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[5]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[4]" type="logic">
+               <obj_property name="ElementShortName">[4]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[4]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[3]" type="logic">
+               <obj_property name="ElementShortName">[3]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[3]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[2]" type="logic">
+               <obj_property name="ElementShortName">[2]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[2]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[1]" type="logic">
+               <obj_property name="ElementShortName">[1]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[1]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_leds_data[0]" type="logic">
+               <obj_property name="ElementShortName">[0]</obj_property>
+               <obj_property name="ObjectShortName">rb_leds_data[0]</obj_property>
+               <obj_property name="CustomSignalColor">#FFD700</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/led_ctr" type="array">
+            <obj_property name="ElementShortName">led_ctr[19:0]</obj_property>
+            <obj_property name="ObjectShortName">led_ctr[19:0]</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+            <obj_property name="CustomSignalColor">#0000A0</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
       </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc1_axis_m_data" type="array">
-         <obj_property name="ElementShortName">osc1_axis_m_data[15:0]</obj_property>
-         <obj_property name="ObjectShortName">osc1_axis_m_data[15:0]</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
-         <obj_property name="CellHeight">100</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc1_mixed" type="array">
-         <obj_property name="ElementShortName">osc1_mixed[15:0]</obj_property>
-         <obj_property name="ObjectShortName">osc1_mixed[15:0]</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#FF0000</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
-         <obj_property name="CellHeight">100</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc2_axis_m_vld" type="logic">
-         <obj_property name="ElementShortName">osc2_axis_m_vld</obj_property>
-         <obj_property name="ObjectShortName">osc2_axis_m_vld</obj_property>
-         <obj_property name="CustomSignalColor">#008000</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc2_axis_m_data" type="array">
-         <obj_property name="ElementShortName">osc2_axis_m_data[15:0]</obj_property>
-         <obj_property name="ObjectShortName">osc2_axis_m_data[15:0]</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
-         <obj_property name="CellHeight">100</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/osc2_mixed" type="array">
-         <obj_property name="ElementShortName">osc2_mixed[15:0]</obj_property>
-         <obj_property name="ObjectShortName">osc2_mixed[15:0]</obj_property>
-         <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#FFA500</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
-         <obj_property name="CellHeight">100</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/mixed_vld" type="logic">
-         <obj_property name="ElementShortName">mixed_vld</obj_property>
-         <obj_property name="ObjectShortName">mixed_vld</obj_property>
-         <obj_property name="CustomSignalColor">#008000</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
+      <wvobject fp_name="group285" type="group">
+         <obj_property name="label">RB_DAC_Data</obj_property>
+         <obj_property name="DisplayName">label</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_en" type="logic">
+            <obj_property name="ElementShortName">rb_en</obj_property>
+            <obj_property name="ObjectShortName">rb_en</obj_property>
+            <obj_property name="CustomSignalColor">#FF0080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_out_ch" type="array">
+            <obj_property name="ElementShortName">rb_out_ch[1:0][15:0]</obj_property>
+            <obj_property name="ObjectShortName">rb_out_ch[1:0][15:0]</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_out_ch[1]" type="array">
+               <obj_property name="ElementShortName">[1][15:0]</obj_property>
+               <obj_property name="ObjectShortName">rb_out_ch[1][15:0]</obj_property>
+               <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+               <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+               <obj_property name="CellHeight">100</obj_property>
+               <obj_property name="CustomSignalColor">#800080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/rb_out_ch[0]" type="array">
+               <obj_property name="ElementShortName">[0][15:0]</obj_property>
+               <obj_property name="ObjectShortName">rb_out_ch[0][15:0]</obj_property>
+               <obj_property name="Radix">SIGNEDDECRADIX</obj_property>
+               <obj_property name="WaveformStyle">STYLE_ANALOG</obj_property>
+               <obj_property name="CellHeight">100</obj_property>
+               <obj_property name="CustomSignalColor">#800080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+            </wvobject>
+         </wvobject>
       </wvobject>
       <wvobject type="divider" fp_name="divider88">
          <obj_property name="label">OSC1</obj_property>
@@ -174,7 +217,6 @@
          <wvobject fp_name="group106" type="group">
             <obj_property name="label">System</obj_property>
             <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="isExpanded"></obj_property>
             <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc1_dds/aclk" type="logic">
                <obj_property name="ElementShortName">aclk</obj_property>
                <obj_property name="ObjectShortName">aclk</obj_property>
@@ -201,8 +243,8 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc1_dds/s_axis_phase_tdata" type="array">
-            <obj_property name="ElementShortName">s_axis_phase_tdata[95:0]</obj_property>
-            <obj_property name="ObjectShortName">s_axis_phase_tdata[95:0]</obj_property>
+            <obj_property name="ElementShortName">s_axis_phase_tdata[103:0]</obj_property>
+            <obj_property name="ObjectShortName">s_axis_phase_tdata[103:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
             <obj_property name="CustomSignalColor">#008080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
@@ -210,6 +252,8 @@
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc1_dds/m_axis_data_tvalid" type="logic">
             <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
             <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc1_dds/m_axis_data_tdata" type="array">
             <obj_property name="ElementShortName">m_axis_data_tdata[15:0]</obj_property>
@@ -217,6 +261,32 @@
             <obj_property name="CustomSignalColor">#00FFFF</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject fp_name="group736" type="group">
+            <obj_property name="label">OSC1_Mixer</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc1_mix_gain" type="array">
+               <obj_property name="ElementShortName">osc1_mix_gain[32:0]</obj_property>
+               <obj_property name="ObjectShortName">osc1_mix_gain[32:0]</obj_property>
+               <obj_property name="CustomSignalColor">#008080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc1_mix_ofs" type="array">
+               <obj_property name="ElementShortName">osc1_mix_ofs[47:0]</obj_property>
+               <obj_property name="ObjectShortName">osc1_mix_ofs[47:0]</obj_property>
+               <obj_property name="CustomSignalColor">#008080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc1_mixed" type="array">
+               <obj_property name="ElementShortName">osc1_mixed[47:0]</obj_property>
+               <obj_property name="ObjectShortName">osc1_mixed[47:0]</obj_property>
+               <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
          </wvobject>
       </wvobject>
       <wvobject type="divider" fp_name="divider89">
@@ -257,8 +327,8 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc2_dds/s_axis_phase_tdata" type="array">
-            <obj_property name="ElementShortName">s_axis_phase_tdata[71:0]</obj_property>
-            <obj_property name="ObjectShortName">s_axis_phase_tdata[71:0]</obj_property>
+            <obj_property name="ElementShortName">s_axis_phase_tdata[103:0]</obj_property>
+            <obj_property name="ObjectShortName">s_axis_phase_tdata[103:0]</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
             <obj_property name="CustomSignalColor">#008080</obj_property>
             <obj_property name="UseCustomSignalColor">true</obj_property>
@@ -266,6 +336,8 @@
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc2_dds/m_axis_data_tvalid" type="logic">
             <obj_property name="ElementShortName">m_axis_data_tvalid</obj_property>
             <obj_property name="ObjectShortName">m_axis_data_tvalid</obj_property>
+            <obj_property name="CustomSignalColor">#800000</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
          </wvobject>
          <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/i_rb_osc2_dds/m_axis_data_tdata" type="array">
             <obj_property name="ElementShortName">m_axis_data_tdata[15:0]</obj_property>
@@ -274,18 +346,192 @@
             <obj_property name="UseCustomSignalColor">true</obj_property>
             <obj_property name="Radix">HEXRADIX</obj_property>
          </wvobject>
+         <wvobject fp_name="group733" type="group">
+            <obj_property name="label">OSC2_Mixer</obj_property>
+            <obj_property name="DisplayName">label</obj_property>
+            <obj_property name="isExpanded"></obj_property>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc2_mix_gain" type="array">
+               <obj_property name="ElementShortName">osc2_mix_gain[32:0]</obj_property>
+               <obj_property name="ObjectShortName">osc2_mix_gain[32:0]</obj_property>
+               <obj_property name="CustomSignalColor">#008080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc2_mix_ofs" type="array">
+               <obj_property name="ElementShortName">osc2_mix_ofs[47:0]</obj_property>
+               <obj_property name="ObjectShortName">osc2_mix_ofs[47:0]</obj_property>
+               <obj_property name="CustomSignalColor">#008080</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+            <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/osc2_mixed" type="array">
+               <obj_property name="ElementShortName">osc2_mixed[47:0]</obj_property>
+               <obj_property name="ObjectShortName">osc2_mixed[47:0]</obj_property>
+               <obj_property name="CustomSignalColor">#00FFFF</obj_property>
+               <obj_property name="UseCustomSignalColor">true</obj_property>
+               <obj_property name="Radix">HEXRADIX</obj_property>
+            </wvobject>
+         </wvobject>
       </wvobject>
    </wvobject>
-   <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/rb_enable" type="logic">
-      <obj_property name="ElementShortName">rb_enable</obj_property>
-      <obj_property name="ObjectShortName">rb_enable</obj_property>
+   <wvobject fp_name="group183" type="group">
+      <obj_property name="label">Register set</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
+      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs" type="array">
+         <obj_property name="ElementShortName">regs[0:19][31:0]</obj_property>
+         <obj_property name="ObjectShortName">regs[0:19][31:0]</obj_property>
+         <obj_property name="CustomSignalColor">#008080</obj_property>
+         <obj_property name="UseCustomSignalColor">true</obj_property>
+         <obj_property name="isExpanded"></obj_property>
+         <obj_property name="Radix">HEXRADIX</obj_property>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[0]" type="array">
+            <obj_property name="ElementShortName">[0][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[0][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[1]" type="array">
+            <obj_property name="ElementShortName">[1][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[1][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[2]" type="array">
+            <obj_property name="ElementShortName">[2][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[2][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[3]" type="array">
+            <obj_property name="ElementShortName">[3][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[3][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[4]" type="array">
+            <obj_property name="ElementShortName">[4][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[4][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[5]" type="array">
+            <obj_property name="ElementShortName">[5][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[5][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[6]" type="array">
+            <obj_property name="ElementShortName">[6][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[6][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[7]" type="array">
+            <obj_property name="ElementShortName">[7][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[7][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[8]" type="array">
+            <obj_property name="ElementShortName">[8][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[8][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[9]" type="array">
+            <obj_property name="ElementShortName">[9][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[9][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[10]" type="array">
+            <obj_property name="ElementShortName">[10][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[10][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[11]" type="array">
+            <obj_property name="ElementShortName">[11][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[11][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[12]" type="array">
+            <obj_property name="ElementShortName">[12][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[12][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[13]" type="array">
+            <obj_property name="ElementShortName">[13][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[13][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[14]" type="array">
+            <obj_property name="ElementShortName">[14][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[14][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[15]" type="array">
+            <obj_property name="ElementShortName">[15][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[15][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[16]" type="array">
+            <obj_property name="ElementShortName">[16][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[16][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[17]" type="array">
+            <obj_property name="ElementShortName">[17][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[17][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[18]" type="array">
+            <obj_property name="ElementShortName">[18][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[18][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[19]" type="array">
+            <obj_property name="ElementShortName">[19][31:0]</obj_property>
+            <obj_property name="ObjectShortName">regs[19][31:0]</obj_property>
+            <obj_property name="CustomSignalColor">#008080</obj_property>
+            <obj_property name="UseCustomSignalColor">true</obj_property>
+            <obj_property name="Radix">HEXRADIX</obj_property>
+         </wvobject>
+      </wvobject>
    </wvobject>
-   <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/rb_enable" type="logic">
-      <obj_property name="ElementShortName">rb_enable</obj_property>
-      <obj_property name="ObjectShortName">rb_enable</obj_property>
+   <wvobject type="divider" fp_name="divider137">
+      <obj_property name="label">Bus</obj_property>
+      <obj_property name="DisplayName">label</obj_property>
    </wvobject>
-   <wvobject fp_name="group82" type="group">
-      <obj_property name="label">System bus</obj_property>
+   <wvobject fp_name="group141" type="group">
+      <obj_property name="label">Bus_Transaction</obj_property>
       <obj_property name="DisplayName">label</obj_property>
       <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/sys_addr" type="array">
          <obj_property name="ElementShortName">sys_addr[31:0]</obj_property>
@@ -331,141 +577,6 @@
       <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/sys_err" type="logic">
          <obj_property name="ElementShortName">sys_err</obj_property>
          <obj_property name="ObjectShortName">sys_err</obj_property>
-      </wvobject>
-   </wvobject>
-   <wvobject fp_name="group183" type="group">
-      <obj_property name="label">Register set</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs" type="array">
-         <obj_property name="ElementShortName">regs[0:9][31:0]</obj_property>
-         <obj_property name="ObjectShortName">regs[0:9][31:0]</obj_property>
-         <obj_property name="CustomSignalColor">#0000A0</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-         <obj_property name="isExpanded"></obj_property>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[0]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[0][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[0][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[0 REG_RW_RB_CTRL][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[1]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[1][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[1][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[1 REG_RD_RB_STATUS][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[2]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[2][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[2][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[2 REG_RW_RB_ICR][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[3]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[3][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[3][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[3 REG_RD_RB_ISR][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[4]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[4][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[4][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[4 REG_RW_RB_DMA_CTRL][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[5]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[5][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[5][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[5 REG_RW_RB_OSC1_INC_LO][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[6]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[6][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[6][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[6 REG_RW_RB_OSC1_INC_HI][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[7]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[7][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[7][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[7 REG_RW_RB_OSC1_OFS][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[8]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[8][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[8][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[8 REG_RW_RB_OSC2_INC][31:0]</obj_property>
-         </wvobject>
-         <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/radiobox/regs[9]" type="array">
-            <obj_property name="DisplayName">label</obj_property>
-            <obj_property name="ElementShortName">[9][31:0]</obj_property>
-            <obj_property name="ObjectShortName">regs[9][31:0]</obj_property>
-            <obj_property name="Radix">HEXRADIX</obj_property>
-            <obj_property name="CustomSignalColor">#008080</obj_property>
-            <obj_property name="UseCustomSignalColor">true</obj_property>
-            <obj_property name="label">[9 REG_RW_RB_OSC2_OFS][31:0]</obj_property>
-         </wvobject>
-      </wvobject>
-   </wvobject>
-   <wvobject type="divider" fp_name="divider137">
-      <obj_property name="label">Bus</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-   </wvobject>
-   <wvobject fp_name="group141" type="group">
-      <obj_property name="label">Bus_Transaction</obj_property>
-      <obj_property name="DisplayName">label</obj_property>
-      <obj_property name="isExpanded"></obj_property>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/bus/transaction/addr" type="array">
-         <obj_property name="ElementShortName">addr[31:0]</obj_property>
-         <obj_property name="ObjectShortName">addr[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/bus/transaction/wdata" type="array">
-         <obj_property name="ElementShortName">wdata[31:0]</obj_property>
-         <obj_property name="ObjectShortName">wdata[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-         <obj_property name="CustomSignalColor">#00FFFF</obj_property>
-         <obj_property name="UseCustomSignalColor">true</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/bus/sys_rdata" type="array">
-         <obj_property name="ElementShortName">sys_rdata[31:0]</obj_property>
-         <obj_property name="ObjectShortName">sys_rdata[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
-      </wvobject>
-      <wvobject db_ref_id="1" fp_name="/red_pitaya_radiobox_tb/bus/transaction/rdata" type="array">
-         <obj_property name="ElementShortName">rdata[31:0]</obj_property>
-         <obj_property name="ObjectShortName">rdata[31:0]</obj_property>
-         <obj_property name="Radix">HEXRADIX</obj_property>
       </wvobject>
    </wvobject>
    <wvobject type="divider" fp_name="divider179">
