@@ -59,7 +59,7 @@ int rp_create_traces(float*** a_traces)
     fprintf(stderr, "rp_create_traces: BEGIN\n");
 
     // Debugging
-    hk_fpga_setLeds(1, 0x20, 0);
+    fpga_hk_setLeds(1, 0x20, 0);
 
     trc = (float**) malloc(TRACE_NUM * sizeof(float*));
     if (trc == NULL) {
@@ -91,7 +91,7 @@ void rp_free_traces(float*** a_traces)
     fprintf(stderr, "rp_free_traces: BEGIN\n");
 
     // Debugging
-    hk_fpga_setLeds(1, 0x40, 0);
+    fpga_hk_setLeds(1, 0x40, 0);
 
     if (trc) {
         for (i = 0; i < TRACE_NUM; i++) {

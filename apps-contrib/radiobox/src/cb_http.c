@@ -19,17 +19,17 @@
 
 
 /* @brief The HouseKeeping memory file descriptor used to mmap() the FPGA space. */
-int                             g_hk_fpga_mem_fd = -1;
+int                             g_fpga_hk_mem_fd = -1;
 
 /* @brief The HouseKeeping memory layout of the FPGA registers. */
-hk_fpga_reg_mem_t*              g_hk_fpga_reg_mem = NULL;
+fpga_hk_reg_mem_t*              g_fpga_hk_reg_mem = NULL;
 
 
 /* @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
-int                             g_rb_fpga_mem_fd = -1;
+int                             g_fpga_rb_mem_fd = -1;
 
 /* @brief The RadioBox memory layout of the FPGA registers. */
-rb_fpga_reg_mem_t*              g_rb_fpga_reg_mem = NULL;
+fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
 
 
 static rp_calib_params_t        rp_main_calib_params;
@@ -67,6 +67,7 @@ pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 /* params initialized - accessed by the nginx loader */
 static int params_init = 0;
 
+extern int worker_params_dirty;
 
 
 int rp_app_init(void)
@@ -76,7 +77,7 @@ int rp_app_init(void)
     fpga_init();
 
     // Debugging
-    hk_fpga_setLeds(0, 0xff, 0x01);
+    fpga_hk_setLeds(0, 0xff, 0x01);
 
     rp_default_calib_params(&rp_main_calib_params);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
@@ -101,7 +102,7 @@ int rp_app_exit(void)
     worker_exit();
 
     // Debugging
-    hk_fpga_setLeds(0, 0xff, 0x00);
+    fpga_hk_setLeds(0, 0xff, 0x00);
 
     fpga_exit();
 
@@ -119,7 +120,7 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
     TRACE("%s()\n", __FUNCTION__);
 
     // Debugging
-    hk_fpga_setLeds(1, 0x02, 0);
+    fpga_hk_setLeds(1, 0x02, 0);
 
     if (len > PARAMS_NUM) {
         fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, PARAMS_NUM);
@@ -176,24 +177,11 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
         rp_main_params[p_idx].value = p[i].value;
         fprintf(stderr, "rp_set_params: param name = %s, value = %lf\n", p[i].name, p[i].value);
     }
-    pthread_mutex_unlock(&rp_main_params_mutex);
 
-    // DF4IAH  v
-    if (params_change || !params_init) {
-        (void) fpga_update;
-
-        // Debugging
-        hk_fpga_setLeds(1, 0x04, 0);
-
-        fprintf(stderr, "rp_set_params: setting FPGA - A=%lf, B=%lf ...\n", rp_main_params[RB_ADD_A].value, rp_main_params[RB_ADD_B].value);
-        g_rb_fpga_reg_mem->rb_add_a = rp_main_params[RB_ADD_A].value;
-        g_rb_fpga_reg_mem->rb_add_b = rp_main_params[RB_ADD_B].value;
-        rp_main_params[RB_ADD_RES].value = g_rb_fpga_reg_mem->rb_add_res;
-        fprintf(stderr, "rp_set_params: getting FPGA -  ... RES=%lf\n", rp_main_params[RB_ADD_RES].value);
-
-        params_init = 1;
+    if (params_change && fpga_update) {
+        worker_params_dirty = 1;
     }
-    // DF4IAH  ^
+    pthread_mutex_unlock(&rp_main_params_mutex);
 
     fprintf(stderr, "rp_set_params: END\n");
     return 0;
@@ -205,7 +193,7 @@ int rp_get_params(rp_app_params_t** p)
     fprintf(stderr, "rp_get_params: BEGIN\n");
 
     // Debugging
-    hk_fpga_setLeds(1, 0x08, 0);
+    fpga_hk_setLeds(1, 0x08, 0);
 
     rp_app_params_t* p_copy = NULL;
     p_copy = (rp_app_params_t*) malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
@@ -245,7 +233,7 @@ int rp_get_signals(float*** s, int* trc_num, int* trc_len)
     fprintf(stderr, "rp_get_signals: BEGIN\n");
 
     // Debugging
-    hk_fpga_setLeds(1, 0x10, 0);
+    fpga_hk_setLeds(1, 0x10, 0);
 
     if (!*s) {
         return -1;

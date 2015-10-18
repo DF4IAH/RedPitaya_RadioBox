@@ -22,7 +22,7 @@
  * @{
  */
 
-/** Calibration parameters, stored in eeprom device
+/** @brief  Calibration parameters stored in the EEPROM device
  */
 typedef struct rp_calib_params_s {
     uint32_t fe_ch1_fs_g_hi;            /* High gain front end full scale voltage, channel 1 */
