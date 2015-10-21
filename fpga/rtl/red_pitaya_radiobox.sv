@@ -72,7 +72,7 @@ enum {
     REG_RW_RB_DMA_CTRL,                         // h10: RB DMA control register
     //REG_RD_RB_RSVD_H14,
     //REG_RD_RB_RSVD_H18,
-    REG_RW_RB_LED_MAG,                          // h1C: RB LED magnitude indicator
+    REG_RW_RB_LED_CTRL,                         // h1C: RB LED magnitude indicator
 
     REG_RW_RB_OSC1_INC_LO,                      // h20: RB OSC1 increment register              LSB:        (Bit 31: 0)
     REG_RW_RB_OSC1_INC_HI,                      // h24: RB OSC1 increment register              MSB: 16'b0, (Bit 47:32)
@@ -182,14 +182,14 @@ enum {
 } RB_STAT_BITS_ENUM;
 
 enum {
-    RB_LED_MAG_NUM_DISABLED             = 0,    // LEDs not touched
-    RB_LED_MAG_NUM_OFF,                         // all LEDs off (ro be used before switching to DISABLED)
-    RB_LED_MAG_NUM_MIX1_MAG,                    // Magnitude indicator @ OSC1 mixer output
-    RB_LED_MAG_NUM_OSC1_MAG,                    // Magnitude indicator @ OSC1 output
-    RB_LED_MAG_NUM_MIX2_MAG,                    // Magnitude indicator @ OSC2 mixer output
-    RB_LED_MAG_NUM_OSC2_MAG                     // Magnitude indicator @ OSC2 output
-    //RB_LED_MAG_NUM_ADCIN_MAG                  // Magnitude indicator @ ADC streaming input
-} RB_LED_MAG_ENUM;
+    RB_LED_CTRL_NUM_DISABLED            = 0,    // LEDs not touched
+    RB_LED_CTRL_NUM_OFF,                        // all LEDs off (ro be used before switching to DISABLED)
+    RB_LED_CTRL_NUM_MIX1_MAG,                   // Magnitude indicator @ OSC1 mixer output
+    RB_LED_CTRL_NUM_OSC1_MAG,                   // Magnitude indicator @ OSC1 output
+    RB_LED_CTRL_NUM_MIX2_MAG,                   // Magnitude indicator @ OSC2 mixer output
+    RB_LED_CTRL_NUM_OSC2_MAG                    // Magnitude indicator @ OSC2 output
+    //RB_LED_CTRL_NUM_ADCIN_MAG                 // Magnitude indicator @ ADC streaming input
+} RB_LED_CTRL_ENUM;
 
 wire rb_enable = regs[REG_RW_RB_CTRL][RB_CTRL_ENABLE];
 
@@ -416,7 +416,7 @@ end
 //---------------------------------------------------------------------------------
 //  LEDs Magnitude indicator
 
-wire [3:0] led_mag = regs[REG_RW_RB_LED_MAG][3:0];
+wire [3:0] led_ctrl = regs[REG_RW_RB_LED_CTRL][3:0];
 
 //reg         rb_leds_en          =  1'b0;
 //reg  [ 7:0] rb_leds_data        =  8'b0;
@@ -460,32 +460,32 @@ begin
       rb_leds_data    <=  8'b0;
       led_ctr         <= 20'b0;
    end else begin
-      if (led_mag && rb_en) begin
+      if (led_ctrl && rb_en) begin
          rb_leds_en   <=  1'b1;                 // LEDs magnitude indicator active
 
          if (!led_ctr) begin                    // reduce updating to about 120 Hz
-            casez (led_mag[3:0])
-            RB_LED_MAG_NUM_OFF: begin
+            casez (led_ctrl[3:0])
+            RB_LED_CTRL_NUM_OFF: begin
                rb_leds_data <=  8'b0;           // turn all LEDs off
                end
-            RB_LED_MAG_NUM_MIX1_MAG: begin
+            RB_LED_CTRL_NUM_MIX1_MAG: begin
                rb_leds_data <= fct_mag(osc1_mixed[47:32]);
                end
-            RB_LED_MAG_NUM_OSC1_MAG: begin
+            RB_LED_CTRL_NUM_OSC1_MAG: begin
                rb_leds_data <= fct_mag(osc1_axis_m_data);
                end
-            RB_LED_MAG_NUM_MIX2_MAG: begin
+            RB_LED_CTRL_NUM_MIX2_MAG: begin
                rb_leds_data <= fct_mag(osc2_mixed[47:32]);
                end
-            RB_LED_MAG_NUM_OSC2_MAG: begin
+            RB_LED_CTRL_NUM_OSC2_MAG: begin
                rb_leds_data <= fct_mag(osc2_axis_m_data);
                end
-            //RB_LED_MAG_NUM_ADCIN_MAG: begin
+            //RB_LED_CTRL_NUM_ADCIN_MAG: begin
             //   end
             endcase
          end
          led_ctr <= led_ctr + 1;
-      end else begin                            // RB_LED_MAG_NUM_DISABLED
+      end else begin                            // RB_LED_CTRL_NUM_DISABLED
          rb_leds_en     <=  1'b0;
          rb_leds_data   <=  8'b0;
          led_ctr        <= 20'b0;
@@ -512,7 +512,7 @@ if (!adc_rstn_i) begin
    regs[REG_RW_RB_ICR]              <= 32'h00000000;
    regs[REG_RD_RB_ISR]              <= 32'h00000000;
    regs[REG_RW_RB_DMA_CTRL]         <= 32'h00000000;
-   regs[REG_RW_RB_LED_MAG]          <= 32'h00000000;
+   regs[REG_RW_RB_LED_CTRL]         <= 32'h00000000;
    regs[REG_RW_RB_OSC1_INC_LO]      <= 32'h00000000;
    regs[REG_RW_RB_OSC1_INC_HI]      <= 32'h00000000;
    regs[REG_RW_RB_OSC1_OFS_LO]      <= 32'h00000000;
@@ -544,7 +544,7 @@ else begin
          regs[REG_RW_RB_DMA_CTRL]           <= sys_wdata[31:0];
          end
       20'h0001C: begin
-         regs[REG_RW_RB_LED_MAG]            <= sys_wdata[31:0];
+         regs[REG_RW_RB_LED_CTRL]           <= sys_wdata[31:0];
          end
 
       /* OSC1 */
@@ -640,7 +640,7 @@ else begin
          end
       20'h0001C: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_LED_MAG];
+         sys_rdata <= regs[REG_RW_RB_LED_CTRL];
          end
 
       /* OSC1 */

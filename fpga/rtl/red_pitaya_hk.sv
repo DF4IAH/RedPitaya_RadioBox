@@ -35,7 +35,7 @@ module red_pitaya_hk #(
   input                clk_i      ,  // clock
   input                rstn_i     ,  // reset - active low
   // LED
-  output reg [DWL-1:0] led_o      ,  // LED output
+  output     [DWL-1:0] led_o      ,  // LED output
   input                rb_led_en_i,  // RadioBox does overwrite LEDs state
   input      [DWL-1:0] rb_led_d_i ,  // RadioBox LEDs data
   // global configuration
@@ -121,17 +121,19 @@ assign id_value[ 3: 0] =  4'h1; // board type   1 - release 1
 //
 //  System bus connection
 
+reg  [DWL-1:0] hk_led_d = {DWL{1'b0}};
+
+assign led_o = rb_led_en_i ?  rb_led_d_i : hk_led_d;  // LED multiplexer for HK / RadioBox switching
+
 always @(posedge clk_i)
 if (rstn_i == 1'b0) begin
-  led_o        <= {DWL{1'b0}};
+  hk_led_d     <= {DWL{1'b0}};
   exp_p_dat_o  <= {DWE{1'b0}};
   exp_p_dir_o  <= {DWE{1'b0}};
   exp_n_dat_o  <= {DWE{1'b0}};
   exp_n_dir_o  <= {DWE{1'b0}};
-end else begin
-  if (rb_led_en_i)
-    led_o <= rb_led_d_i;
 
+end else begin
   if (sys_wen) begin
     if (sys_addr[19:0]==20'h0C)   digital_loop <= sys_wdata[0];
 
@@ -139,9 +141,7 @@ end else begin
     if (sys_addr[19:0]==20'h14)   exp_n_dir_o  <= sys_wdata[DWE-1:0];
     if (sys_addr[19:0]==20'h18)   exp_p_dat_o  <= sys_wdata[DWE-1:0];
     if (sys_addr[19:0]==20'h1C)   exp_n_dat_o  <= sys_wdata[DWE-1:0];
-
-    if (!rb_led_en_i)
-      if (sys_addr[19:0]==20'h30) led_o        <= sys_wdata[DWL-1:0];
+    if (sys_addr[19:0]==20'h30)   hk_led_d     <= sys_wdata[DWL-1:0];
   end
 end
 
