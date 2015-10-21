@@ -21,6 +21,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "calib.h"
 #include "fpga.h"
 #include "cb_http.h"
 
@@ -32,7 +33,7 @@ extern int                	g_fpga_rb_mem_fd;
 extern fpga_rb_reg_mem_t*	g_fpga_rb_reg_mem;
 
 /* @brief Access to the calibration data. */
-extern rp_calib_params_t rp_main_calib_params;
+extern rp_calib_params_t 	rp_main_calib_params;
 
 
 /*----------------------------------------------------------------------------*/
@@ -52,10 +53,12 @@ int fpga_rb_init(void)
     // make sure all previous data is vanished
     fpga_rb_exit();
 
+    fprintf(stderr, "fpga_rb_init: BEGIN\n");
+
     // init the RadioBox FPGA sub-module
 	g_fpga_rb_mem_fd = open("/dev/mem", O_RDWR | O_SYNC);
 	if (g_fpga_rb_mem_fd < 0) {
-		fprintf(stderr, "RadioBox: open(/dev/mem) failed: %s\n", strerror(errno));
+		fprintf(stderr, "ERROR - fpga_rb_init: open(/dev/mem) failed: %s\n", strerror(errno));
 		fpga_exit();
 		return -1;
 	}
@@ -63,14 +66,15 @@ int fpga_rb_init(void)
 	long page_offs = FPGA_RB_BASE_ADDR - page_addr;
 
 	void* page_ptr = mmap(NULL, FPGA_RB_BASE_SIZE, PROT_READ | PROT_WRITE,
-					  MAP_SHARED, g_fpga_rb_mem_fd, page_addr);
+					      MAP_SHARED, g_fpga_rb_mem_fd, page_addr);
 	if (page_ptr == MAP_FAILED) {
-		fprintf(stderr, "RadioBox: mmap() failed: %s\n", strerror(errno));
+		fprintf(stderr, "ERROR - fpga_rb_init: mmap() failed: %s\n", strerror(errno));
 		fpga_exit();
 		return -1;
 	}
 	g_fpga_rb_reg_mem = (fpga_rb_reg_mem_t*) page_ptr + page_offs;
 
+    fprintf(stderr, "fpga_rb_init: END\n");
     return 0;
 }
 
@@ -82,10 +86,12 @@ int fpga_rb_init(void)
  */
 int fpga_rb_exit(void)
 {
-	// unmap the RadioBox sub-module
+    fprintf(stderr, "fpga_rb_exit: BEGIN\n");
+
+    // unmap the RadioBox sub-module
 	if (g_fpga_rb_reg_mem) {
 		if (munmap(g_fpga_rb_reg_mem, FPGA_RB_BASE_SIZE) < 0) {
-			fprintf(stderr, "Radio-Box: munmap() failed: %s\n", strerror(errno));
+			fprintf(stderr, "ERROR - fpga_rb_exit: munmap() failed: %s\n", strerror(errno));
 			return -1;
 		}
 		g_fpga_rb_reg_mem = NULL;
@@ -96,6 +102,7 @@ int fpga_rb_exit(void)
 		g_fpga_rb_mem_fd = -1;
 	}
 
+    fprintf(stderr, "fpga_rb_exit: END\n");
 	return 0;
 }
 
@@ -111,7 +118,10 @@ int fpga_rb_exit(void)
  */
 int fpga_rb_update_all_params(rp_app_params_t* p[])
 {
-	if (!g_fpga_rb_reg_mem || !p) {
+    fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
+
+    if (!g_fpga_rb_reg_mem || !p) {
+        fprintf(stderr, "ERROR - fpga_rb_update_all_params: bad parameter (p=%p) or not inited(g=%p)\n", p, g_fpga_rb_reg_mem);
 		return -1;
 	}
 
@@ -122,77 +132,109 @@ int fpga_rb_update_all_params(rp_app_params_t* p[])
 		}
 
 		if (!(p[idx]->fpga_update & 0x80)) {
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx]->name);
 			continue;  // this value has not been updated
 		}
 
 		if (!strcmp("RB_RUN", p[idx]->name)) {  // @see cb_http.h
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: got RB_RUN\n");
 			fpga_rb_enable(p[idx]->value);
 
 		} else if (!strcmp("osc1_qrg_i", p[idx]->name)) {  // @see cb_http.h
-			float qrg1 = 0.5f + p[idx]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: got osc1_qrg_i\n");
 
-			fpga_rb_update_params(FPGA_RB_OSC1_INC_LO, (uint32_t) (qrg1 & 0xffffffff));
-			fpga_rb_update_params(FPGA_RB_OSC1_INC_HI, (uint32_t) (qrg1 >> 32));
+	        float qrg1 = 0.5f + p[idx]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
+
+	        fpga_rb_write_register(FPGA_RB_OSC1_INC_LO, (uint32_t) (((uint64_t) qrg1) & 0xffffffff));
+	        fpga_rb_write_register(FPGA_RB_OSC1_INC_HI, (uint32_t) (((uint64_t) qrg1) >> 32));
 
 		} else if (!strcmp("osc2_qrg_i", p[idx]->name)) {  // @see cb_http.h
-			float qrg2 = 0.5f + p[idx]->value * ((1ULL << 48) / 125E+6f);							// TODO: reference frequency correction
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: got osc2_qrg_i\n");
 
-			fpga_rb_update_params(FPGA_RB_OSC2_INC_LO, (uint32_t) (qrg2 & 0xffffffff));
-			fpga_rb_update_params(FPGA_RB_OSC2_INC_HI, (uint32_t) (qrg2 >> 32));
+			float qrg2 = 0.5f + p[idx]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
+
+			fpga_rb_write_register(FPGA_RB_OSC2_INC_LO, (uint32_t) (((uint64_t) qrg2) & 0xffffffff));
+			fpga_rb_write_register(FPGA_RB_OSC2_INC_HI, (uint32_t) (((uint64_t) qrg2) >> 32));
 
 		} else if (!strcmp("osc1_amp_i", p[idx]->name)) {  // @see cb_http.h
-			float amp = 0.5f + (1UL << 32) * p[idx]->value / 2.048;									// TODO: DAC amplitude correction goes into here
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: got osc1_amp_i\n");
+
+	        float amp = 0.5f + (1ULL << 32) * p[idx]->value / 2.048;									// TODO: DAC amplitude correction goes into here
 			float ofs = 0.0f;																		// TODO: DAC offset correction goes into here
 
-			fpga_rb_update_params(FPGA_RB_OSC1_MIX_GAIN, (uint32_t) amp);
-			fpga_rb_update_params(FPGA_RB_OSC1_MIX_OFS_LO, (uint32_t) (ofs & 0xffffffff));
-			fpga_rb_update_params(FPGA_RB_OSC1_MIX_OFS_HI, (uint32_t) (ofs >> 32));
+			fpga_rb_write_register(FPGA_RB_OSC1_MIX_GAIN, (uint32_t) amp);
+			fpga_rb_write_register(FPGA_RB_OSC1_MIX_OFS_LO, (uint32_t) (((uint64_t) ofs) & 0xffffffff));
+			fpga_rb_write_register(FPGA_RB_OSC1_MIX_OFS_HI, (uint32_t) (((uint64_t) ofs) >> 32));
 
 		// } else if (!strcmp("osc1_amp_i", p[idx]->name)) {  // @see cb_http.h
 		//   no FPGA register is set here, wait until "osc1_modtyp_s" is set
 
 		} else if (!strcmp("osc1_modtyp_s", p[idx]->name)) {  // @see cb_http.h
-			switch (p[idx]->value) {
+	        fprintf(stderr, "INFO - fpga_rb_update_all_params: got osc1_modtyp_s\n");
+
+			switch ((int) (p[idx]->value)) {
+
 			default:
-			case 0:  // Modulation: AM
-				float qrg1 = 0.5f +  p[RB_OSC1_QRG]->value * ((1ULL << 48) / 125e+6f);				// TODO: reference frequency correction
+			case 0: {  // Modulation: AM
+		        fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for AM modulation\n");
+
+		        float qrg1 = 0.5f +  p[RB_OSC1_QRG]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
 				float gain = 0.5f + (p[RB_OSC2_MAG]->value / 100.0) *     0x3fffffff;
 				float offs = 0.5f + (p[RB_OSC2_MAG]->value / 100.0) * 0x3fffffffffff;
 
-				fpga_rb_update_params(FPGA_RB_CTRL, 0x00001017);									// control: resync OSC1 & OSC2
-				fpga_rb_update_params(FPGA_RB_OSC1_INC_LO, (uint32_t) (qrg1 & 0xffffffff));
-				fpga_rb_update_params(FPGA_RB_OSC1_INC_HI, (uint32_t) (qrg1 >> 32));
-				fpga_rb_update_params(FPGA_RB_OSC1_OFS_LO, 0);										// no carrier phase offset
-				fpga_rb_update_params(FPGA_RB_OSC1_OFS_HI, 0);										// no carrier phase offset
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_GAIN, (uint32_t) gain);
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_OFS_LO, (uint32_t) (offs & 0xffffffff));
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_OFS_HI, (uint32_t) (offs >> 32));
-				fpga_rb_update_params(FPGA_RB_CTRL, 0x00000081);									// control: amplitude modulation  @see red_pitaya_radiobox_tb.sv
-				break;
-
-			case 1:  // Modulation: FM
-				float qrg1 = 0.5f + p[RB_OSC1_QRG]->value * ((1ULL << 48) / 125e+6f);				// TODO: reference frequency correction
-				float devi = 0.5f + p[RB_OSC2_MAG]->value * ((1UL  << 32) / 125e+6f);				// TODO: reference frequency correction
-
-				fpga_rb_update_params(FPGA_RB_CTRL, 0x00001017);									// control: resync OSC1 & OSC2
-				fpga_rb_update_params(FPGA_RB_OSC1_INC_LO, 0);										// not used while streaming in
-				fpga_rb_update_params(FPGA_RB_OSC1_INC_HI, 0);										// not used while streaming in
-				fpga_rb_update_params(FPGA_RB_OSC1_OFS_LO, 0);										// no carrier phase offset
-				fpga_rb_update_params(FPGA_RB_OSC1_OFS_HI, 0);										// no carrier phase offset
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_GAIN, (uint32_t) devi);
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_OFS_LO, (uint32_t) (qrg1 & 0xffffffff));
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_OFS_HI, (uint32_t) (qrg1 >> 32));
-				fpga_rb_update_params(FPGA_RB_CTRL, 0x00000021);									// control: frequency modulation  @see red_pitaya_radiobox_tb.sv
-				break;
-
-			case 2:  // Modulation: PM
-				fpga_rb_update_params(FPGA_RB_OSC2_MIX_GAIN, gain_l);
-				break;
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00001017);									// control: resync OSC1 & OSC2
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_LO, (uint32_t) (((uint64_t) qrg1) & 0xffffffff));
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_HI, (uint32_t) (((uint64_t) qrg1) >> 32));
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_LO, 0);										// no carrier phase offset
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_HI, 0);										// no carrier phase offset
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_GAIN, (uint32_t) ((uint64_t) gain));
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_LO, (uint32_t) (((uint64_t) offs) & 0xffffffff));
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_HI, (uint32_t) (((uint64_t) offs) >> 32));
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00000081);									// control: amplitude modulation  @see red_pitaya_radiobox_tb.sv
 			}
+			break;
 
-		}
-	}
+			case 1: {  // Modulation: FM
+		        fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for FM modulation\n");
 
+				float qrg1 = 0.5f + p[RB_OSC1_QRG]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
+				float devi = 0.5f + p[RB_OSC2_MAG]->value * ((1ULL << 32) / rp_main_calib_params.base_osc125mhz_realhz);
+
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00001017);									// control: resync OSC1 & OSC2
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_LO, 0);										// not used while streaming in
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_HI, 0);										// not used while streaming in
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_LO, 0);										// no carrier phase offset
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_HI, 0);										// no carrier phase offset
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_GAIN, (uint32_t) devi);
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_LO, (uint32_t) (((uint64_t) qrg1) & 0xffffffff));
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_HI, (uint32_t) (((uint64_t) qrg1) >> 32));
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00000021);									// control: frequency modulation  @see red_pitaya_radiobox_tb.sv
+			}
+			break;
+
+			case 2: {  // Modulation: PM
+		        fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for PM modulation\n");
+
+		        float qrg1 = 0.5f +  p[RB_OSC1_QRG]->value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
+				float gain = 0.5f +  p[RB_OSC2_MAG]->value * ((1ULL << 32) / rp_main_calib_params.base_osc125mhz_realhz);
+
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00001017);									// control: resync OSC1 & OSC2
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_LO, (uint32_t) (((uint64_t) qrg1) & 0xffffffff));
+				fpga_rb_write_register(FPGA_RB_OSC1_INC_HI, (uint32_t) (((uint64_t) qrg1) >> 32));
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_LO, 0);										// not used while streaming in
+				fpga_rb_write_register(FPGA_RB_OSC1_OFS_HI, 0);										// not used while streaming in
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_GAIN, (uint32_t) gain);
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_LO, 0);
+				fpga_rb_write_register(FPGA_RB_OSC2_MIX_OFS_HI, 0);
+				fpga_rb_write_register(FPGA_RB_CTRL, 0x00000041);									// control: phase modulation  @see red_pitaya_radiobox_tb.sv
+			}
+			break;
+
+			}  // switch()
+		}  // else if ()
+	}  // while (1)
+
+    fprintf(stderr, "fpga_rb_update_all_params: END\n");
 	return 0;
 }
 
@@ -211,7 +253,7 @@ uint32_t fpga_rb_read_register(unsigned int rb_reg_ofs)
 		return -1;
 	}
 
-	return *((fpga_rb_reg_mem_t*) ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs);
+	return *((uint32_t*) ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs);
 }
 
 /*----------------------------------------------------------------------------*/
@@ -230,7 +272,7 @@ int fpga_rb_write_register(unsigned int rb_reg_ofs, uint32_t value)
 		return -1;
 	}
 
-	*((fpga_rb_reg_mem_t*) ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs) = value;
+	*((uint32_t*) ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs) = value;
     return 0;
 }
 
@@ -245,13 +287,18 @@ void fpga_rb_enable(int enable)
 {
 	if (enable) {
 		// enable RadioBox
-		fpga_rb_write_register(RB_CTRL, 0x00000001);
+		uint32_t newreg = 0x00000001 | fpga_rb_read_register(FPGA_RB_CTRL);
+		fpga_rb_write_register(FPGA_RB_CTRL, newreg);
 		fpga_rb_reset();
 
+		fpga_rb_write_register(FPGA_RB_LED_CTRL, 3);  // show OSC1 output at RB LEDs
+
 	} else {
+		fpga_rb_write_register(FPGA_RB_LED_CTRL, 0);  // disable RB LEDs
+
 		// disable RadioBox
 		fpga_rb_reset();
-		fpga_rb_write_register(RB_CTRL, 0x00000000);
+		fpga_rb_write_register(FPGA_RB_CTRL, 0x00000000);
 	}
 }
 
@@ -263,14 +310,14 @@ void fpga_rb_enable(int enable)
 void fpga_rb_reset(void)
 {
 	// send resync to OSC1 and OSC2
-	fpga_rb_write_register(RB_CTRL, h00001011);
+	fpga_rb_write_register(FPGA_RB_CTRL, 0x00001011);
 
 	// send resync and reset to OSC1 and OSC2
-	fpga_rb_write_register(RB_CTRL, h00001017);
+	fpga_rb_write_register(FPGA_RB_CTRL, 0x00001017);
 
 	// send resync to OSC1 and OSC2
-	fpga_rb_write_register(RB_CTRL, h00001011);
+	fpga_rb_write_register(FPGA_RB_CTRL, 0x00001011);
 
 	// run mode of both oscillators
-	fpga_rb_write_register(RB_CTRL, 0x00000001);
+	fpga_rb_write_register(FPGA_RB_CTRL, 0x00000001);
 }

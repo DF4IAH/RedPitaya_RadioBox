@@ -38,12 +38,6 @@
 #endif
 
 
-//extern pthread_mutex_t rp_main_params_mutex;
-//extern rp_app_params_t rp_main_params[];
-//extern rp_calib_params_t rp_main_calib_params;
-//extern int params_init;
-
-
 /*----------------------------------------------------------------------------------*/
 /**
  * @brief Returns description cstring for this RadioBox sub-module

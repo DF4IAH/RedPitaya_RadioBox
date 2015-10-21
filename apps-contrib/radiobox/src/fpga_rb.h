@@ -324,7 +324,7 @@ typedef struct fpga_rb_reg_mem_s {
 int fpga_rb_init(void);
 int fpga_rb_exit(void);
 
-int fpga_rb_update_all_params(rp_app_params_t* p);
+int fpga_rb_update_all_params(rp_app_params_t* p[]);
 uint32_t fpga_rb_read_register(unsigned int rb_reg_ofs);
 int fpga_rb_write_register(unsigned int rb_reg_ofs, uint32_t value);
 

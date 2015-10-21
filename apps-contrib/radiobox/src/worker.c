@@ -168,7 +168,7 @@ void* worker_thread(void* args)
             /* state == worker_normal_state */
 
             if (fpga_update) {
-                if (fpga_rb_update_all_params(curr_params)) {
+                if (fpga_rb_update_all_params(&curr_params)) {
                     fprintf(stderr, "worker - RadioBox: setting of FPGA registers failed\n");
                 }
 
