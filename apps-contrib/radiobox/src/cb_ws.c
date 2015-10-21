@@ -1,5 +1,7 @@
 /*
- * cb_ws.c
+ * @brief CallBack functions of the WebSocket parameter transfer system
+ *
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *
  *  Created on: 08.10.2015
  *      Author: espero

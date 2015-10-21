@@ -1,9 +1,7 @@
 /**
- * $Id: main.h 881 2013-12-16 05:37:34Z rp_jmenart $
+ * @brief Red Pitaya RadioBox main module.
  *
- * @brief Red Pitaya Oscilloscope main module.
- *
- * @Author Jure Menart <juremenart@gmail.com>
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
@@ -26,31 +24,55 @@
 #endif
 
 
-/* Parameters description structure - must be the same for all RP controllers */
+/** @defgroup main_h RadioBox main module
+ * @{
+ */
+
+/** @brief Parameters description structure - must be the same for all RP controllers */
 typedef struct rp_app_params_s {
-    char  *name;
+	/** @brief name  Name of the parameter */
+	char  *name;
+
+	/** @brief value  Value of the parameter */
     float  value;
+
+	/** @brief fpga_update  Do a FPGA register update based on this parameter */
     int    fpga_update;
+
+	/** @brief read_only  The value of this parameter can not be changed */
     int    read_only;
+
+	/** @brief min_val  The lower limit of the value */
     float  min_val;
+
+	/** @brief max_val  The upper limit of the value */
     float  max_val;
 } rp_app_params_t;
 
 
 /* Output signals */
+/** @brief The number of traces beeing hold in the traces buffer */
 #define TRACE_NUM   3
+/** @brief The number of points that a single trace holds */
 #define TRACE_LENGTH (1024) /* Must be 2^n! */
 
+/* Returns application description for the RadioBox sub-module */
+const char* rp_app_desc(void);
 
 /* Internal helper functions */
-int  rp_create_traces(float*** a_traces);
-void rp_free_traces(float*** a_traces);
+int  rp_create_traces(float** a_traces[TRACE_NUM]);
+void rp_free_traces(float** a_traces[TRACE_NUM]);
 
-/* copies parameters from src to dst - if dst does not exist, it is created */
-int rp_copy_params(rp_app_params_t** dst, rp_app_params_t* src);
+/* Copies parameters from src to dst - if dst does not exist, it is created */
+int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[]);
 
-/* frees memory of parameters structure */
-int rp_free_params(rp_app_params_t* params);
+/* Pushes current values for params to the worker thread */
+int rp_update_main_params(rp_app_params_t params[]);
+
+/* Frees memory of parameters structure */
+int rp_free_params(rp_app_params_t* params[]);
+
+/** @} */
 
 
 #endif /*  __MAIN_H */

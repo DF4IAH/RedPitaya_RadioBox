@@ -1,6 +1,4 @@
 /**
- * $Id: fpga_hk.c 2015-10-18 20:50:00Z DF4IAH $
- *
  * @brief Red Pitaya FPGA Interface for the House-keeping sub-module.
  *
  * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>

@@ -1,9 +1,7 @@
 /**
- * $Id: worker.c 881 2013-12-16 05:37:34Z rp_jmenart $
- *
  * @brief Red Pitaya Oscilloscope worker.
  *
- * @Author Jure Menart <juremenart@gmail.com>
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *         
  * (c) Red Pitaya  http://www.redpitaya.com
  *
@@ -116,12 +114,13 @@ int worker_exit(void)
     rp_free_traces(&worker_traces);
     rp_free_traces(&worker_traces_tmp);
 
-    rp_free_params(worker_params);
+    rp_free_params(&worker_params);
     worker_calib_params = NULL;
 
     fprintf(stderr, "worker_exit: END\n");
     return 0;
 }
+
 
 /*----------------------------------------------------------------------------------*/
 void* worker_thread(void* args)
@@ -155,7 +154,7 @@ void* worker_thread(void* args)
 
         /* request to stop worker thread, we will shut down */
         if (state == worker_quit_state) {
-            rp_free_params(curr_params);
+            rp_free_params(&curr_params);
             break;
 
         } else if (state == worker_abort_state) {

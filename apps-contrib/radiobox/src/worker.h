@@ -1,9 +1,7 @@
 /**
- * $Id: worker.h 881 2013-12-16 05:37:34Z rp_jmenart $
+ * @brief Red Pitaya RadioBox worker.
  *
- * @brief Red Pitaya Oscilloscope worker.
- *
- * @Author Jure Menart <juremenart@gmail.com>
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *         
  * (c) Red Pitaya  http://www.redpitaya.com
  *
@@ -18,6 +16,10 @@
 #include "main.h"
 #include "calib.h"
 
+
+/** @defgroup worker_h FPGA RadioBox sub-module worker process for FPGA interaction
+ * @{
+ */
 
 typedef enum worker_state_e {
     worker_idle_state = 0, /* do nothing */
@@ -35,19 +37,23 @@ void* worker_thread(void* args);
 int worker_update_params(rp_app_params_t* params, int fpga_update);
 
 
-/* removes 'dirty' flags */
+/** @brief removes 'dirty' flags */
 int worker_clear_signals(void);
 
-/* Returns:
+/** @brief Get signals
+ *
+ *  Returns:
  *  0  - new signals (dirty signal) are copied to the output
  *  -1 - no new signals available (dirty signal was not set - we need to wait)
  */
 int worker_get_signals(float*** traces, int* trc_idx);
 
-/* Fills the output signal structure from temp one after calculation is done 
+/** @brief Fills the output signal structure from temp one after calculation is done
  * and marks it dirty 
  */
 int worker_set_signals(float** source, int index);
+
+/** @} */
 
 
 #endif /* __WORKER_H*/

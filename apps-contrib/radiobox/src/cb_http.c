@@ -1,5 +1,7 @@
 /*
- * cb_http.c
+ * @brief CallBack functions of the HTTP GET/POST parameter transfer system
+ *
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *
  *  Created on: 09.10.2015
  *      Author: espero
@@ -36,7 +38,7 @@ static rp_calib_params_t        rp_main_calib_params;
 
 
 /* Describe app. parameters with some info/limitations */
-static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
+static rp_app_params_t rp_main_params[RB_PARAMS_NUM + 1] = {
     { /* Running mode */
 	    "RB_RUN",           0, 1, 0, 0,         1 },
     { /* Oscillator-1 frequency (Hz) */
@@ -51,13 +53,6 @@ static rp_app_params_t rp_main_params[PARAMS_NUM + 1] = {
         "osc2_qrg_i",       0, 1, 0, 0, 125000000 },
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
         "osc2_mag_i",       0, 1, 0, 0,   1000000 },
-
-    { /* calculator register A */
-        "rb_add_a_i",       0, 1, 0, 0,      1000 },
-    { /* calculator register B */
-        "rb_add_b_i",       0, 1, 0, 0,      1000 },
-    { /* calculator sum result register */
-        "rb_add_res_i",     0, 0, 1, 0, 999999999 },
     { /* Must be last! */
         NULL,               0.0, -1, -1, 0.0, 0.0 }
 };
@@ -84,12 +79,12 @@ int rp_app_init(void)
         fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
 
-    if (worker_init(&rp_main_params[0], PARAMS_NUM, &rp_main_calib_params) < 0) {
+    if (worker_init(&rp_main_params[0], RB_PARAMS_NUM, &rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_app_init: failed to start rp_osc_worker_init.\n");
         return -1;
     }
 
-    rp_set_params(&rp_main_params[0], PARAMS_NUM, 0);
+    rp_set_params(&rp_main_params[0], RB_PARAMS_NUM, 0);
 
     fprintf(stderr, "rp_app_init: END.\n");
     return 0;
@@ -113,8 +108,7 @@ int rp_app_exit(void)
 
 int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
 {
-    int params_change = 0;
-    int fpga_update = 1;
+    int fpga_update = 0;
 
     fprintf(stderr, "rp_set_params: BEGIN\n");
     TRACE("%s()\n", __FUNCTION__);
@@ -122,8 +116,8 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
     // Debugging
     fpga_hk_setLeds(1, 0x02, 0);
 
-    if (len > PARAMS_NUM) {
-        fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, PARAMS_NUM);
+    if (len > RB_PARAMS_NUM) {
+        fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, RB_PARAMS_NUM);
         return -1;
     }
 
@@ -158,8 +152,8 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
             continue;
 
         if (rp_main_params[p_idx].value != p[i].value) {
-            params_change = 1;
             if (rp_main_params[p_idx].fpga_update) {
+                rp_main_params[p_idx].fpga_update |= 0x80;	// indicate this entry to be updated in the FPGA
                 fpga_update = 1;
             }
         }
@@ -178,8 +172,8 @@ int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
         fprintf(stderr, "rp_set_params: param name = %s, value = %lf\n", p[i].name, p[i].value);
     }
 
-    if (params_change && fpga_update) {
-        worker_params_dirty = 1;
+    if (fpga_update) {
+        worker_params_dirty = 1;  // indicate that some data attributes were changed
     }
     pthread_mutex_unlock(&rp_main_params_mutex);
 
@@ -196,14 +190,14 @@ int rp_get_params(rp_app_params_t** p)
     fpga_hk_setLeds(1, 0x08, 0);
 
     rp_app_params_t* p_copy = NULL;
-    p_copy = (rp_app_params_t*) malloc((PARAMS_NUM+1) * sizeof(rp_app_params_t));
+    p_copy = (rp_app_params_t*) malloc((RB_PARAMS_NUM + 1) * sizeof(rp_app_params_t));
     if (!p_copy) {
         return -1;
     }
 
     pthread_mutex_lock(&rp_main_params_mutex);
     int i;
-    for (i = 0; i < PARAMS_NUM; i++) {
+    for (i = 0; i < RB_PARAMS_NUM; i++) {
         int p_strlen = strlen(rp_main_params[i].name);
 
         p_copy[i].name = (char*) malloc(p_strlen+1);
@@ -219,11 +213,11 @@ int rp_get_params(rp_app_params_t** p)
         fprintf(stderr, "rp_get_params: param name = %s, value = %lf\n", p_copy[i].name, p_copy[i].value);
     }
     pthread_mutex_unlock(&rp_main_params_mutex);
-    p_copy[PARAMS_NUM].name = NULL;
+    p_copy[RB_PARAMS_NUM].name = NULL;
     *p = p_copy;
 
     fprintf(stderr, "rp_get_params: END\n");
-    return PARAMS_NUM;
+    return RB_PARAMS_NUM;
 }
 
 int rp_get_signals(float*** s, int* trc_num, int* trc_len)
@@ -267,7 +261,7 @@ int rp_update_main_params(rp_app_params_t* params)
 
     /* inform rp_set_params(), also */
     params_init = 0;
-    rp_set_params(&rp_main_params[0], PARAMS_NUM, 1);
+    rp_set_params(&rp_main_params[0], RB_PARAMS_NUM, 1);
 
     fprintf(stderr, "rp_update_main_params: END\n");
     return 0;

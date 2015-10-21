@@ -1,9 +1,7 @@
 /**
- * $Id: main.c 881 2013-12-16 05:37:34Z rp_jmenart $
+ * @brief Red Pitaya RadioBox main module.
  *
- * @brief Red Pitaya Oscilloscope main module.
- *
- * @Author Jure Menart <juremenart@gmail.com>
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
@@ -46,12 +44,32 @@
 //extern int params_init;
 
 
+/*----------------------------------------------------------------------------------*/
+/**
+ * @brief Returns description cstring for this RadioBox sub-module
+ *
+ * This function returns a null terminated cstring.
+ *
+ * @retval      cstring    Description of this RadioBox sub-module
+ */
 const char* rp_app_desc(void)
 {
     return (const char *)"RedPitaya RadioBox application.\n";
 }
 
-int rp_create_traces(float*** a_traces)
+/*----------------------------------------------------------------------------------*/
+/**
+ * @brief Prepares buffers for signal traces (not used yet)
+ *
+ * This function allocates memory for TRACE_NUM traces in the memory and prepares
+ * for its usage.
+ *
+ * @param[inout] a_traces  Pointer to traces buffer
+ *
+ * @retval       0         Success
+ * @retval       -1        Failed to establish the traces buffer
+ */
+int rp_create_traces(float** a_traces[TRACE_NUM])
 {
     int i;
     float** trc;
@@ -61,39 +79,57 @@ int rp_create_traces(float*** a_traces)
     // Debugging
     fpga_hk_setLeds(1, 0x20, 0);
 
-    trc = (float**) malloc(TRACE_NUM * sizeof(float*));
-    if (trc == NULL) {
+    trc = malloc(TRACE_NUM * sizeof(float*));
+    if (!trc) {
         return -1;
     }
 
+    // First step - void all pointers in case of early return
     for (i = 0; i < TRACE_NUM; i++)
     	trc[i] = NULL;
 
+    // Set-up for each trace
     for (i = 0; i < TRACE_NUM; i++) {
     	trc[i] = (float*) malloc(TRACE_LENGTH * sizeof(float));
-        if (trc[i] == NULL) {
+        if (!(trc[i])) {
+            // de-allocate all memory as much as already taken
             rp_free_traces(a_traces);
-            return -1;
+            return -2;
         }
-        memset(&trc[i][0], 0, TRACE_LENGTH * sizeof(float));
+        // wipe-out all random data
+        memset(trc[i], 0, TRACE_LENGTH * sizeof(float));
     }
+
+    // Success - assign to in/out parameter
     *a_traces = trc;
     fprintf(stderr, "rp_create_traces: END\n\n");
 
     return 0;
 }
 
-void rp_free_traces(float*** a_traces)
+/*----------------------------------------------------------------------------------*/
+/**
+ * @brief Frees memory used by the traces buffer (not used yet)
+ *
+ * This function frees memory for TRACE_NUM traces in the memory.
+ *
+ * @param[inout] a_traces  Pointer to traces buffer
+ */
+void rp_free_traces(float** a_traces[TRACE_NUM])
 {
-    int i;
-    float** trc = *a_traces;
-
     fprintf(stderr, "rp_free_traces: BEGIN\n");
+
+    if (!a_traces) {
+        return;
+    }
+
+    float** trc = *a_traces;
 
     // Debugging
     fpga_hk_setLeds(1, 0x40, 0);
 
     if (trc) {
+        int i;
         for (i = 0; i < TRACE_NUM; i++) {
             if (trc[i]) {
                 free(trc[i]);
@@ -101,8 +137,9 @@ void rp_free_traces(float*** a_traces)
             }
         }
         free(trc);
-        *a_traces = NULL;
     }
+    *a_traces = NULL;
+
     fprintf(stderr, "rp_free_traces: END\n\n");
 }
 
@@ -127,76 +164,73 @@ void rp_free_traces(float*** a_traces)
  * @retval      0    Successful operation
  * @retval      -1   Failure, error message is output on standard error
  */
-int rp_copy_params(rp_app_params_t** dst, rp_app_params_t* src)
+int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[])
 {
     int i, num_params;
 
     /* check arguments */
-    if (dst == NULL) {
+    if (!dst || !(*dst)) {
         fprintf(stderr, "Internal error, the destination Application parameters variable is not set.\n");
         return -1;
     }
-    if (src == NULL) {
+    if (!src) {
         fprintf(stderr, "Internal error, the source Application parameters are not specified.\n");
-        return -1;
+        return -2;
     }
 
     /* check if destination buffer is allocated or not */
     rp_app_params_t* p_new = *dst;
 
-    if (p_new) {
-        /* destination buffer is already allocated */
-        i = 0;
-        while (src[i].name != NULL) {
-        	if (!strcmp(p_new[i].name, src[i].name)) {
-        		// direct mapping found - just copy each value
-        		p_new[i].value = src[i].value;
-        	} else {
-        		// due to differences in the structure, discard the old destination list and recreate it
-        		rp_free_params(*dst);
-        		p_new = NULL;
-        		break;
-        	}
-            i++;
-        }
-    }
+	/* destination buffer is already allocated */
+	i = 0;
+	while (src[i].name) {
+		if (!strcmp(p_new[i].name, src[i].name)) {
+			// direct mapping found - just copy each value
+			p_new[i].value = src[i].value;
+		} else {
+			// due to differences in the structure, discard the old destination list and recreate it
+	        fprintf(stderr, "RadioBox: main.c - rp_copy_params() - non direct params mapping found, recreating params list.\n");
+			rp_free_params(dst);
+			p_new = NULL;
+			break;
+		}
+		i++;
+	}
 
-    if (p_new == NULL) {
-        i = 0;
-
+    if (!p_new) {  // recreate parameter list
         /* retrieve the number of source parameters */
+        i = 0;
         num_params = 0;
-        while (src[i++].name != NULL) {
+        while (src[i++].name) {
             num_params++;
         }
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
         p_new = (rp_app_params_t*) malloc(sizeof(rp_app_params_t) * (num_params + 1));
-        if (p_new == NULL) {
+        if (!p_new) {
             fprintf(stderr, "Memory problem, the destination buffer could not be allocated (1).\n");
-            return -1;
+            return -3;
         }
 
         /* scan source parameters, allocate memory space for parameter names and copy values */
         i = 0;
-        while (src[i].name != NULL) {
-            p_new[i].name = (char*) malloc(strlen(src[i].name) + 1);
-            if (p_new[i].name == NULL) {
+        while (src[i].name) {
+            int slen = strlen(src[i].name);
+            p_new[i].name = (char*) malloc(slen + 1);
+            if (!(p_new[i].name)) {
                 fprintf(stderr, "Memory problem, the destination buffer could not be allocated (2).\n");
-                return -1;
+                return -4;
             }
 
-            strncpy(p_new[i].name, src[i].name, strlen(src[i].name));
-            p_new[i].name[strlen(src[i].name)] = '\0';
+            strncpy(p_new[i].name, src[i].name, slen);
+            p_new[i].name[slen] = '\0';
             p_new[i].value = src[i].value;
             i++;
         }
 
-        /* mark last one */
+        /* mark last one as final entry */
         p_new[num_params].name = NULL;
         p_new[num_params].value = -1;
-
-    } else {
     }
     *dst = p_new;
 
@@ -212,21 +246,26 @@ int rp_copy_params(rp_app_params_t** dst, rp_app_params_t* src)
  * allocated by calling rp_copy_params() function.
  *
  * @param[in]   params  Application parameters to be deallocated
- * @retval      0       Success, never fails
+ * @retval      0       Success
+ * @retval      -1      Failed with non-valid params
  */
-int rp_free_params(rp_app_params_t* params)
+int rp_free_params(rp_app_params_t* params[])
 {
-    int i = 0;
+    if (!params) {
+        return -1;
+    }
 
     /* free params structure */
-    if (params) {
-        while (params[i].name != NULL) {
-            free(params[i].name);
-            params[i].name = NULL;
+    if (*params) {
+        int i = 0;
+        while (params[i]->name != NULL) {
+            free(params[i]->name);
+            params[i]->name = NULL;
             i++;
         }
-        free(params);
-        params = NULL;
+        free(*params);
+        *params = NULL;
     }
+
     return 0;
 }

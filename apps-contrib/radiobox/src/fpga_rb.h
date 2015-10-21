@@ -1,6 +1,4 @@
 /**
- * $Id: fpga_rb.h 2015-10-18 20:50:00Z DF4IAH $
- *
  * @brief Red Pitaya FPGA Interface for the RadioBox sub-module.
  *
  * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
@@ -20,6 +18,10 @@
 #include "main.h"
 
 
+/** @defgroup fpga_rb_h FPGA RadioBox sub-module access
+ * @{
+ */
+
 /** @brief RadioBox starting address of FPGA registers. */
 #define FPGA_RB_BASE_ADDR		0x40600000
 
@@ -29,27 +31,27 @@
 /** @brief FPGA register offset addresses of the RadioBox sub-system base address.
  */
 enum {
-	RB_CTRL						= 0x00000,
-	RB_STATUS					= 0x00004,
-	RB_ICR						= 0x00008,
-	RB_ISR						= 0x0000C,
-	RB_DMA_CTRL					= 0x00010,
-	RB_LED_CTRL					= 0x0001C,
-	RB_OSC1_INC_LO				= 0x00020,
-	RB_OSC1_INC_HI				= 0x00024,
-	RB_OSC1_OFS_LO				= 0x00028,
-	RB_OSC1_OFS_HI				= 0x0002C,
-	RB_OSC1_MIX_GAIN			= 0x00030,
-	RB_OSC1_MIX_OFS_LO			= 0x00038,
-	RB_OSC1_MIX_OFS_HI			= 0x0003C,
-	RB_OSC2_INC_LO				= 0x00040,
-	RB_OSC2_INC_HI				= 0x00044,
-	RB_OSC2_OFS_LO				= 0x00048,
-	RB_OSC2_OFS_HI				= 0x0004C,
-	RB_OSC2_MIX_GAIN			= 0x00050,
-	RB_OSC2_MIX_OFS_LO			= 0x00058,
-	RB_OSC2_MIX_OFS_HI			= 0x0005C
-} RB_REG_ENUMS;
+	FPGA_RB_CTRL				= 0x00000,
+	FPGA_RB_STATUS				= 0x00004,
+	FPGA_RB_ICR					= 0x00008,
+	FPGA_RB_ISR					= 0x0000C,
+	FPGA_RB_DMA_CTRL			= 0x00010,
+	FPGA_RB_LED_CTRL			= 0x0001C,
+	FPGA_RB_OSC1_INC_LO			= 0x00020,
+	FPGA_RB_OSC1_INC_HI			= 0x00024,
+	FPGA_RB_OSC1_OFS_LO			= 0x00028,
+	FPGA_RB_OSC1_OFS_HI			= 0x0002C,
+	FPGA_RB_OSC1_MIX_GAIN		= 0x00030,
+	FPGA_RB_OSC1_MIX_OFS_LO		= 0x00038,
+	FPGA_RB_OSC1_MIX_OFS_HI		= 0x0003C,
+	FPGA_RB_OSC2_INC_LO			= 0x00040,
+	FPGA_RB_OSC2_INC_HI			= 0x00044,
+	FPGA_RB_OSC2_OFS_LO			= 0x00048,
+	FPGA_RB_OSC2_OFS_HI			= 0x0004C,
+	FPGA_RB_OSC2_MIX_GAIN		= 0x00050,
+	FPGA_RB_OSC2_MIX_OFS_LO		= 0x00058,
+	FPGA_RB_OSC2_MIX_OFS_HI		= 0x0005C
+} FPGA_RB_REG_ENUMS;
 
 /** @brief FPGA registry structure for the RadioBox sub-module.
  *
@@ -179,7 +181,7 @@ typedef struct fpga_rb_reg_mem_s {
 	 *
 	 *   value = h04  LEDs show magnitude function with selected input port MIX2 output.
 	 *
-	 *   value = h05  LEDs show magnitude function with selected input port OSC3 output.
+	 *   value = h05  LEDs show magnitude function with selected input port OSC2 output.
 	 *
 	 *   value = h06..h0F  n/a
 	 *
@@ -321,10 +323,15 @@ typedef struct fpga_rb_reg_mem_s {
 // RadioBox FPGA accessors
 int fpga_rb_init(void);
 int fpga_rb_exit(void);
-int fpga_rb_reset(void);
 
 int fpga_rb_update_all_params(rp_app_params_t* p);
-int fpga_rb_update_params(unsigned int rb_reg_ofs, uint32_t value);
+uint32_t fpga_rb_read_register(unsigned int rb_reg_ofs);
+int fpga_rb_write_register(unsigned int rb_reg_ofs, uint32_t value);
+
+void fpga_rb_enable(int enable);
+void fpga_rb_reset(void);
+
+/** @} */
 
 
 #endif /* __FPGA_RB_H */

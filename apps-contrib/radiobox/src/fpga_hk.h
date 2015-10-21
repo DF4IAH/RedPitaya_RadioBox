@@ -1,6 +1,4 @@
 /**
- * $Id: fpga_hk.h 2015-10-18 20:50:00Z DF4IAH $
- *
  * @brief Red Pitaya FPGA Interface for the House-keeping sub-module.
  *
  * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
@@ -17,6 +15,10 @@
 
 #include <stdint.h>
 
+
+/** @defgroup fpga_hk_h FPGA House-keeping sub-module access
+ * @{
+ */
 
 /** @brief House-keeping starting address of FPGA registers. */
 #define FPGA_HK_BASE_ADDR		0x40000000
@@ -313,7 +315,10 @@ typedef struct fpga_hk_reg_mem_s {
      */
     uint32_t exp_in_n;
 
+    /** @brief Placeholder */
     uint32_t _reserved01;
+
+    /** @brief Placeholder */
     uint32_t _reserved02;
 
 
@@ -350,6 +355,8 @@ typedef struct fpga_hk_reg_mem_s {
 int fpga_hk_init(void);
 int fpga_hk_exit(void);
 int fpga_hk_setLeds(unsigned char doToggle, unsigned char mask, unsigned char leds);
+
+/** @} */
 
 
 #endif /* __FPGA_HK_H */

@@ -1,10 +1,8 @@
 /**
- * $Id: version.h 1264 2014-02-24 10:51:27Z ales.bardorfer $
- *
  * @brief Red Pitaya simple version strings. To be embedded in binaries
  *        at build time for SW traceability.
  *
- * @Author Ales Bardorfer <ales.bardorfer@redpitaya.com>
+ * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
  *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
@@ -18,7 +16,12 @@
 
 #define XSTR(s) STR(s)
 #define STR(s) #s
- 
+
+
+/** @defgroup version_h Default version information
+ * @{
+ */
+
 #ifndef VERSION
 #define VERSION_STR "0.00-0000"
 #else
@@ -30,5 +33,8 @@
 #else
 #define REVISION_STR XSTR(REVISION)
 #endif
+
+/** @} */
+
 
 #endif /* VERSION_H */
