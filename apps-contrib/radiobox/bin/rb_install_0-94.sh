@@ -2,9 +2,6 @@
 
 cd /tmp
 
-echo "Stopping nginx ..."
-/opt/redpitaya/www/apps/radiobox/bin/nginx_stop.sh
-
 echo "Changing mode to RW ..."
 rw
 
@@ -26,7 +23,6 @@ echo "Changing mode to RO ..."
 (sleep 1; ro)&
 
 echo "Starting nginx ..."
-/opt/redpitaya/www/apps/radiobox/bin/nginx_start.sh
+/opt/redpitaya/www/apps/radiobox/bin/nginx_restart_0-94.sh
 
 echo "done."
-
