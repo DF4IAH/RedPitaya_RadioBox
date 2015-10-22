@@ -3,7 +3,7 @@
  * Red Pitaya Oscilloscope client
  *
  * Author: DF4IAH <espero7757@gmx.net>
- *         
+ *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
 -->
@@ -27,35 +27,35 @@
 </head>
 <body>
   <div class="full-content">
-    <div class="container-fluid"> 
+    <div class="container-fluid">
       <div class="navbar navbar-inverse" role="navigation">
         <div class="container">
           <div class="navbar-header">
-            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse"> 
+            <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
               <span class="sr-only">T</span>
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
               <span class="icon-bar"></span>
-            </button> 
+            </button>
             <a class="navbar-brand" href="/">
               <img class="back-btn" src="img/arrow_nav_left.png">
             </a>
             <img class="logo" width=110 src="img/logo.png">
-          </div> 
+          </div>
 
           <div class="navbar-brand">
 	        <span style="padding-left: 100px; padding-right: 25px; white-space: nowrap; font-size: 150%; color: #e0d0b0;">RadioBox</span> by DF4IAH and DD8UU
-          </div> 
+          </div>
 
           <div class="collapse navbar-collapse">
             <ul class="nav navbar-nav">
-				
+
 			  <li class="dropdown">
 				<a class="btn btn-default dropdown-toggle" type="button" id="menu1" data-toggle="dropdown">SETTINGS<span class="caret"></span></a>
 				  <ul class="dropdown-menu" role="menu" aria-labelledby="menu1" style="background: #cdcccc; min-width: 0px;">
 					<li><a id="" href="#" data-toggle="modal" data-target="#myModal">CALIBRATION</a></li>
 				  </ul>
-			  </li>				  
+			  </li>
               <li>
                 <a id="RB_RUN" href="#" style="">RUN</a>
                 <a id="RB_STOP" href="#" style="display:none;">STOP</a>
@@ -79,7 +79,7 @@
           </div>
         </div>
       </div>
-      
+
       <!-- Modal settings-->
       <div class="modal" id="settings" tabindex="-1" role="dialog" aria-labelledby="export" aria-hidden="true">
         <div class="modal-dialog">
@@ -96,7 +96,7 @@
       </div>
     </div>
 
-    <div id="main" class="bg-grad" >      
+    <div id="main" class="bg-grad" >
       <form class="form-horizontal" role="form" onsubmit="return false;">
         <div style="height:20px;"></div>
 
@@ -106,14 +106,13 @@
           Transmitter
         </td>
         </tr>
-        
+
         <tr>
         <td>
         <div id="osc1_qrg" class="form-group">
           <label for="osc1_qrg_i" class="col-xs-5 control-label">OSC-1 frequency:</label>
           <div class="col-xs-4">
-            <!-- input type="text" id="osc1_qrg_i" value="0" class="form-control form-bg-osc1" autocomplete="off" / -->
-            <input type="text" id="rb_add_a_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
+            <input type="text" id="osc1_qrg_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
             <span id="apply_osc1_qrg" class="input-group-btn" _style="display:none;">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
@@ -121,13 +120,12 @@
           <div id="osc1_qrg_units" class="col-xs-3" style="padding: 7px 0 0;">Hz</div>
         </div>
         </td>
-        
+
         <td>
         <div id="osc1_amp" class="form-group">
           <label for="osc1_amp_i" class="col-xs-5 control-label">OSC-1 amplitude:</label>
           <div class="col-xs-4">
-            <!-- input type="text" id="osc1_amp_i" value="0" class="form-control form-bg-osc1" autocomplete="off" / -->
-            <input type="text" id="rb_add_b_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
+            <input type="text" id="osc1_amp_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
             <span id="apply_osc1_amp" class="input-group-btn" _style="display:none;">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
@@ -135,7 +133,7 @@
           <div id="osc1_amp_units" class="col-xs-3" style="padding: 7px 0 0;">mV &nbsp;(Vpp)</div>
         </div>
         </td>
-        
+
         <td>
         <div id="osc1_modsrc" class="form-group">
           <label for="osc1_modsrc_s" class="col-xs-5 control-label">OSC-1 mod. source:</label>
@@ -156,10 +154,10 @@
         <tr>
         <td>
         </td>
-        
+
         <td>
         </td>
-        
+
         <td>
         <div id="osc1_modtyp" class="form-group">
           <label for="osc1_modtyp_s" class="col-xs-5 control-label">OSC-1 mod. type:</label>
@@ -182,8 +180,7 @@
         <div id="osc2_qrg" class="form-group">
         <label for="osc2_qrg_i" class="col-xs-5 control-label">OSC-2 frequency:</label>
           <div class="col-xs-4">
-            <!-- input type="text" id="osc2_qrg_i" value="0" class="form-control form-bg-osc2" autocomplete="off" / -->
-            <input type="text" id="rb_add_res_i" value="0" class="form-control form-bg-osc2" autocomplete="off" />
+            <input type="text" id="osc2_qrg_i" value="0" class="form-control form-bg-osc2" autocomplete="off" />
             <span id="apply_osc2_qrg" class="input-group-btn" _style="display:none;">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
@@ -204,7 +201,7 @@
           <div id="osc2_mag_units" class="col-xs-3" style="padding: 7px 0 0;">( )</div>
         </div>
         </td>
-        
+
         <td>
         </td>
         </tr>

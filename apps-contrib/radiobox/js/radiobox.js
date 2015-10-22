@@ -54,15 +54,12 @@
     init: {}
   };
   RB.params.init = {
-    osc1_qrg_i:     1000000,
-    osc1_amp_i:        1000,
-    osc1_modsrc_s:        1,
-    osc1_modtyp_s:        0,
-    osc2_qrg_i:        1000,
-    osc2_mag_i:          50,
-
-    rb_add_a_i:          11,  // TODO: remove me
-    rb_add_b_i:          22   // TODO: remove me
+    osc1_qrg_i:           0,
+    osc1_amp_i:        1000,  // 1 V
+    osc1_modsrc_s:        1,  // mod-source: OSC2
+    osc1_modtyp_s:        0,  // modulation: AM
+    osc2_qrg_i:           0,
+    osc2_mag_i:           0
   };
 
   // Other global variables
@@ -239,16 +236,6 @@
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('osc2_mag_i') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name]);
-      }
-
-      else if (param_name.indexOf('rb_add_a_i') == 0) {  // TODO: to be removed
-        $('#'+param_name).val(RB.params.orig[param_name]);
-      }
-      else if (param_name.indexOf('rb_add_b_i') == 0) {  // TODO: to be removed
-        $('#'+param_name).val(RB.params.orig[param_name]);
-      }
-      else if (param_name.indexOf('rb_add_res_i') == 0) {  // TODO: to be removed
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
 
@@ -447,7 +434,7 @@
     }
 
     $('.dialog:visible').hide();
-    $('#right_menu').show(); 
+    $('#right_menu').show();
   };
 }(window.RB = window.RB || {}, jQuery));
 
@@ -503,7 +490,7 @@ $(function() {
 
   $('.btn').on('click', function() {
     var btn = $(this);
-    setTimeout(function() { 
+    setTimeout(function() {
       btn.blur();
     }, 10);
   });
