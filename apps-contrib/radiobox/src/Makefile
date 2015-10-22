@@ -9,9 +9,8 @@ CC=$(CROSS_COMPILE)gcc
 RM=rm
 
 OBJECTS=main.o worker.o cb_http.o cb_ws.o fpga_hk.o fpga_rb.o fpga.o calib.o
-
 CFLAGS+= -Wall -Werror -g -fPIC $(INCLUDE)
-LDFLAGS=-shared
+LDFLAGS= -shared -lpthread
 
 OUT_DIR = ..
 OUT_NAME ?= controllerhf.so

@@ -24,10 +24,10 @@
 #include "fpga.h"
 
 
-/* @brief The House-keeping memory file descriptor used to mmap() the FPGA space. */
+/** @brief The House-keeping memory file descriptor used to mmap() the FPGA space. */
 extern int           		g_fpga_hk_mem_fd;
 
-/* @brief The House-keeping memory layout of the FPGA registers. */
+/** @brief The House-keeping memory layout of the FPGA registers. */
 extern fpga_hk_reg_mem_t*	g_fpga_hk_reg_mem;
 
 
@@ -103,6 +103,7 @@ int fpga_hk_exit(void)
  * @param[in] doToggle   true: mask defines which LED states to be toggled, leds  is voided. false: mask defines the LED bits to be set, leds  each led is bright when its masked bit is set.
  * @param[in] mask   defines which LED states to be changed.
  * @param[in] leds   defines which masked LEDs should be bright. When toggling this parameter is voided
+
  * @retval 0 Success
  * @retval -1 FPGA HouseKeeping sub-module not initialized
  */

@@ -30,14 +30,14 @@ typedef enum worker_state_e {
 } worker_state_t;
 
 
-int worker_init(rp_app_params_t* params, int params_len, rp_calib_params_t* calib_params);
+int worker_init(rp_app_params_t* params, int params_len);
 int worker_exit(void);
 void* worker_thread(void* args);
 
-int worker_update_params(rp_app_params_t* params, int fpga_update);
+/** @brief Marks all changed values for that entries which are having a fpga_update flag set */
+int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp);
 
-
-/** @brief removes 'dirty' flags */
+/** @brief Removes 'dirty' flags */
 int worker_clear_signals(void);
 
 /** @brief Get signals

@@ -167,6 +167,22 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t dma_ctrl;
 
 
+    /** @brief  Placeholder for addr: 0x40600014
+     *
+     * n/a
+     *
+     */
+    uint32_t reserved_14;
+
+
+    /** @brief  Placeholder for addr: 0x40600018
+     *
+     * n/a
+     *
+     */
+    uint32_t reserved_18;
+
+
     /** @brief  R/W RB_LED_CTRL - Interrupt status register (addr: 0x4060001C)
      *
 	 * bit h03..h00: LED magnitude input selector
@@ -235,6 +251,14 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t osc1_mix_gain;
 
 
+    /** @brief  Placeholder for addr: 0x40600034
+     *
+     * n/a
+     *
+     */
+    uint32_t reserved_34;
+
+
     /** @brief  R/W RB_OSC1_MIX_OFS_LO - Oscillator-1 output mixer offset register, bits 31..0 (addr: 0x40600038)
      *
 	 * bit h1F..h00: LSB of Oscillator-1 mixer offset register.
@@ -297,6 +321,14 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t osc2_mix_gain;
 
 
+    /** @brief  Placeholder for addr: 0x40600054
+     *
+     * n/a
+     *
+     */
+    uint32_t reserved_54;
+
+
     /** @brief  R/W RB_OSC2_MIX_OFS_LO - Oscillator-2 output mixer offset register, bits 31..0 (addr: 0x40600058)
      *
 	 * bit h1F..h00: LSB of Oscillator-2 mixer offset register.
@@ -324,9 +356,12 @@ typedef struct fpga_rb_reg_mem_s {
 int fpga_rb_init(void);
 int fpga_rb_exit(void);
 
-int fpga_rb_update_all_params(rp_app_params_t* p[]);
+int fpga_rb_update_all_params(rp_app_params_t* p);
+
+#if 0
 uint32_t fpga_rb_read_register(unsigned int rb_reg_ofs);
 int fpga_rb_write_register(unsigned int rb_reg_ofs, uint32_t value);
+#endif
 
 void fpga_rb_enable(int enable);
 void fpga_rb_reset(void);

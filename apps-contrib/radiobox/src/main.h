@@ -56,21 +56,19 @@ typedef struct rp_app_params_s {
 /** @brief The number of points that a single trace holds */
 #define TRACE_LENGTH (1024) /* Must be 2^n! */
 
-/* Returns application description for the RadioBox sub-module */
+/** @brief Returns application description for the RadioBox sub-module */
 const char* rp_app_desc(void);
 
 /* Internal helper functions */
+/** @brief Creates traces buffers */
 int  rp_create_traces(float** a_traces[TRACE_NUM]);
+/** @brief Frees traces buffers */
 void rp_free_traces(float** a_traces[TRACE_NUM]);
 
-/* Copies parameters from src to dst - if dst does not exist, it is created */
-int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[]);
-
-/* Pushes current values for params to the worker thread */
-int rp_update_main_params(rp_app_params_t params[]);
-
-/* Frees memory of parameters structure */
-int rp_free_params(rp_app_params_t* params[]);
+/** @brief Copies parameters from src to dst - if dst does not exist, it is created */
+int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
+/** @brief Frees memory of parameters structure */
+int rp_free_params(rp_app_params_t** params);
 
 /** @} */
 

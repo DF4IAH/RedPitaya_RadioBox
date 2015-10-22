@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include <string.h>
 #include <pthread.h>
 
@@ -20,214 +21,158 @@
 #include "cb_http.h"
 
 
-/* @brief The HouseKeeping memory file descriptor used to mmap() the FPGA space. */
-int                             g_fpga_hk_mem_fd = -1;
+/** @brief Calibration data layout within the EEPROM device. */
+extern rp_calib_params_t	rp_main_calib_params;
 
-/* @brief The HouseKeeping memory layout of the FPGA registers. */
-fpga_hk_reg_mem_t*              g_fpga_hk_reg_mem = NULL;
+/** @brief Describes app. parameters with some info/limitations */
+extern rp_app_params_t		rp_default_params[];
 
+/** @brief CallBack copy of params to inform the worker */
+extern rp_app_params_t*		rp_cb_in_params;
+/** @brief Holds mutex to access on parameters from outside to the worker thread */
+extern pthread_mutex_t 		rp_cb_in_params_mutex;
 
-/* @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
-int                             g_fpga_rb_mem_fd = -1;
+/** @brief CallBack copy of params to inform the worker */
+extern rp_app_params_t*		rp_cb_out_params;
+/** @brief Holds mutex to access on parameters from the worker thread to any other context */
+extern pthread_mutex_t 		rp_cb_out_params_mutex;
 
-/* @brief The RadioBox memory layout of the FPGA registers. */
-fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
-
-
-static rp_calib_params_t        rp_main_calib_params;
-
-
-/* Describe app. parameters with some info/limitations */
-static rp_app_params_t rp_main_params[RB_PARAMS_NUM + 1] = {
-    { /* Running mode */
-	    "RB_RUN",           0, 1, 0, 0,         1 },
-    { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_i",       0, 1, 0, 0, 125000000 },
-    { /* Oscillator-1 amplitude (µV) */
-        "osc1_amp_i",       0, 1, 0, 0,   2048000 },
-    { /* Oscillator-1 modulation source selector (0: none, 1: VCO2, 2: XADC0) */
-        "osc1_modsrc_s",    0, 1, 0, 0,         2 },
-    { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
-        "osc1_modtyp_s",    0, 1, 0, 0,         2 },
-    { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_i",       0, 1, 0, 0, 125000000 },
-    { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
-        "osc2_mag_i",       0, 1, 0, 0,   1000000 },
-    { /* Must be last! */
-        NULL,               0.0, -1, -1, 0.0, 0.0 }
-};
-
-pthread_mutex_t rp_main_params_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-/* params initialized - accessed by the nginx loader */
-static int params_init = 0;
-
-extern int worker_params_dirty;
+/** @brief params initialized */
+extern int 					params_init_done;
 
 
+/** @brief When entering the application the web-server does this call-back for init'ing the application
+ *
+ * @retval       0    Success.
+ * @retval       -1   Failure, worker thread did not start up.
+ */
 int rp_app_init(void)
 {
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
 
     fpga_init();
 
-    // Debugging
-    fpga_hk_setLeds(0, 0xff, 0x01);
-
     rp_default_calib_params(&rp_main_calib_params);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
 
-    if (worker_init(&rp_main_params[0], RB_PARAMS_NUM, &rp_main_calib_params) < 0) {
-        fprintf(stderr, "rp_app_init: failed to start rp_osc_worker_init.\n");
+    /* start-up worker thread */
+    if (worker_init(rp_default_params, RB_PARAMS_NUM) < 0) {
+        fprintf(stderr, "ERROR rp_app_init - failed to start worker_init.\n");
         return -1;
     }
 
-    rp_set_params(&rp_main_params[0], RB_PARAMS_NUM, 0);
+    /* Init with a CallBack fake */
+    rp_set_params(rp_default_params, RB_PARAMS_NUM);
 
-    fprintf(stderr, "rp_app_init: END.\n");
+    /* since here the initialization is complete */
+    params_init_done = 1;
+
+    fprintf(stderr, "rp_app_init: END\n");
     return 0;
 }
 
+/** @brief When leaving the application page the web-server calls this function to exit the application
+ *
+ * @retval       0    Success, always.
+ */
 int rp_app_exit(void)
 {
+    fprintf(stderr, "rp_app_exit: BEGIN\n");
     fprintf(stderr, "Unloading radiobox version %s-%s.\n", VERSION, REVISION);
 
+    // Debugging
+    fprintf(stderr, "rp_app_exit: setting pattern HK LEDs\n");
+    fpga_hk_setLeds(0, 0xff, 0xaa);
+
+    fprintf(stderr, "rp_app_exit: calling fpga_exit()\n");
+    fpga_exit();
+
+    fprintf(stderr, "rp_app_exit: calling worker_exit()\n");
+    /* shut-down worker thread */
     worker_exit();
 
-    // Debugging
-    fpga_hk_setLeds(0, 0xff, 0x00);
-
-    fpga_exit();
+    rp_free_params(&rp_cb_in_params);  // in case the pipe is not cleared
 
     fprintf(stderr, "rp_app_exit: END.\n");
     return 0;
 }
 
 
-int rp_set_params(rp_app_params_t* p, int len, int requesterIsServer)
+/** @brief When the front-end POSTs data, that is delivered to this call-back to process the parameters
+ *
+ * @param[in]    p    Parameter list of data received from the web front-end.
+ * @param[in]    len  The count of parameters in the list p.
+ * @retval       0    Success.
+ * @retval       -1   Failed due to bad parameter.
+ */
+int rp_set_params(const rp_app_params_t* p, int len)
 {
-    int fpga_update = 0;
+    //int fpga_update = 0;
 
     fprintf(stderr, "rp_set_params: BEGIN\n");
     TRACE("%s()\n", __FUNCTION__);
 
-    // Debugging
-    fpga_hk_setLeds(1, 0x02, 0);
-
-    if (len > RB_PARAMS_NUM) {
-        fprintf(stderr, "Too many parameters: len=%d (max:%d)\n", len, RB_PARAMS_NUM);
-        return -1;
+    if (!p) {
+        fprintf(stderr, "ERROR rp_set_params - non-valid parameter\n");
+    	return -1;
     }
 
-    pthread_mutex_lock(&rp_main_params_mutex);
-    int i;
-    for (i = 0; i < len || p[i].name; i++) {
-        int p_idx = -1;
-        int j = 0;
-
-        /* Search for correct parameter name in defined parameters */
-        fprintf(stderr, "rp_set_params: next param name = %s\n", p[i].name);
-        while (rp_main_params[j].name) {
-            int p_strlen = strlen(p[i].name);
-
-            if (p_strlen != strlen(rp_main_params[j].name)) {
-                j++;
-                continue;
-            }
-            if (!strncmp(p[i].name, rp_main_params[j].name, p_strlen)) {
-                p_idx = j;
-                break;
-            }
-            j++;
-        }
-
-        if (p_idx == -1) {
-            fprintf(stderr, "Parameter %s not found, ignoring it\n", p[i].name);
-            continue;
-        }
-
-        if (rp_main_params[p_idx].read_only)
-            continue;
-
-        if (rp_main_params[p_idx].value != p[i].value) {
-            if (rp_main_params[p_idx].fpga_update) {
-                rp_main_params[p_idx].fpga_update |= 0x80;	// indicate this entry to be updated in the FPGA
-                fpga_update = 1;
-            }
-        }
-
-        if (rp_main_params[p_idx].min_val > p[i].value) {
-            fprintf(stderr, "Incorrect parameters value: %f (min:%f), "
-                    " correcting it\n", p[i].value, rp_main_params[p_idx].min_val);
-            p[i].value = rp_main_params[p_idx].min_val;
-
-        } else if (rp_main_params[p_idx].max_val < p[i].value) {
-            fprintf(stderr, "Incorrect parameters value: %f (max:%f), "
-                    " correcting it\n", p[i].value, rp_main_params[p_idx].max_val);
-            p[i].value = rp_main_params[p_idx].max_val;
-        }
-        rp_main_params[p_idx].value = p[i].value;
-        fprintf(stderr, "rp_set_params: param name = %s, value = %lf\n", p[i].name, p[i].value);
+    if (!len) {  // short-cut
+    	return 0;
     }
 
-    if (fpga_update) {
-        worker_params_dirty = 1;  // indicate that some data attributes were changed
-    }
-    pthread_mutex_unlock(&rp_main_params_mutex);
+    /* create a local copy to release CallBack caller */
+    pthread_mutex_lock(&rp_cb_in_params_mutex);
+    rp_copy_params(&rp_cb_in_params, p, len, !params_init_done);  // piping to the worker thread
+    pthread_mutex_unlock(&rp_cb_in_params_mutex);
 
     fprintf(stderr, "rp_set_params: END\n");
     return 0;
 }
 
-/* Returned vector must be free'd externally! */
+/** @brief After POSTing from the front-end the web-server does a request for current parameters and
+ *  calls this function. By doing that a current parameter list is returned by p.
+ *
+ * The returned parameter vector has to be free'd by the caller!
+ *
+ * @param[inout] p    The parameter vector is returned. Do free the resources before dropping.
+ * @retval       int  Number of parameters in the vector.
+ */
 int rp_get_params(rp_app_params_t** p)
 {
-    fprintf(stderr, "rp_get_params: BEGIN\n");
+	int count = 0;
 
-    // Debugging
-    fpga_hk_setLeds(1, 0x08, 0);
+	fprintf(stderr, "rp_get_params: BEGIN\n");
+	*p = NULL;  // TODO is input parameter filled? Is freeing needed here instead of dropping any input?
 
-    rp_app_params_t* p_copy = NULL;
-    p_copy = (rp_app_params_t*) malloc((RB_PARAMS_NUM + 1) * sizeof(rp_app_params_t));
-    if (!p_copy) {
-        return -1;
+    pthread_mutex_lock(&rp_cb_out_params_mutex);
+   	rp_cb_out_params = NULL;  // discard old data to receive a current copy from the worker - free'd externally
+    pthread_mutex_unlock(&rp_cb_out_params_mutex);
+
+    while (!(*p)) {
+    	sleep(10000);  // delay the busy loop
+
+    	pthread_mutex_lock(&rp_cb_out_params_mutex);
+        *p = rp_cb_out_params;
+        pthread_mutex_unlock(&rp_cb_out_params_mutex);
     }
 
-    pthread_mutex_lock(&rp_main_params_mutex);
-    int i;
-    for (i = 0; i < RB_PARAMS_NUM; i++) {
-        int p_strlen = strlen(rp_main_params[i].name);
-
-        p_copy[i].name = (char*) malloc(p_strlen+1);
-        strncpy((char*) &p_copy[i].name[0], &rp_main_params[i].name[0], p_strlen);
-        p_copy[i].name[p_strlen]='\0';
-
-        p_copy[i].value       = rp_main_params[i].value;
-        p_copy[i].fpga_update = rp_main_params[i].fpga_update;
-        p_copy[i].read_only   = rp_main_params[i].read_only;
-        p_copy[i].min_val     = rp_main_params[i].min_val;
-        p_copy[i].max_val     = rp_main_params[i].max_val;
-
-        fprintf(stderr, "rp_get_params: param name = %s, value = %lf\n", p_copy[i].name, p_copy[i].value);
+    int i = 0;
+    while ((*p)[i++].name) {
+    	count++;
     }
-    pthread_mutex_unlock(&rp_main_params_mutex);
-    p_copy[RB_PARAMS_NUM].name = NULL;
-    *p = p_copy;
 
-    fprintf(stderr, "rp_get_params: END\n");
-    return RB_PARAMS_NUM;
+    return count;
 }
+
 
 int rp_get_signals(float*** s, int* trc_num, int* trc_len)
 {
     int ret_val = 0;
 
     fprintf(stderr, "rp_get_signals: BEGIN\n");
-
-    // Debugging
-    fpga_hk_setLeds(1, 0x10, 0);
 
     if (!*s) {
         return -1;
@@ -238,31 +183,4 @@ int rp_get_signals(float*** s, int* trc_num, int* trc_len)
 
     fprintf(stderr, "rp_get_signals: END\n");
     return ret_val;
-}
-
-
-int rp_update_main_params(rp_app_params_t* params)
-{
-    int i = 0;
-
-    fprintf(stderr, "rp_update_main_params: BEGIN\n");
-
-    if (!params) {
-        return -1;
-    }
-
-    /* make own copy */
-    pthread_mutex_lock(&rp_main_params_mutex);
-    while (params[i].name) {
-        rp_main_params[i].value = params[i].value;
-        i++;
-    }
-    pthread_mutex_unlock(&rp_main_params_mutex);
-
-    /* inform rp_set_params(), also */
-    params_init = 0;
-    rp_set_params(&rp_main_params[0], RB_PARAMS_NUM, 1);
-
-    fprintf(stderr, "rp_update_main_params: END\n");
-    return 0;
 }

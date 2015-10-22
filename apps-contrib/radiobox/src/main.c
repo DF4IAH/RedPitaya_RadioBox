@@ -38,6 +38,55 @@
 #endif
 
 
+/** @brief HouseKeeping memory file descriptor used to mmap() the FPGA space */
+int                             g_fpga_hk_mem_fd = -1;
+
+/** @brief calibration data layout within the EEPROM device */
+rp_calib_params_t        		rp_main_calib_params;
+
+/** @brief HouseKeeping memory layout of the FPGA registers */
+fpga_hk_reg_mem_t*              g_fpga_hk_reg_mem = NULL;
+
+/** @brief RadioBox memory file descriptor used to mmap() the FPGA space */
+int                             g_fpga_rb_mem_fd = -1;
+
+/** @brief RadioBox memory layout of the FPGA registers */
+fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
+
+/** @brief Describes app. parameters with some info/limitations */
+const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
+    { /* Running mode */
+	    "RB_RUN",           0, 1, 0, 0,         1 },
+    { /* Oscillator-1 frequency (Hz) */
+        "osc1_qrg_i",       0, 1, 0, 0, 125000000 },
+    { /* Oscillator-1 amplitude (µV) */
+        "osc1_amp_i",       0, 1, 0, 0,   2048000 },
+    { /* Oscillator-1 modulation source selector (0: none, 1: VCO2, 2: XADC0) */
+        "osc1_modsrc_s",    0, 1, 0, 0,         2 },
+    { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
+        "osc1_modtyp_s",    0, 1, 0, 0,         2 },
+    { /* Oscillator-2 frequency (Hz) */
+        "osc2_qrg_i",       0, 1, 0, 0, 125000000 },
+    { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
+        "osc2_mag_i",       0, 1, 0, 0,   1000000 },
+    { /* Must be last! */
+        NULL,               0.0, -1, -1, 0.0, 0.0 }
+};
+
+/** @brief CallBack copy of params to inform the worker */
+rp_app_params_t*				rp_cb_in_params = NULL;
+/** @brief Holds mutex to access on parameters from outside to the worker thread */
+pthread_mutex_t 				rp_cb_in_params_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/** @brief CallBack copy of params from the worker when requested */
+rp_app_params_t*				rp_cb_out_params = NULL;
+/** @brief Holds mutex to access on parameters from the worker thread to any other context */
+pthread_mutex_t 				rp_cb_out_params_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+/** @brief params initialized */
+int								params_init_done = 0;  /* @see worker.c */
+
+
 /*----------------------------------------------------------------------------------*/
 /**
  * @brief Returns description cstring for this RadioBox sub-module
@@ -48,8 +97,9 @@
  */
 const char* rp_app_desc(void)
 {
-    return (const char *)"RedPitaya RadioBox application.\n";
+    return (const char *)"RedPitaya RadioBox application by DF4IAH and DD8UU.\n";
 }
+
 
 /*----------------------------------------------------------------------------------*/
 /**
@@ -137,6 +187,7 @@ void rp_free_traces(float** a_traces[TRACE_NUM])
     fprintf(stderr, "rp_free_traces: END\n\n");
 }
 
+
 /*----------------------------------------------------------------------------------*/
 /**
  * @brief Make a copy of Application parameters
@@ -153,72 +204,103 @@ void rp_free_traces(float** a_traces[TRACE_NUM])
  * entries is the same as in the source table. No special check is made internally if this is really
  * the case.
  *
- * @param[out]  dst  Destination application parameters
- * @param[in]   src  Source application parameters
+ * @param[out]  dst  Destination application parameters, in case of ptr to NULL a new parameter list is generated.
+ * @param[in]   src  Source application parameters. In case of a NULL point the default parameters are take instead.
  * @retval      0    Successful operation
  * @retval      -1   Failure, error message is output on standard error
  */
-int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[])
+int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr)
 {
-    int i, num_params;
+	const rp_app_params_t* s = src;
+    int i, j, num_params;
 
     /* check arguments */
-    if (!dst || !(*dst)) {
-        fprintf(stderr, "Internal error, the destination Application parameters variable is not set.\n");
+    if (!dst) {
+        fprintf(stderr, "ERROR rp_copy_params - Internal error, the destination Application parameters variable is not set.\n");
         return -1;
     }
-    if (!src) {
-        fprintf(stderr, "Internal error, the source Application parameters are not specified.\n");
-        return -2;
+    if (!s) {
+        fprintf(stderr, "INFO rp_copy_params - no source parameter list given, taking default parameters instead.\n");
+        s = rp_default_params;
     }
 
-    /* check if destination buffer is allocated or not */
+    /* check if destination buffer is allocated already */
     rp_app_params_t* p_new = *dst;
+    if (p_new) {
+		/* destination buffer exists */
+		i = 0;
+		while (s[i].name) {
+			/* process each parameter entry of the list */
 
-	/* destination buffer is already allocated */
-	i = 0;
-	while (src[i].name) {
-		if (!strcmp(p_new[i].name, src[i].name)) {
-			// direct mapping found - just copy each value
-			p_new[i].value = src[i].value;
-		} else {
-			// due to differences in the structure, discard the old destination list and recreate it
-	        fprintf(stderr, "RadioBox: main.c - rp_copy_params() - non direct params mapping found, recreating params list.\n");
-			rp_free_params(dst);
-			p_new = NULL;
-			break;
-		}
-		i++;
-	}
+			if (!strcmp(p_new[i].name, s[i].name)) {  // direct mapping found - just copy the value
+				p_new[i].value			= s[i].value;
+				p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
 
-    if (!p_new) {  // recreate parameter list
-        /* retrieve the number of source parameters */
-        i = 0;
-        num_params = 0;
-        while (src[i++].name) {
-            num_params++;
-        }
+				if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
+					p_new[i].min_val	= s[i].min_val;
+					p_new[i].max_val	= s[i].max_val;
+					p_new[i].read_only	= s[i].read_only;
+				}
+			} else {
+				j = 0;
+				while (p_new[j].name) {  // scanning the complete list
+					if (j == i) {  // do a short-cut here
+						continue;
+					}
+
+					if (!strcmp(p_new[j].name, s[i].name)) {
+						p_new[j].value			= s[i].value;
+						p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
+
+						if (!do_copy_all_attr) {  // if default parameters are taken, use all attributes
+							p_new[i].min_val	= s[i].min_val;
+							p_new[i].max_val	= s[i].max_val;
+							p_new[i].read_only	= s[i].read_only;
+						}
+						break;
+					}
+					j++;
+				}  // while (p_new[j].name)
+			}  // if () else
+			i++;
+		}  // while (src[i].name)
+
+    } else {
+		/* destination buffer has to be allocated, create a new parameter list */
+
+    	if (len >= 0) {
+    		num_params = len;
+
+    	} else {
+			/* retrieve the number of source parameters */
+			i = 0;
+			num_params = 0;
+			while (s[i++].name) {
+				num_params++;
+			}
+    	}
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
         p_new = (rp_app_params_t*) malloc(sizeof(rp_app_params_t) * (num_params + 1));
         if (!p_new) {
-            fprintf(stderr, "Memory problem, the destination buffer could not be allocated (1).\n");
+            fprintf(stderr, "ERROR rp_copy_params - memory problem, the destination buffer could not be allocated (1).\n");
             return -3;
         }
+        /* prepare a copy for built-in attributes. Strings have to be handled on their own way */
+        memcpy(p_new, s, (num_params + 1) * sizeof(rp_app_params_t));
 
-        /* scan source parameters, allocate memory space for parameter names and copy values */
+        /* allocate memory and copy character strings for params names */
         i = 0;
-        while (src[i].name) {
-            int slen = strlen(src[i].name);
-            p_new[i].name = (char*) malloc(slen + 1);
+        while (s[i].name) {
+            int slen = strlen(s[i].name);
+            p_new[i].name = (char*) malloc(slen + 1);  // old pointer to name does not belong to us and has to be discarded
             if (!(p_new[i].name)) {
-                fprintf(stderr, "Memory problem, the destination buffer could not be allocated (2).\n");
+                fprintf(stderr, "ERROR rp_copy_params - memory problem, the destination buffer could not be allocated (2).\n");
                 return -4;
             }
-
-            strncpy(p_new[i].name, src[i].name, slen);
+            strncpy(p_new[i].name, s[i].name, slen);
             p_new[i].name[slen] = '\0';
-            p_new[i].value = src[i].value;
+
             i++;
         }
 
@@ -231,7 +313,6 @@ int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[])
     return 0;
 }
 
-
 /*----------------------------------------------------------------------------------*/
 /**
  * @brief Deallocate the specified buffer of Application parameters
@@ -243,23 +324,33 @@ int rp_copy_params(rp_app_params_t* dst[], rp_app_params_t src[])
  * @retval      0       Success
  * @retval      -1      Failed with non-valid params
  */
-int rp_free_params(rp_app_params_t* params[])
+int rp_free_params(rp_app_params_t** params)
 {
     if (!params) {
         return -1;
     }
 
+    fprintf(stderr, "rp_free_params: BEGIN\n");
+
     /* free params structure */
     if (*params) {
+        rp_app_params_t* p = *params;
+
         int i = 0;
-        while (params[i]->name != NULL) {
-            free(params[i]->name);
-            params[i]->name = NULL;
+        while (p[i].name) {
+            fprintf(stderr, "rp_free_params: freeing name=%s\n", p[i].name);
+            free(p[i].name);
+            fprintf(stderr, "rp_free_params: after freeing\n");
+            fprintf(stderr, "rp_free_params: before NULLing\n");
+            p[i].name = NULL;
+            fprintf(stderr, "rp_free_params: after NULLing\n");
             i++;
         }
-        free(*params);
+
+        free(p);
         *params = NULL;
     }
 
+    fprintf(stderr, "rp_free_params: END\n");
     return 0;
 }
