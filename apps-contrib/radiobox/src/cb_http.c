@@ -41,11 +41,7 @@ extern pthread_mutex_t 		rp_cb_out_params_mutex;
 extern int 					params_init_done;
 
 
-/** @brief When entering the application the web-server does this call-back for init'ing the application
- *
- * @retval       0    Success.
- * @retval       -1   Failure, worker thread did not start up.
- */
+/*----------------------------------------------------------------------------*/
 int rp_app_init(void)
 {
     fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
@@ -73,10 +69,7 @@ int rp_app_init(void)
     return 0;
 }
 
-/** @brief When leaving the application page the web-server calls this function to exit the application
- *
- * @retval       0    Success, always.
- */
+/*----------------------------------------------------------------------------*/
 int rp_app_exit(void)
 {
     fprintf(stderr, "rp_app_exit: BEGIN\n");
@@ -100,13 +93,7 @@ int rp_app_exit(void)
 }
 
 
-/** @brief When the front-end POSTs data, that is delivered to this call-back to process the parameters
- *
- * @param[in]    p    Parameter list of data received from the web front-end.
- * @param[in]    len  The count of parameters in the list p.
- * @retval       0    Success.
- * @retval       -1   Failed due to bad parameter.
- */
+/*----------------------------------------------------------------------------*/
 int rp_set_params(const rp_app_params_t* p, int len)
 {
     //int fpga_update = 0;
@@ -132,14 +119,7 @@ int rp_set_params(const rp_app_params_t* p, int len)
     return 0;
 }
 
-/** @brief After POSTing from the front-end the web-server does a request for current parameters and
- *  calls this function. By doing that a current parameter list is returned by p.
- *
- * The returned parameter vector has to be free'd by the caller!
- *
- * @param[inout] p    The parameter vector is returned. Do free the resources before dropping.
- * @retval       int  Number of parameters in the vector.
- */
+/*----------------------------------------------------------------------------*/
 int rp_get_params(rp_app_params_t** p)
 {
 	int count = 0;
@@ -167,7 +147,7 @@ int rp_get_params(rp_app_params_t** p)
     return count;
 }
 
-
+/*----------------------------------------------------------------------------*/
 int rp_get_signals(float*** s, int* trc_num, int* trc_len)
 {
     int ret_val = 0;

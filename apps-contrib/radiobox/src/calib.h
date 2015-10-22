@@ -60,10 +60,66 @@ typedef struct rp_calib_params_s {
 } rp_calib_params_t;
 
 
+/**
+ * @brief Read calibration parameters from EEPROM device.
+ *
+ * Function reads calibration parameters from EEPROM device and stores them to the
+ * specified buffer. Communication to the EEPROM device is taken place through
+ * appropriate system driver accessed through the file system device
+ * /sys/bus/i2c/devices/0-0050/eeprom.
+ *
+ * @param[out]   calib_params  Pointer to destination buffer.
+ * @retval       0 Success
+ * @retval      -1 Failure, error message is put on stderr device
+ *
+ */
 int rp_read_calib_params(rp_calib_params_t* calib_params);
+
+/**
+ * @brief Write calibration parameters to EEPROM device.
+ *
+ * Function writes calibration parameters to EEPROM device.
+ * Communication to the EEPROM device is taken place through
+ * appropriate system driver accessed through the file system device
+ * /sys/bus/i2c/devices/0-0050/eeprom.
+ *
+ * @param[out]   calib_params  Pointer to source buffer.
+ * @retval       0 Success
+ * @retval      -1 Failure, error message is put on stderr device
+ *
+ */
 int rp_write_calib_params(rp_calib_params_t* calib_params);
+
+/**
+ * Initialize calibration parameters to default values.
+ *
+ * @param[out] calib_params  Pointer to target buffer to be initialized.
+
+ * @retval     0             Success, could never fail.
+ */
 int rp_default_calib_params(rp_calib_params_t* calib_params);
 
+
+/*
+ * Information about data representation
+ * =====================================
+ *
+ * max_adc_v = 100.0f * fe_gain_fs     / ((float) (1ULL << 32) * probe_att_fact;  // having probe_att_fact = 1 or 10
+ * max_dac_v = 100.0f * be_chX_dc_offs / ((float) (1ULL << 32));
+ *
+ */
+
+/**
+ * @brief Calculates maximum [V] in respect to calibration parameters
+ *
+ * Function is used to calculate the maximum voltage which can be applied on an ADC input.
+ * This calculation is based on the calibrated front-end full scale gain setting and the
+ * configured probe attenuation.
+ *
+ * @param[in] fe_gain_fs     Front End Full Scale Gain
+ * @param[in] probe_att      Probe attenuation
+ * @retval    float          Maximum voltage, expressed in [V]
+ */
 float rp_calib_calc_max_v(uint32_t fe_gain_fs, int probe_att);
 
 /** @} */

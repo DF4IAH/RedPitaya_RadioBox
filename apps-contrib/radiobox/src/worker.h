@@ -21,21 +21,61 @@
  * @{
  */
 
+/** @brief FSM state of the worker */
 typedef enum worker_state_e {
-    worker_idle_state = 0, /* do nothing */
-    worker_quit_state, /* shutdown worker */
-    worker_abort_state, /* abort current measurement */
-    worker_normal_state, /* normal mode */
-    worker_nonexisting_state /* must be last */
+	/** @brief do nothing */
+	worker_idle_state = 0,
+
+	/** @brief shutdown worker */
+	worker_quit_state,
+
+	/** @brief abort current measurement */
+	worker_abort_state,
+
+	/** @brief normal mode */
+	worker_normal_state,
+
+	/** @brief must be last entry */
+	worker_nonexisting_state
 } worker_state_t;
 
 
+/** @brief Sets-up a running worker thread
+ *
+ * @param[in]    params        The initial parameter list the worker thread will take a copy from.
+ * @param[in]    params_len    Count of parameters that params holds.
+ * @retval       int           The return value of the pthread_create() call.
+ */
 int worker_init(rp_app_params_t* params, int params_len);
+
+/** @brief Shuts-down the running worker thread
+ *
+ * @retval       int   The return value of the pthread_join() call.
+ */
 int worker_exit(void);
+
+/** @brief The worker thread that runs the state-machine for parameter handling
+ *
+ * All data transfered between this thread and outer context has to be handled
+ * strictly by mutex access.
+ *
+ * @param[in]    args  @see pthread_create for details. Not used in this context.
+ * @retval       void* @see pthread_create for details. Not used in this context.
+ */
 void* worker_thread(void* args);
 
-/** @brief Marks all changed values for that entries which are having a fpga_update flag set */
+
+/** @brief Marks all changed values for that entries which are having a fpga_update flag set
+ *
+ * This function marks all changed parameter entries which are having the fpga_update attribute set.
+ * Additional the count of this modified parameter entries is returned.
+ *
+ * @param[in]    ref  Reference parameter list for old values taken as reference.
+ * @param[inout] cmp  Comparison parameter list for new values to be compare against the reference.
+ * @retval       int  Number of parameters that changed the value AND their attribute fpga_update is set.
+ */
 int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp);
+
 
 /** @brief Removes 'dirty' flags */
 int worker_clear_signals(void);

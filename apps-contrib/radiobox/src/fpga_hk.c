@@ -32,15 +32,6 @@ extern fpga_hk_reg_mem_t*	g_fpga_hk_reg_mem;
 
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Initialize interface to House-keeping FPGA sub-module
- *
- * Set-up for FPGA access to the House-keeping sub-module.
- *
- * @retval  0 Success
- * @retval -1 Failure, error message is printed on standard error device
- *
- */
 int fpga_hk_init(void)
 {
 	const long page_size = sysconf(_SC_PAGESIZE);
@@ -71,11 +62,6 @@ int fpga_hk_init(void)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Finalize and release allocated resources of the House-keeping sub-module
- *
- * @retval 0 Success, never fails
- */
 int fpga_hk_exit(void)
 {
 	// unmap the House-keeping sub-module
@@ -97,16 +83,6 @@ int fpga_hk_exit(void)
 
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Activates the LEDs on the board.
- *
- * @param[in] doToggle   true: mask defines which LED states to be toggled, leds  is voided. false: mask defines the LED bits to be set, leds  each led is bright when its masked bit is set.
- * @param[in] mask   defines which LED states to be changed.
- * @param[in] leds   defines which masked LEDs should be bright. When toggling this parameter is voided
-
- * @retval 0 Success
- * @retval -1 FPGA HouseKeeping sub-module not initialized
- */
 int fpga_hk_setLeds(unsigned char doToggle, unsigned char mask, unsigned char leds)
 {
     if (!g_fpga_hk_reg_mem) {

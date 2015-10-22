@@ -56,18 +56,75 @@ typedef struct rp_app_params_s {
 /** @brief The number of points that a single trace holds */
 #define TRACE_LENGTH (1024) /* Must be 2^n! */
 
-/** @brief Returns application description for the RadioBox sub-module */
+
+/**
+ * @brief Returns description cstring for this RadioBox sub-module
+ *
+ * This function returns a null terminated cstring.
+ *
+ * @retval      cstring    Description of this RadioBox sub-module
+ */
 const char* rp_app_desc(void);
 
+
 /* Internal helper functions */
-/** @brief Creates traces buffers */
+
+/**
+ * @brief Prepares buffers for signal traces (not used yet)
+ *
+ * This function allocates memory for TRACE_NUM traces in the memory and prepares
+ * for its usage.
+ *
+ * @param[inout] a_traces  Pointer to traces buffer
+ *
+ * @retval       0         Success
+ * @retval       -1        Failed to establish the traces buffer
+ */
 int  rp_create_traces(float** a_traces[TRACE_NUM]);
-/** @brief Frees traces buffers */
+
+/**
+ * @brief Frees memory used by the traces buffer (not used yet)
+ *
+ * This function frees memory for TRACE_NUM traces in the memory.
+ *
+ * @param[inout] a_traces  Pointer to traces buffer
+ */
 void rp_free_traces(float** a_traces[TRACE_NUM]);
 
-/** @brief Copies parameters from src to dst - if dst does not exist, it is created */
+/**
+ * @brief Make a copy of Application parameters
+ *
+ * Function copies actual Application parameters to the specified destination
+ * buffer. This action was intended to prepare two parameter instances, where the first
+ * one can be further modified from the user side, while the second one is processed by
+ * the worker thread.
+ * In case the destination buffer is not allocated yet, it is allocated internally and must
+ * be freed outside of the function scope by calling rp_clean_params() function. Note that
+ * if function returns failure, the destination buffer could be partially allocated and must
+ * be freed in the same way.
+ * If the specified destination buffer is already allocated, it is assumed the number of table
+ * entries is the same as in the source table. No special check is made internally if this is really
+ * the case.
+ *
+ * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
+ * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
+ * @param[in]   len               The count of parameters in the src vector.
+ * @param[in]   do_copy_all_attr  Do a fully copy of all attributes, not just the name, value and fpga_update entries.
+ * @retval      0                 Successful operation
+ * @retval      -1                Failure, error message is output on standard error
+ */
 int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
-/** @brief Frees memory of parameters structure */
+
+/**
+ * @brief Deallocate the specified buffer of Application parameters
+ *
+ * Function is used to deallocate the specified buffers, which were previously
+ * allocated by calling rp_copy_params() function.
+ *
+ * @param[in]   params  Application parameters to be deallocated
+ * @retval      0       Success
+ * @retval      -1      Failed with non-valid params
+ */
 int rp_free_params(rp_app_params_t** params);
 
 /** @} */

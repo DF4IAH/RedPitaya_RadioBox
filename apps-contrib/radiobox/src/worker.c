@@ -53,12 +53,7 @@ static int                      worker_traces_lastIdx = 0;
 static float**                  worker_traces_tmp;  /* used for calculation, only from worker */
 
 
-/** @brief Sets-up a running worker thread
- *
- * @args[in]     params        The initial parameter list the worker thread will take a copy from.
- * @args[in]     len           Count of parameters that params holds.
- * @retval       int           The return value of the pthread_create() call.
- */
+/*----------------------------------------------------------------------------------*/
 int worker_init(rp_app_params_t* params, int params_len)
 {
 	int ret_val;
@@ -98,10 +93,7 @@ int worker_init(rp_app_params_t* params, int params_len)
     return 0;
 }
 
-/** @brief Shuts-down the running worker thread
- *
- * @retval       int   The return value of the pthread_join() call.
- */
+/*----------------------------------------------------------------------------------*/
 int worker_exit(void)
 {
 	int ret_val = 0;
@@ -142,15 +134,7 @@ int worker_exit(void)
     return 0;
 }
 
-
-/** @brief The worker thread that runs the state-machine for parameter handling
- *
- * All data transfered between this thread and outer context has to be handled
- * strictly by mutex access.
- *
- * @args[in]     args  @see pthread_create for details. Not used in this context.
- * @retval       void* @see pthread_create for details. Not used in this context.
- */
+/*----------------------------------------------------------------------------------*/
 void* worker_thread(void* args)
 {
     worker_state_t        state;
@@ -257,15 +241,7 @@ void* worker_thread(void* args)
 }
 
 
-/** @brief Marks all changed values for that entries which are having a fpga_update flag set
- *
- * This function marks all changed parameter entries which are having the fpga_update attribute set.
- * Additional the count of this modified parameter entries is returned.
- *
- * @param[in]    ref  Reference parameter list for old values taken as reference.
- * @param[inout] cmp  Comparison parameter list for new values to be compare against the reference.
- * @retval       int  Number of parameters that changed the value AND their attribute fpga_update is set.
- */
+/*----------------------------------------------------------------------------------*/
 int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp)
 {
 	if (!ref || !cmp) {

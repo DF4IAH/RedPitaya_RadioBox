@@ -37,15 +37,6 @@ extern rp_calib_params_t 	rp_main_calib_params;
 
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Initialize interface to RadioBox FPGA sub-module
- *
- * Set-up for FPGA access to the RadioBox sub-module.
- *
- * @retval  0 Success
- * @retval -1 Failure, error message is printed on standard error device
- *
- */
 int fpga_rb_init(void)
 {
 	const long page_size = sysconf(_SC_PAGESIZE);
@@ -82,11 +73,6 @@ int fpga_rb_init(void)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Finalize and release allocated resources of the RadioBox sub-module
- *
- * @retval 0 Success, never fails
- */
 int fpga_rb_exit(void)
 {
     fprintf(stderr, "fpga_rb_exit: BEGIN\n");
@@ -114,16 +100,6 @@ int fpga_rb_exit(void)
 
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Updates all modified data attributes to the RadioBox FPGA sub-module
- *
- * Being called out of the worker context.
- *
- * @param[in] rp_app_params_t*  list of parameters to be scanned for marked entries.
- *
- * @retval  0 Success
- * @retval -1 Failure, parameter list or RB accessor not valid
- */
 int fpga_rb_update_all_params(rp_app_params_t* p)
 {
     fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
@@ -258,12 +234,6 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Enables or disables RadioBox FPGA sub-module
- *
- * @param[in] enable  nonzero enables the RadioBox sub-module, zero disables it.
- *
- */
 void fpga_rb_enable(int enable)
 {
 	if (!g_fpga_rb_reg_mem) {
@@ -291,10 +261,6 @@ void fpga_rb_enable(int enable)
 }
 
 /*----------------------------------------------------------------------------*/
-/**
- * @brief Resets RadioBox FPGA sub-module
- *
- */
 void fpga_rb_reset(void)
 {
 	if (!g_fpga_rb_reg_mem) {
