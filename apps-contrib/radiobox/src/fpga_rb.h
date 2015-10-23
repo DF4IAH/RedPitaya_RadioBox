@@ -378,10 +378,10 @@ int fpga_rb_exit(void);
  *
  * Being called out of the worker context.
  *
- * @param[in]  p      List of parameters to be scanned for marked entries.
+ * @param[inout]  p      List of parameters to be scanned for marked entries, removes MARKER.
  *
- * @retval     0      Success
- * @retval     -1     Failure, parameter list or RB accessor not valid
+ * @retval        0      Success
+ * @retval        -1     Failure, parameter list or RB accessor not valid
  */
 int fpga_rb_update_all_params(rp_app_params_t* p);
 

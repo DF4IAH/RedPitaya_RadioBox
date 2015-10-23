@@ -182,24 +182,29 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
     /* check if destination buffer is allocated already */
     rp_app_params_t* p_new = *dst;
     if (p_new) {
+        fprintf(stderr, "INFO rp_copy_params - dst exists - updating into dst vector.\n");
 		/* destination buffer exists */
 		i = 0;
 		while (s[i].name) {
+	        fprintf(stderr, "INFO rp_copy_params - processing name = %s\n", s[i].name);
 			/* process each parameter entry of the list */
 
 			if (!strcmp(p_new[i].name, s[i].name)) {  // direct mapping found - just copy the value
+		        fprintf(stderr, "INFO rp_copy_params - direct mapping used\n");
 				p_new[i].value			= s[i].value;
 				p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
 
 				if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
+					p_new[i].read_only	= s[i].read_only;
 					p_new[i].min_val	= s[i].min_val;
 					p_new[i].max_val	= s[i].max_val;
-					p_new[i].read_only	= s[i].read_only;
 				}
 			} else {
+		        fprintf(stderr, "INFO rp_copy_params - iterative searching ...\n");
 				j = 0;
 				while (p_new[j].name) {  // scanning the complete list
 					if (j == i) {  // do a short-cut here
+						j++;
 						continue;
 					}
 
@@ -208,9 +213,9 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
 						p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
 
 						if (!do_copy_all_attr) {  // if default parameters are taken, use all attributes
+							p_new[i].read_only	= s[i].read_only;
 							p_new[i].min_val	= s[i].min_val;
 							p_new[i].max_val	= s[i].max_val;
-							p_new[i].read_only	= s[i].read_only;
 						}
 						break;
 					}
@@ -283,12 +288,12 @@ int rp_free_params(rp_app_params_t** params)
 
         int i = 0;
         while (p[i].name) {
-            fprintf(stderr, "rp_free_params: freeing name=%s\n", p[i].name);
+            //fprintf(stderr, "rp_free_params: freeing name=%s\n", p[i].name);
             free(p[i].name);
-            fprintf(stderr, "rp_free_params: after freeing\n");
-            fprintf(stderr, "rp_free_params: before NULLing\n");
+            //fprintf(stderr, "rp_free_params: after freeing\n");
+            //fprintf(stderr, "rp_free_params: before NULLing\n");
             p[i].name = NULL;
-            fprintf(stderr, "rp_free_params: after NULLing\n");
+            //fprintf(stderr, "rp_free_params: after NULLing\n");
             i++;
         }
 

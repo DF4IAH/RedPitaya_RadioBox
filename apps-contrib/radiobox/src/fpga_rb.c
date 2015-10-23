@@ -116,7 +116,7 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
 		}
 
 		if (!(p[idx].fpga_update & 0x80)) {
-	        fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
+	        //fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
 	        idx++;
 			continue;  // this value is not marked to update the FPGA
 		}
@@ -126,6 +126,7 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
         p[idx].fpga_update &= ~0x80;
 
 
+continue;  // TODO remove me!
         /* Since here process on each known parameter accordingly */
 
 		if (!strcmp("RB_RUN", p[idx].name)) {  // @see cb_http.h
@@ -244,17 +245,21 @@ void fpga_rb_enable(int enable)
 
 	if (enable) {
 		// enable RadioBox
-		g_fpga_rb_reg_mem->ctrl		= 0x00000001;	// enable RB sub-module
+		g_fpga_rb_reg_mem->ctrl		|= 0x00000001;	// enable RB sub-module
 		fpga_rb_reset();
-		g_fpga_rb_reg_mem->led_ctrl	= 0x00000003;  	// show OSC1 output at RB LEDs
+		g_fpga_rb_reg_mem->led_ctrl	 = 0x00000003;  	// show OSC1 output at RB LEDs
+
+        g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) 0x00225C17;
+        g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) 0x00000000;  // 1 Hz
+		g_fpga_rb_reg_mem->osc1_mix_gain = 0x40000000;
 
 	} else {
 		fprintf(stderr, "fpga_rb_enable: turning off RB LEDs\n");
-		g_fpga_rb_reg_mem->led_ctrl	= 0x00000000;	// disable RB LEDs
+		g_fpga_rb_reg_mem->led_ctrl	 = 0x00000000;	// disable RB LEDs
 
 		// disable RadioBox
 		fprintf(stderr, "fpga_rb_enable: disabling RB sub-module\n");
-		g_fpga_rb_reg_mem->ctrl		= 0x00000000;	// disable RB sub-module
+		g_fpga_rb_reg_mem->ctrl		 = 0x00000000;	// disable RB sub-module
 	}
 
 	fprintf(stderr, "fpga_rb_enable(%d): END\n", enable);

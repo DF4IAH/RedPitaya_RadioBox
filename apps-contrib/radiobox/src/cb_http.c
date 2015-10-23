@@ -127,23 +127,29 @@ int rp_get_params(rp_app_params_t** p)
 	fprintf(stderr, "rp_get_params: BEGIN\n");
 	*p = NULL;  // TODO is input parameter filled? Is freeing needed here instead of dropping any input?
 
+	//fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
     pthread_mutex_lock(&rp_cb_out_params_mutex);
    	rp_cb_out_params = NULL;  // discard old data to receive a current copy from the worker - free'd externally
     pthread_mutex_unlock(&rp_cb_out_params_mutex);
+	//fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
 
     while (!(*p)) {
-    	sleep(10000);  // delay the busy loop
+        usleep(10000);  // delay the busy loop
 
-    	pthread_mutex_lock(&rp_cb_out_params_mutex);
+        //fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
+        pthread_mutex_lock(&rp_cb_out_params_mutex);
         *p = rp_cb_out_params;
         pthread_mutex_unlock(&rp_cb_out_params_mutex);
+        //fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
     }
 
     int i = 0;
     while ((*p)[i++].name) {
     	count++;
     }
+	fprintf(stderr, "INFO rp_get_params - having list with count = %d\n", count);
 
+	fprintf(stderr, "rp_get_params: END\n");
     return count;
 }
 
