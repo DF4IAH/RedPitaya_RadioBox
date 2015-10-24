@@ -110,11 +110,11 @@ int fpga_rb_exit(void)
 /*----------------------------------------------------------------------------*/
 int fpga_rb_update_all_params(rp_app_params_t* p)
 {
-//  int   loc_rb_run   = 0;
+    int   loc_rb_run   = 0;
     int   loc_modsrc   = 0;
     int   loc_modtyp   = 0;
-//  float loc_osc1_qrg = 0.0f;
-//  float loc_osc2_qrg = 0.0f;
+    float loc_osc1_qrg = 0.0f;
+    float loc_osc2_qrg = 0.0f;
     float loc_osc1_amp = 0.0f;
     float loc_osc2_mag = 0.0f;
 
@@ -147,11 +147,11 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
             fprintf(stderr, "INFO - fpga_rb_update_all_params: waiting for cb_out_params ...\n");
             pthread_mutex_lock(&rp_cb_out_params_mutex);
             if (rp_cb_out_params) {
-//              loc_rb_run   = (int) rp_cb_out_params[RB_RUN].value;
+                loc_rb_run   = (int) rp_cb_out_params[RB_RUN].value;
                 loc_modsrc   = (int) rp_cb_out_params[RB_OSC1_MODSRC].value;
                 loc_modtyp   = (int) rp_cb_out_params[RB_OSC1_MODTYP].value;
-//              loc_osc1_qrg = rp_cb_out_params[RB_OSC1_QRG].value;
-//              loc_osc2_qrg = rp_cb_out_params[RB_OSC2_QRG].value;
+                loc_osc1_qrg = rp_cb_out_params[RB_OSC1_QRG].value;
+                loc_osc2_qrg = rp_cb_out_params[RB_OSC2_QRG].value;
                 loc_osc1_amp = rp_cb_out_params[RB_OSC1_AMP].value;
                 loc_osc2_mag = rp_cb_out_params[RB_OSC2_MAG].value;
             }
@@ -164,251 +164,31 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
         if (!strcmp("rb_run", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
             fpga_rb_enable((int) (p[idx].value));
+               fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
-            if (p[idx].value && ((loc_modsrc == 1) && (!loc_modtyp))) {  // enabling and AM selected
-                fpga_rb_set_osc2_mixer_mod_am(loc_osc1_amp, loc_osc2_mag);
-            }
         } else if (!strcmp("osc1_modsrc_s", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
-
-            switch ((int) (p[idx].value)) {
-            default:
-            case 0: {
-                /* modsrc == (none) */
-                g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                 // control: turn off all streams into OSC1 and OSC1 mixer
-                fpga_rb_set_osc1_mixer_mod_am(loc_osc1_amp);
-            }
-            break;
-
-            case 1: {
-                /* modsrc == OSC2 */
-                switch (loc_modtyp) {
-                case 0: {
-                    /* AM */
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000080;                                              // control: AM by OSC1 mixer amplitude streaming
-                    fpga_rb_set_osc2_mixer_mod_am(loc_osc1_amp, loc_osc2_mag);
-                }
-                break;
-
-                case 1: {
-                    /* FM */
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000020;                                              // control: FM by OSC1 inc streaming
-                }
-                break;
-
-                case 2: {
-                    /* PM */
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000040;                                              // control: PM by OSC1 ofs streaming
-                }
-                break;
-                }
-            }
-            break;
-
-            case 2: {
-                /* modsrc == XADC1 */
-                // TODO to be defined
-            }
-              break;
-            }
+            fpga_rb_set_ctrl(loc_rb_run, (int) (p[idx].value), loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modtyp_s", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
-
-            g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                     // control: turn off all streaming into OSC1 and OSC1 mixer
-
-            g_fpga_rb_reg_mem->ctrl |=  0x00001010;                                                     // control: enable  resync OSC1 & OSC2
-            g_fpga_rb_reg_mem->ctrl |=  0x00000006;                                                     // control: enable  reset  OSC1 & OSC2
-
-            if (loc_modsrc == 1) {
-                /* modsrc == OSC2 */
-                switch ((int) (p[idx].value)) {
-                case 0: {
-                    /* AM */
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000080;                                              // control: AM modulation by OSC1 mixer amplitude streaming
-                    fpga_rb_set_osc2_mixer_mod_am(loc_osc1_amp, loc_osc2_mag);
-                }
-                break;
-
-                case 1: {
-                    /* FM */
-                    double gain1 = 0.5 + ((double) (1ULL << 31)) * (loc_osc1_amp / 2048.0);             // TODO: DAC amplitude correction goes into here
-//                  double ofs1  = 0.0f;                                                                // TODO: DAC offset correction goes into here
-                    double ofs1  = (1ULL << 46);                                                        // TODO: DAC offset correction goes into here
-
-                    double gain2 = 0.5 + ((double) (1ULL << 31)) * (loc_osc1_amp / 2048.0);             //
-//                  double ofs2  = 0.0f;                                                                //
-                    double ofs2  = (1ULL << 46);                                                        //
-
-                    fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for FM\n");
-
-                    g_fpga_rb_reg_mem->osc1_mix_gain   = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_mix_ofs_lo = (uint32_t) (((uint64_t) ofs1)  & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_mix_ofs_hi = (uint32_t) (((uint64_t) ofs1) >> 32);
-
-                    g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
-
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000020;                                              // control: FM modulation by OSC1 inc streaming
-                }
-                break;
-
-                case 2: {
-                    /* PM */
-                    double gain1 = 0.5 + ((double) (1ULL << 31)) * (loc_osc1_amp / 2048.0);             // TODO: DAC amplitude correction goes into here
-//                  double ofs1  = 0.0f;                                                                // TODO: DAC offset correction goes into here
-                    double ofs1  = (1ULL << 46);                                                        // TODO: DAC offset correction goes into here
-
-                    double gain2 = 0.5 + ((double) (1ULL << 31)) * (loc_osc1_amp / 2048.0);             //
-//                  double ofs2  = 0.0f;                                                                //
-                    double ofs2  = (1ULL << 46);                                                        //
-
-                    fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for PM\n");
-
-                    g_fpga_rb_reg_mem->osc1_mix_gain   = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_mix_ofs_lo = (uint32_t) (((uint64_t) ofs1)  & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_mix_ofs_hi = (uint32_t) (((uint64_t) ofs1) >> 32);
-
-                    g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
-
-                    g_fpga_rb_reg_mem->ctrl |= 0x00000040;                                              // control: PM modulation by OSC1 ofs streaming
-                }
-                break;
-
-                }
-            }  // if (modsrc == OSC2)
-
-            g_fpga_rb_reg_mem->ctrl &= ~0x00000006;                                                     // control: disable reset  OSC1 & OSC2
-            g_fpga_rb_reg_mem->ctrl &= ~0x00001010;                                                     // control: disable resync OSC1 & OSC2
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_qrg_i", p[idx].name)) {
-            double qrg1 = 0.5 + ((double) (1ULL << 48)) * (p[idx].value / rp_main_calib_params.base_osc125mhz_realhz);
-
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_i = %f\n", p[idx].value);
-
-            if (!loc_modsrc) {
-                /* modsrc == (none) */
-                g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
-                g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
-                g_fpga_rb_reg_mem->osc1_ofs_lo = 0;                                                     // no carrier phase offset
-                g_fpga_rb_reg_mem->osc1_ofs_hi = 0;                                                     // no carrier phase offset
-
-            } else if (loc_modsrc == 1) {
-                /* modsrc == OSC2 */
-                switch (loc_modtyp) {
-                case 0: {
-                    /* AM */
-                    g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
-                    g_fpga_rb_reg_mem->osc1_ofs_lo = 0;                                                 // no carrier phase offset
-                    g_fpga_rb_reg_mem->osc1_ofs_hi = 0;                                                 // no carrier phase offset
-                }
-                break;
-
-                case 1: {
-                    /* FM */
-                    g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) 0;                                      // not used while streaming in
-                    g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) 0;                                      // not used while streaming in
-                }
-                break;
-
-                case 2: {
-                    /* PM */
-                    g_fpga_rb_reg_mem->osc1_ofs_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_ofs_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
-                }
-                break;
-
-                }  // switch ()
-            }
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, (int) (p[idx].value), loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc2_qrg_i", p[idx].name)) {
-            double qrg2 = 0.5 + ((double) (1ULL << 48)) * (p[idx].value / rp_main_calib_params.base_osc125mhz_realhz);
-
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_i = %f\n", p[idx].value);
-
-            g_fpga_rb_reg_mem->osc2_inc_lo = (uint32_t) (((uint64_t) qrg2) & 0xffffffff);
-            g_fpga_rb_reg_mem->osc2_inc_hi = (uint32_t) (((uint64_t) qrg2) >> 32);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, (int) (p[idx].value), loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_amp_i", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_i = %f\n", p[idx].value);
-
-            if (loc_modsrc == 0) {
-                /* modsrc == (none) */
-                fpga_rb_set_osc1_mixer_mod_am(p[idx].value);
-
-            } else if (loc_modsrc == 1) {
-                /* modsrc == OSC2 */
-                if (loc_modtyp == 0) {
-                    /* AM */
-                    g_fpga_rb_reg_mem->osc1_mix_gain = (uint32_t) 0;                                    // not used while streaming in
-                    fpga_rb_set_osc2_mixer_mod_am(p[idx].value, loc_osc2_mag);
-
-                } else {
-                    /* FM or PM */
-//                  g_fpga_rb_reg_mem->osc1_mix_gain = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
-                }
-            }
-
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, (int) (p[idx].value), loc_osc2_mag);
 
         } else if (!strcmp("osc2_mag_i", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: setting magnitude = %f\n", p[idx].value);
-
-            if (loc_modsrc == 1) {
-                /* modsrc == OSC2 */
-                switch (loc_modtyp) {
-
-                default:
-                case 0: {
-                    /* AM */
-                    fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for AM\n");
-                    fpga_rb_set_osc2_mixer_mod_am(loc_osc1_amp, p[idx].value);
-                }
-                break;
-
-                case 1: {
-                    /* FM */
-                    fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for FM\n");
-
-#if 0
-                    float qrg1 = 0.5f + p[RB_OSC1_QRG].value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
-                    float devi = 0.5f + p[RB_OSC2_MAG].value * ((1ULL << 32) / rp_main_calib_params.base_osc125mhz_realhz);
-
-                    g_fpga_rb_reg_mem->osc1_inc_lo = 0;                                                 // not used while streaming in
-                    g_fpga_rb_reg_mem->osc1_inc_hi = 0;                                                 // not used while streaming in
-                    g_fpga_rb_reg_mem->osc1_ofs_lo = 0;                                                 // no carrier phase offset
-                    g_fpga_rb_reg_mem->osc1_ofs_hi = 0;                                                 // no carrier phase offset
-                    g_fpga_rb_reg_mem->osc2_mix_gain = (uint32_t) devi;
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
-#endif
-                }
-                break;
-
-                case 2: {
-                    /* PM */
-                    fprintf(stderr, "INFO - fpga_rb_update_all_params: setting FPGA for PM\n");
-
-#if 0
-                    float qrg1 = 0.5f +  p[RB_OSC1_QRG].value * ((1ULL << 48) / rp_main_calib_params.base_osc125mhz_realhz);
-                    float gain = 0.5f +  p[RB_OSC2_MAG].value * ((1ULL << 32) / rp_main_calib_params.base_osc125mhz_realhz);
-
-                    g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
-                    g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
-                    g_fpga_rb_reg_mem->osc1_ofs_lo = 0;                                                 // not used while streaming in
-                    g_fpga_rb_reg_mem->osc1_ofs_hi = 0;                                                 // not used while streaming in
-                    g_fpga_rb_reg_mem->osc2_mix_gain = (uint32_t) gain;
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = 0;
-                    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = 0;
-#endif
-                }
-                break;
-
-                }  // switch()
-            }  // if (loc_modsrc == 1)
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, (int) (p[idx].value));
         }  // else if ()
 
         idx++;
@@ -420,15 +200,110 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
 
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc1_mixer_mod_am(float osc1_amp)
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float osc2_qrg, float osc1_amp, float osc2_mag)
 {
-    double gain1 = 0.5 + ((double) (1ULL << 31)) * (osc1_amp / 2048.0);                         // TODO: DAC amplitude correction goes into here
-//  double ofs1  = 0.0f;                                                                        // TODO: DAC offset correction goes into here
-    double ofs1  = (1ULL << 46);                                                                // TODO: DAC offset correction goes into here
+    if (rb_run) {
+        fpga_rb_set_osc1_mod_none_am_pm(osc1_qrg);                                                      // OSC1 frequency
+        fpga_rb_set_osc2_mod_am_fm_pm(osc2_qrg);                                                        // OSC2 frequency
+        fpga_rb_set_osc1_mixer_mod_none_fm_pm(osc1_amp);                                                // OSC1 mixer
+
+        switch (modsrc) {
+
+        default:
+        case 0: {
+            /* modsrc == (none) */
+            g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                     // control: turn off all streams into OSC1 and OSC1 mixer
+        }
+        break;
+
+        case 1: {
+            /* modsrc == OSC2 */
+            switch (modtyp) {
+
+            case 0: {
+                /* AM */
+                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for AM\n");
+
+                g_fpga_rb_reg_mem->ctrl &= ~0x00000060;                                                 // control: turn off all other streams
+                g_fpga_rb_reg_mem->ctrl |=  0x00000080;                                                 // control: AM by OSC1 mixer amplitude streaming
+                fpga_rb_set_osc2_mixer_mod_am(osc1_amp, osc2_mag);                                      // AM by streaming in amplitude
+            }
+            break;
+
+            case 1: {
+                /* FM */
+                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for FM\n");
+
+                g_fpga_rb_reg_mem->ctrl &= ~0x000000c0;                                                 // control: turn off all other streams
+                g_fpga_rb_reg_mem->ctrl |=  0x00000020;                                                 // control: FM by OSC1 increment streaming
+                fpga_rb_set_osc2_mixer_mod_fm(osc1_qrg, osc2_mag);                                      // FM by streaming in DDS increment
+            }
+            break;
+
+            case 2: {
+                /* PM */
+                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for PM\n");
+
+                g_fpga_rb_reg_mem->ctrl &= ~0x000000a0;                                                 // control: turn off all other streams
+                g_fpga_rb_reg_mem->ctrl |=  0x00000040;                                                 // control: PM by OSC1 offset streaming
+                fpga_rb_set_osc2_mixer_mod_pm(osc1_qrg, osc2_mag);                                      // PM by streaming in DDS phase offset
+            }
+            break;
+
+            }
+        }
+        break;
+
+        case 2: {
+            /* modsrc == XADC1 */
+            // TODO to be defined
+        }
+        break;
+
+        }  // switch ()
+
+    } else {
+        fpga_rb_set_osc1_mod_none_am_pm(0.0f);                                                          // OSC1 frequency
+        fpga_rb_set_osc2_mod_am_fm_pm(0.0f);                                                            // OSC2 frequency
+        fpga_rb_set_osc1_mixer_mod_none_fm_pm(0.0f);                                                    // OSC1 mixer
+        fpga_rb_set_osc2_mixer_mod_fm(0.0f, 0.0f);                                                      // OSC2 mixer
+
+        g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                         // control: turn off all streams into OSC1 and OSC1 mixer
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_osc1_mod_none_am_pm(float osc1_qrg)
+{
+    double qrg1 = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+
+    g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
+    g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
+    g_fpga_rb_reg_mem->osc1_ofs_lo = 0;                                                                 // no carrier phase offset
+    g_fpga_rb_reg_mem->osc1_ofs_hi = 0;                                                                 // no carrier phase offset
+}
+
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_osc1_mixer_mod_none_fm_pm(float osc1_amp)
+{
+    double gain1 = 0.5 + ((double) (1ULL << 31)) * (osc1_amp / 2048.0);                                 // TODO: DAC amplitude correction goes into here
+//  double ofs1  = 0.0f;                                                                                // TODO: DAC offset correction goes into here
+    double ofs1  = (1ULL << 46);                                                                        // TODO: DAC offset correction goes into here
 
     g_fpga_rb_reg_mem->osc1_mix_gain = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
     g_fpga_rb_reg_mem->osc1_mix_ofs_lo = (uint32_t) (((uint64_t) ofs1)  & 0xffffffff);
     g_fpga_rb_reg_mem->osc1_mix_ofs_hi = (uint32_t) (((uint64_t) ofs1) >> 32);
+}
+
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg)
+{
+    double qrg2 = 0.5 + ((double) (1ULL << 48)) * (osc2_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+
+    g_fpga_rb_reg_mem->osc2_inc_lo = (uint32_t) (((uint64_t) qrg2) & 0xffffffff);
+    g_fpga_rb_reg_mem->osc2_inc_hi = (uint32_t) (((uint64_t) qrg2) >> 32);
+    g_fpga_rb_reg_mem->osc2_ofs_lo = 0;                                                                 // no carrier phase offset
+    g_fpga_rb_reg_mem->osc2_ofs_hi = 0;                                                                 // no carrier phase offset
 }
 
 /*----------------------------------------------------------------------------*/
@@ -440,6 +315,27 @@ void fpga_rb_set_osc2_mixer_mod_am(float osc1_amp, float osc2_mag)
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
+}
+
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_osc2_mixer_mod_fm(float osc1_qrg, float osc2_mag)
+{
+    double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / rp_main_calib_params.base_osc125mhz_realhz);
+    double ofs2  = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+
+    g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
+    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
+    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
+}
+
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_osc2_mixer_mod_pm(float osc1_qrg, float osc2_mag)
+{
+    double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / 360.0);
+
+    g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
+    g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) 0;
+    g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) 0;
 }
 
 

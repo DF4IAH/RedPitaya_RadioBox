@@ -57,9 +57,9 @@
     rb_run:               1,  // application running
     osc1_modsrc_s:        0,  // mod-source: (none)
     osc1_modtyp_s:        0,  // modulation: AM
-    osc1_qrg_i:        1000,  // 1000 Hz
-    osc2_qrg_i:           2,  // 2 Hz
-    osc1_amp_i:        1000,  // 1 V
+    osc1_qrg_i:       10000,  // 10 kHz
+    osc2_qrg_i:         440,  // 440 Hz
+    osc1_amp_i:         447,  // 447 mV Vpp @ 50R gives 0 dBm
     osc2_mag_i:           0
   };
 
