@@ -344,12 +344,12 @@ assign adc_b = digital_loop ? dac_b : {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
 ////////////////////////////////////////////////////////////////////////////////
 
 // Summation of ASG and PID signal perform saturation before sending to DAC 
-assign dac_a_sum = rb_en ?  rb_out_ch[0][16-1:2] : (asg_a + pid_a);
-assign dac_b_sum = rb_en ?  rb_out_ch[1][16-1:2] : (asg_b + pid_b);
+assign dac_a_sum = asg_a + pid_a;
+assign dac_b_sum = asg_b + pid_b;
 
 // saturation
-assign dac_a = (^dac_a_sum[15-1:15-2]) ? {dac_a_sum[15-1], {13{~dac_a_sum[15-1]}}} : dac_a_sum[14-1:0];
-assign dac_b = (^dac_b_sum[15-1:15-2]) ? {dac_b_sum[15-1], {13{~dac_b_sum[15-1]}}} : dac_b_sum[14-1:0];
+assign dac_a = rb_en ?  rb_out_ch[0][16-1:2] : ((^dac_a_sum[15-1:15-2]) ?  {dac_a_sum[15-1], {13{~dac_a_sum[15-1]}}} : dac_a_sum[14-1:0]);
+assign dac_b = rb_en ?  rb_out_ch[1][16-1:2] : ((^dac_b_sum[15-1:15-2]) ?  {dac_b_sum[15-1], {13{~dac_b_sum[15-1]}}} : dac_b_sum[14-1:0]);
 
 // output registers + signed to unsigned (also to negative slope)
 always @(posedge clk_adc_125mhz_000deg)
