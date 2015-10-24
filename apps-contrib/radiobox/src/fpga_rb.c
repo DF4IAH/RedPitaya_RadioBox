@@ -287,8 +287,8 @@ void fpga_rb_set_osc1_mod_none_am_pm(float osc1_qrg)
 void fpga_rb_set_osc1_mixer_mod_none_fm_pm(float osc1_amp)
 {
     double gain1 = 0.5 + ((double) (1ULL << 31)) * (osc1_amp / 2048.0);                                 // TODO: DAC amplitude correction goes into here
-//  double ofs1  = 0.0f;                                                                                // TODO: DAC offset correction goes into here
-    double ofs1  = (1ULL << 46);                                                                        // TODO: DAC offset correction goes into here
+    double ofs1  = 0.0f;                                                                                // TODO: DAC offset correction goes into here
+//  double ofs1  = (1ULL << 46);                                                                        // TODO: DAC offset correction goes into here
 
     g_fpga_rb_reg_mem->osc1_mix_gain = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
     g_fpga_rb_reg_mem->osc1_mix_ofs_lo = (uint32_t) (((uint64_t) ofs1)  & 0xffffffff);
@@ -310,7 +310,7 @@ void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg)
 void fpga_rb_set_osc2_mixer_mod_am(float osc1_amp, float osc2_mag)
 {
     double gain2 = 0.5 +  ((double) (1ULL << 30))                           * (osc2_mag / 100.0)  * (osc1_amp / 2048.0);
-    double ofs2  = 0.5 + (((double) (1ULL << 47)) - ((double) (1ULL << 47)) * (osc2_mag / 100.0)) * (osc1_amp / 2048.0);
+    double ofs2  = 0.5 + (((double) (1ULL << 47)) - ((double) (1ULL << 46)) * (osc2_mag / 100.0)) * (osc1_amp / 2048.0);
 
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
@@ -331,7 +331,7 @@ void fpga_rb_set_osc2_mixer_mod_fm(float osc1_qrg, float osc2_mag)
 /*----------------------------------------------------------------------------*/
 void fpga_rb_set_osc2_mixer_mod_pm(float osc1_qrg, float osc2_mag)
 {
-    double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / 360.0);
+    double gain2 = 0.5 + ((double) (1ULL << 31)) * (osc2_mag / 360.0);
 
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) 0;
