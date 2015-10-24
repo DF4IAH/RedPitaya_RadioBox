@@ -70,11 +70,12 @@ void* worker_thread(void* args);
  * This function marks all changed parameter entries which are having the fpga_update attribute set.
  * Additional the count of this modified parameter entries is returned.
  *
- * @param[in]    ref  Reference parameter list for old values taken as reference.
- * @param[inout] cmp  Comparison parameter list for new values to be compare against the reference.
- * @retval       int  Number of parameters that changed the value AND their attribute fpga_update is set.
+ * @param[in]    ref      Reference parameter list for old values taken as reference.
+ * @param[inout] cmp      Comparison parameter list for new values to be compare against the reference.
+ * @param[in]    do_init  If true all comparisons will indicate a changed state.
+ * @retval       int      Number of parameters that changed the value AND their attribute fpga_update is set.
  */
-int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp);
+int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp, int do_init);
 
 
 /** @brief Removes 'dirty' flags */

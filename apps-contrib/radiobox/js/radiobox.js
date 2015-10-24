@@ -54,11 +54,12 @@
     init: {}
   };
   RB.params.init = {
-    osc1_qrg_i:           0,
-    osc1_amp_i:        1000,  // 1 V
-    osc1_modsrc_s:        1,  // mod-source: OSC2
+    rb_run:               1,  // application running
+    osc1_modsrc_s:        0,  // mod-source: (none)
     osc1_modtyp_s:        0,  // modulation: AM
-    osc2_qrg_i:           0,
+    osc1_qrg_i:        1000,  // 1000 Hz
+    osc2_qrg_i:           2,  // 2 Hz
+    osc1_amp_i:        1000,  // 1 V
     osc2_mag_i:           0
   };
 
@@ -362,7 +363,7 @@
         RB.params.local = {};
       }
       else if(dresult.status == 'ERROR') {
-   	    RB.state.socket_opened = false;
+           RB.state.socket_opened = false;
         showModalError((dresult.reason ? dresult.reason : 'Failure returned when connecting the web-server - can not start the application (ERR1).'), false, true, true);
         RB.state.send_que = false;
       }
@@ -400,7 +401,7 @@
       var value = undefined;
 
       if (key == 'RB_RUN'){
-        value = (field.is(':visible') ? 0 : 1);
+        value = (field.is(':visible') ? 1 : 0);
       }
       else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
         value = parseInt(field.val());
@@ -460,8 +461,8 @@ $(function() {
     ev.preventDefault();
     $('#RB_RUN').hide();
     $('#RB_STOP').css('display','block');
-    //RB.params.local['RB_RUN'] = { value: false };
-    RB.params.local['RB_RUN'] = 0;
+    //RB.params.local['rb_run'] = { value: false };
+    RB.params.local['rb_run'] = 0;
     RB.sendParams();
   });
 
@@ -470,7 +471,7 @@ $(function() {
     ev.preventDefault();
     $('#RB_STOP').hide();
     $('#RB_RUN').show();
-    RB.params.local['RB_RUN'] = 1;
+    RB.params.local['rb_run'] = 1;
     RB.sendParams();
   });
 
@@ -497,10 +498,10 @@ $(function() {
 
   $('.btn').mouseup(function() {
     setTimeout(function() {
-  	  //updateLimits();
-  	  //formatVals();
+        //updateLimits();
+        //formatVals();
       RB.exitEditing(true);
-	}, 20);
+    }, 20);
   });
 
   // Close parameters dialog after Enter key is pressed
@@ -561,7 +562,7 @@ $(function() {
   // Bind to the window resize event to redraw the graph; trigger that event to do the first drawing
   $(window).resize(function() {
     /*
-	RB.params.local['in_command'] = 'send_all_params';
+    RB.params.local['in_command'] = 'send_all_params';
     RB.sendParams();
     */
     /*

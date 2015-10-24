@@ -38,35 +38,33 @@
 #endif
 
 
+/** @brief calibration data layout within the EEPROM device */
+rp_calib_params_t               rp_main_calib_params;
+
 /** @brief HouseKeeping memory file descriptor used to mmap() the FPGA space */
 int                             g_fpga_hk_mem_fd = -1;
-
-/** @brief calibration data layout within the EEPROM device */
-rp_calib_params_t        		rp_main_calib_params;
-
 /** @brief HouseKeeping memory layout of the FPGA registers */
 fpga_hk_reg_mem_t*              g_fpga_hk_reg_mem = NULL;
 
 /** @brief RadioBox memory file descriptor used to mmap() the FPGA space */
 int                             g_fpga_rb_mem_fd = -1;
-
 /** @brief RadioBox memory layout of the FPGA registers */
 fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
 
 /** @brief Describes app. parameters with some info/limitations */
 const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
     { /* Running mode */
-	    "RB_RUN",           0, 1, 0, 0,         1 },
-    { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_i",       0, 1, 0, 0, 125000000 },
-    { /* Oscillator-1 amplitude (µV) */
-        "osc1_amp_i",       0, 1, 0, 0,   2048000 },
+        "rb_run",           0, 1, 0, 0,         1 },
     { /* Oscillator-1 modulation source selector (0: none, 1: VCO2, 2: XADC0) */
         "osc1_modsrc_s",    0, 1, 0, 0,         2 },
     { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
         "osc1_modtyp_s",    0, 1, 0, 0,         2 },
+    { /* Oscillator-1 frequency (Hz) */
+        "osc1_qrg_i",       0, 1, 0, 0,  62500000 },
     { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_i",       0, 1, 0, 0, 125000000 },
+        "osc2_qrg_i",       0, 1, 0, 0,  62500000 },
+    { /* Oscillator-1 amplitude (µV) */
+        "osc1_amp_i",       0, 1, 0, 0,      2047 },
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
         "osc2_mag_i",       0, 1, 0, 0,   1000000 },
     { /* Must be last! */
@@ -74,17 +72,17 @@ const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
 };
 
 /** @brief CallBack copy of params to inform the worker */
-rp_app_params_t*				rp_cb_in_params = NULL;
+rp_app_params_t*                rp_cb_in_params = NULL;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
-pthread_mutex_t 				rp_cb_in_params_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t                 rp_cb_in_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief CallBack copy of params from the worker when requested */
-rp_app_params_t*				rp_cb_out_params = NULL;
+rp_app_params_t*                rp_cb_out_params = NULL;
 /** @brief Holds mutex to access on parameters from the worker thread to any other context */
-pthread_mutex_t 				rp_cb_out_params_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t                 rp_cb_out_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 /** @brief params initialized */
-int								params_init_done = 0;  /* @see worker.c */
+int                             params_init_done = 0;  /* @see worker.c */
 
 
 /*----------------------------------------------------------------------------------*/
@@ -102,9 +100,6 @@ int rp_create_traces(float** a_traces[TRACE_NUM])
 
     fprintf(stderr, "rp_create_traces: BEGIN\n");
 
-    // Debugging
-    fpga_hk_setLeds(1, 0x20, 0);
-
     trc = malloc(TRACE_NUM * sizeof(float*));
     if (!trc) {
         return -1;
@@ -112,11 +107,11 @@ int rp_create_traces(float** a_traces[TRACE_NUM])
 
     // First step - void all pointers in case of early return
     for (i = 0; i < TRACE_NUM; i++)
-    	trc[i] = NULL;
+        trc[i] = NULL;
 
     // Set-up for each trace
     for (i = 0; i < TRACE_NUM; i++) {
-    	trc[i] = (float*) malloc(TRACE_LENGTH * sizeof(float));
+        trc[i] = (float*) malloc(TRACE_LENGTH * sizeof(float));
         if (!(trc[i])) {
             // de-allocate all memory as much as already taken
             rp_free_traces(a_traces);
@@ -144,9 +139,6 @@ void rp_free_traces(float** a_traces[TRACE_NUM])
 
     float** trc = *a_traces;
 
-    // Debugging
-    fpga_hk_setLeds(1, 0x40, 0);
-
     if (trc) {
         int i;
         for (i = 0; i < TRACE_NUM; i++) {
@@ -166,7 +158,7 @@ void rp_free_traces(float** a_traces[TRACE_NUM])
 /*----------------------------------------------------------------------------------*/
 int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr)
 {
-	const rp_app_params_t* s = src;
+    const rp_app_params_t* s = src;
     int i, j, num_params;
 
     /* check arguments */
@@ -175,100 +167,111 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
         return -1;
     }
     if (!s) {
-        fprintf(stderr, "INFO rp_copy_params - no source parameter list given, taking default parameters instead.\n");
+        //fprintf(stderr, "INFO rp_copy_params - no source parameter list given, taking default parameters instead.\n");
         s = rp_default_params;
     }
 
     /* check if destination buffer is allocated already */
-    rp_app_params_t* p_new = *dst;
-    if (p_new) {
-        fprintf(stderr, "INFO rp_copy_params - dst exists - updating into dst vector.\n");
-		/* destination buffer exists */
-		i = 0;
-		while (s[i].name) {
-	        fprintf(stderr, "INFO rp_copy_params - processing name = %s\n", s[i].name);
-			/* process each parameter entry of the list */
+    rp_app_params_t* p_dst = *dst;
+    if (p_dst) {
+        //fprintf(stderr, "INFO rp_copy_params - dst exists - updating into dst vector.\n");
+        /* destination buffer exists */
+        i = 0;
+        while (s[i].name) {
+            //fprintf(stderr, "INFO rp_copy_params - processing name = %s\n", s[i].name);
+            /* process each parameter entry of the list */
 
-			if (!strcmp(p_new[i].name, s[i].name)) {  // direct mapping found - just copy the value
-		        fprintf(stderr, "INFO rp_copy_params - direct mapping used\n");
-				p_new[i].value			= s[i].value;
-				p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
+            if (!strcmp(p_dst[i].name, s[i].name)) {  // direct mapping found - just copy the value
+                //fprintf(stderr, "INFO rp_copy_params - direct mapping used\n");
+                p_dst[i].value = s[i].value;
+                if (s[i].fpga_update & 0x80) {
+                    p_dst[i].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
+                } else {
+                    p_dst[i].fpga_update &= ~0x80;  // or remove it when it is not set
+                }
 
-				if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
-					p_new[i].read_only	= s[i].read_only;
-					p_new[i].min_val	= s[i].min_val;
-					p_new[i].max_val	= s[i].max_val;
-				}
-			} else {
-		        fprintf(stderr, "INFO rp_copy_params - iterative searching ...\n");
-				j = 0;
-				while (p_new[j].name) {  // scanning the complete list
-					if (j == i) {  // do a short-cut here
-						j++;
-						continue;
-					}
+                if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
+                    p_dst[i].fpga_update    = s[i].fpga_update;
+                    p_dst[i].read_only      = s[i].read_only;
+                    p_dst[i].min_val        = s[i].min_val;
+                    p_dst[i].max_val        = s[i].max_val;
+                }
 
-					if (!strcmp(p_new[j].name, s[i].name)) {
-						p_new[j].value			= s[i].value;
-						p_new[i].fpga_update	= s[i].fpga_update;  // copy FPGA update marker in case it is present
+            } else {
+                //fprintf(stderr, "INFO rp_copy_params - iterative searching ...\n");
+                j = 0;
+                while (p_dst[j].name) {  // scanning the complete list
+                    if (j == i) {  // do a short-cut here
+                        j++;
+                        continue;
+                    }
 
-						if (!do_copy_all_attr) {  // if default parameters are taken, use all attributes
-							p_new[i].read_only	= s[i].read_only;
-							p_new[i].min_val	= s[i].min_val;
-							p_new[i].max_val	= s[i].max_val;
-						}
-						break;
-					}
-					j++;
-				}  // while (p_new[j].name)
-			}  // if () else
-			i++;
-		}  // while (src[i].name)
+                    if (!strcmp(p_dst[j].name, s[i].name)) {
+                        p_dst[j].value = s[i].value;
+                        if (s[i].fpga_update & 0x80) {
+                            p_dst[i].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
+                        } else {
+                            p_dst[i].fpga_update &= ~0x80;  // or remove it when it is not set
+                        }
+
+                        if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
+                            p_dst[i].fpga_update    = s[i].fpga_update;  // copy FPGA update marker in case it is present
+                            p_dst[i].read_only      = s[i].read_only;
+                            p_dst[i].min_val        = s[i].min_val;
+                            p_dst[i].max_val        = s[i].max_val;
+                        }
+                        break;
+                    }
+                    j++;
+                }  // while (p_new[j].name)
+            }  // if () else
+            i++;
+        }  // while (src[i].name)
 
     } else {
-		/* destination buffer has to be allocated, create a new parameter list */
+        /* destination buffer has to be allocated, create a new parameter list */
 
-    	if (len >= 0) {
-    		num_params = len;
+        if (len >= 0) {
+            num_params = len;
 
-    	} else {
-			/* retrieve the number of source parameters */
-			i = 0;
-			num_params = 0;
-			while (s[i++].name) {
-				num_params++;
-			}
-    	}
+        } else {
+            /* retrieve the number of source parameters */
+            i = 0;
+            num_params = 0;
+            while (s[i++].name) {
+                num_params++;
+            }
+        }
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
-        p_new = (rp_app_params_t*) malloc(sizeof(rp_app_params_t) * (num_params + 1));
-        if (!p_new) {
+        p_dst = (rp_app_params_t*) malloc(sizeof(rp_app_params_t) * (num_params + 1));
+        if (!p_dst) {
             fprintf(stderr, "ERROR rp_copy_params - memory problem, the destination buffer could not be allocated (1).\n");
             return -3;
         }
         /* prepare a copy for built-in attributes. Strings have to be handled on their own way */
-        memcpy(p_new, s, (num_params + 1) * sizeof(rp_app_params_t));
+        memcpy(p_dst, s, (num_params + 1) * sizeof(rp_app_params_t));
 
         /* allocate memory and copy character strings for params names */
         i = 0;
         while (s[i].name) {
             int slen = strlen(s[i].name);
-            p_new[i].name = (char*) malloc(slen + 1);  // old pointer to name does not belong to us and has to be discarded
-            if (!(p_new[i].name)) {
+            p_dst[i].name = (char*) malloc(slen + 1);  // old pointer to name does not belong to us and has to be discarded
+            if (!(p_dst[i].name)) {
                 fprintf(stderr, "ERROR rp_copy_params - memory problem, the destination buffer could not be allocated (2).\n");
                 return -4;
             }
-            strncpy(p_new[i].name, s[i].name, slen);
-            p_new[i].name[slen] = '\0';
+            strncpy(p_dst[i].name, s[i].name, slen);
+            p_dst[i].name[slen] = '\0';
 
             i++;
         }
 
         /* mark last one as final entry */
-        p_new[num_params].name = NULL;
-        p_new[num_params].value = -1;
+        p_dst[num_params].name = NULL;
+        p_dst[num_params].value = -1;
     }
-    *dst = p_new;
+    *dst = p_dst;
 
     return 0;
 }
@@ -280,7 +283,7 @@ int rp_free_params(rp_app_params_t** params)
         return -1;
     }
 
-    fprintf(stderr, "rp_free_params: BEGIN\n");
+    //fprintf(stderr, "rp_free_params: BEGIN\n");
 
     /* free params structure */
     if (*params) {
@@ -301,6 +304,6 @@ int rp_free_params(rp_app_params_t** params)
         *params = NULL;
     }
 
-    fprintf(stderr, "rp_free_params: END\n");
+    //fprintf(stderr, "rp_free_params: END\n");
     return 0;
 }

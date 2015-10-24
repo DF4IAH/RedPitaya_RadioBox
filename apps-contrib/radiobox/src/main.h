@@ -30,24 +30,41 @@
 
 /** @brief Parameters description structure - must be the same for all RP controllers */
 typedef struct rp_app_params_s {
-	/** @brief name  Name of the parameter */
-	char  *name;
+    /** @brief name  Name of the parameter */
+    char  *name;
 
-	/** @brief value  Value of the parameter */
+    /** @brief value  Value of the parameter */
     float  value;
 
-	/** @brief fpga_update  Do a FPGA register update based on this parameter */
+    /** @brief fpga_update  Do a FPGA register update based on this parameter */
     int    fpga_update;
 
-	/** @brief read_only  The value of this parameter can not be changed */
+    /** @brief read_only  The value of this parameter can not be changed */
     int    read_only;
 
-	/** @brief min_val  The lower limit of the value */
+    /** @brief min_val  The lower limit of the value */
     float  min_val;
 
-	/** @brief max_val  The upper limit of the value */
+    /** @brief max_val  The upper limit of the value */
     float  max_val;
 } rp_app_params_t;
+
+
+/* Parameters indexes - these defines should be in the same order as
+ * rp_app_params_t structure defined in main.c */
+
+/** @brief RadioBox parameters */
+enum rb_enum_t {
+    RB_RUN          = 0,
+    RB_OSC1_MODSRC,
+    RB_OSC1_MODTYP,
+    RB_OSC1_QRG,
+    RB_OSC2_QRG,
+    RB_OSC1_AMP,
+    RB_OSC2_MAG,
+
+    RB_PARAMS_NUM
+} RB_PARAMS_ENUM;
 
 
 /* Output signals */

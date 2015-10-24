@@ -22,23 +22,23 @@
 
 
 /** @brief Calibration data layout within the EEPROM device. */
-extern rp_calib_params_t	rp_main_calib_params;
+extern rp_calib_params_t    rp_main_calib_params;
 
 /** @brief Describes app. parameters with some info/limitations */
-extern rp_app_params_t		rp_default_params[];
+extern rp_app_params_t      rp_default_params[];
 
 /** @brief CallBack copy of params to inform the worker */
-extern rp_app_params_t*		rp_cb_in_params;
+extern rp_app_params_t*     rp_cb_in_params;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
-extern pthread_mutex_t 		rp_cb_in_params_mutex;
+extern pthread_mutex_t      rp_cb_in_params_mutex;
 
 /** @brief CallBack copy of params to inform the worker */
-extern rp_app_params_t*		rp_cb_out_params;
+extern rp_app_params_t*     rp_cb_out_params;
 /** @brief Holds mutex to access on parameters from the worker thread to any other context */
-extern pthread_mutex_t 		rp_cb_out_params_mutex;
+extern pthread_mutex_t      rp_cb_out_params_mutex;
 
 /** @brief params initialized */
-extern int 					params_init_done;
+extern int                  params_init_done;
 
 
 /*----------------------------------------------------------------------------*/
@@ -48,10 +48,21 @@ int rp_app_init(void)
 
     fpga_init();
 
+    // Debugging
+    fprintf(stderr, "rp_app_init: setting pattern HK LEDs\n");
+    fpga_hk_setLeds(0, 0xff, 0xaa);
+
     rp_default_calib_params(&rp_main_calib_params);
+    float default_osc125mhz = rp_main_calib_params.base_osc125mhz_realhz;
+    fprintf(stderr, "INFO rp_app_init: default_osc125mhz = %f\n", default_osc125mhz);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
+    if (!((uint32_t) rp_main_calib_params.base_osc125mhz_realhz)) {  // non-valid data
+        fprintf(stderr, "WARNING rp_app_init: non-valid osc125mhz data found, overwriting with default value\n");
+        rp_main_calib_params.base_osc125mhz_realhz = default_osc125mhz;
+    }
+    fprintf(stderr, "INFO rp_app_init: osc125mhz = %f\n", rp_main_calib_params.base_osc125mhz_realhz);
 
     /* start-up worker thread */
     if (worker_init(rp_default_params, RB_PARAMS_NUM) < 0) {
@@ -62,9 +73,6 @@ int rp_app_init(void)
     /* Init with a CallBack fake */
     rp_set_params(rp_default_params, RB_PARAMS_NUM);
 
-    /* since here the initialization is complete */
-    params_init_done = 1;
-
     fprintf(stderr, "rp_app_init: END\n");
     return 0;
 }
@@ -74,10 +82,6 @@ int rp_app_exit(void)
 {
     fprintf(stderr, "rp_app_exit: BEGIN\n");
     fprintf(stderr, "Unloading radiobox version %s-%s.\n", VERSION, REVISION);
-
-    // Debugging
-    fprintf(stderr, "rp_app_exit: setting pattern HK LEDs\n");
-    fpga_hk_setLeds(0, 0xff, 0xaa);
 
     fprintf(stderr, "rp_app_exit: calling fpga_exit()\n");
     fpga_exit();
@@ -103,11 +107,11 @@ int rp_set_params(const rp_app_params_t* p, int len)
 
     if (!p) {
         fprintf(stderr, "ERROR rp_set_params - non-valid parameter\n");
-    	return -1;
+        return -1;
     }
 
     if (!len) {  // short-cut
-    	return 0;
+        return 0;
     }
 
     /* create a local copy to release CallBack caller */
@@ -122,34 +126,34 @@ int rp_set_params(const rp_app_params_t* p, int len)
 /*----------------------------------------------------------------------------*/
 int rp_get_params(rp_app_params_t** p)
 {
-	int count = 0;
+    int count = 0;
 
-	fprintf(stderr, "rp_get_params: BEGIN\n");
-	*p = NULL;  // TODO is input parameter filled? Is freeing needed here instead of dropping any input?
+    fprintf(stderr, "rp_get_params: BEGIN\n");
+    *p = NULL;  // TODO is input parameter filled? Is freeing needed here instead of dropping any input?
 
-	//fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
+    fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
     pthread_mutex_lock(&rp_cb_out_params_mutex);
-   	rp_cb_out_params = NULL;  // discard old data to receive a current copy from the worker - free'd externally
+    rp_cb_out_params = NULL;  // discard old data to receive a current copy from the worker - free'd externally
     pthread_mutex_unlock(&rp_cb_out_params_mutex);
-	//fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
+    fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
 
     while (!(*p)) {
-        usleep(10000);  // delay the busy loop
+        usleep(100000);  // delay the busy loop
 
-        //fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
+        fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
         pthread_mutex_lock(&rp_cb_out_params_mutex);
         *p = rp_cb_out_params;
         pthread_mutex_unlock(&rp_cb_out_params_mutex);
-        //fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
+        fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
     }
 
     int i = 0;
     while ((*p)[i++].name) {
-    	count++;
+        count++;
     }
-	fprintf(stderr, "INFO rp_get_params - having list with count = %d\n", count);
+    fprintf(stderr, "INFO rp_get_params - having list with count = %d\n", count);
 
-	fprintf(stderr, "rp_get_params: END\n");
+    fprintf(stderr, "rp_get_params: END\n");
     return count;
 }
 

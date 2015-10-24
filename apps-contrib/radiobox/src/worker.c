@@ -37,14 +37,14 @@ static pthread_mutex_t          worker_ctrl_mutex = PTHREAD_MUTEX_INITIALIZER;
 static rp_app_params_t*         worker_params = NULL;
 
 /** @brief CallBack copy of params to inform the worker */
-extern rp_app_params_t*			rp_cb_in_params;
+extern rp_app_params_t*         rp_cb_in_params;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
-extern pthread_mutex_t 			rp_cb_in_params_mutex;
+extern pthread_mutex_t          rp_cb_in_params_mutex;
 
 /** @brief CallBack copy of params from the worker when requested */
-extern rp_app_params_t*			rp_cb_out_params;
-/** @brief Holds mutex to access on parameters from the worker thread to any other context */
-extern pthread_mutex_t 			rp_cb_out_params_mutex;
+extern rp_app_params_t*         rp_cb_out_params;
+/** @brief Holds mutex to accession parameters from the worker thread to any other context */
+extern pthread_mutex_t          rp_cb_out_params_mutex;
 
 static pthread_mutex_t          worker_traces_mutex = PTHREAD_MUTEX_INITIALIZER;
 static float**                  worker_traces;
@@ -52,11 +52,14 @@ static int                      worker_traces_dirty = 0;
 static int                      worker_traces_lastIdx = 0;
 static float**                  worker_traces_tmp;  /* used for calculation, only from worker */
 
+/** @brief params initialized */
+extern int                      params_init_done;  /* @see main.c */
+
 
 /*----------------------------------------------------------------------------------*/
 int worker_init(rp_app_params_t* params, int params_len)
 {
-	int ret_val;
+    int ret_val;
 
     fprintf(stderr, "worker_init: BEGIN\n");
 
@@ -65,7 +68,7 @@ int worker_init(rp_app_params_t* params, int params_len)
         (void) worker_exit();
     }
 
-    worker_ctrl_state         = worker_idle_state;
+    worker_ctrl_state = worker_idle_state;
 
     /* create a new parameter list to the worker context */
     rp_copy_params((rp_app_params_t**) &worker_params, params, params_len, 1);
@@ -96,7 +99,7 @@ int worker_init(rp_app_params_t* params, int params_len)
 /*----------------------------------------------------------------------------------*/
 int worker_exit(void)
 {
-	int ret_val = 0;
+    int ret_val = 0;
 
     fprintf(stderr, "worker_exit: BEGIN\n");
 
@@ -147,13 +150,14 @@ void* worker_thread(void* args)
     pthread_mutex_unlock(&worker_ctrl_mutex);
 
     while (1) {
-        rp_app_params_t* curr_params = NULL;
-    	int do_normal_state = 0;
+        rp_app_params_t* cb_in_copy_params  = NULL;
+        rp_app_params_t* next_params        = NULL;
+        int do_normal_state = 0;
 
-    	/* update states - we save also the old state to see
+        /* update states - we save also the old state to see
          * if we need to reset the FPGA
          */
-//    	old_state = state;
+//      old_state = state;
 
         pthread_mutex_lock(&worker_ctrl_mutex);
         state = worker_ctrl_state;
@@ -163,20 +167,30 @@ void* worker_thread(void* args)
         /* check if new parameters are available */
         if (rp_cb_in_params) {
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params new data, check for new updated parameters ...\n");
-        	rp_copy_params((rp_app_params_t**) &curr_params, rp_cb_in_params, -1, 0);
-        	rp_free_params(&rp_cb_in_params);
+            rp_copy_params((rp_app_params_t**) &cb_in_copy_params, rp_cb_in_params, -1, 0);
+            rp_free_params(&rp_cb_in_params);
 
             /* take FSM out of idle state */
-        	do_normal_state = 1;
+            do_normal_state = 1;
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params new data, ... local copy made\n");
         }
         pthread_mutex_unlock(&rp_cb_in_params_mutex);
 
+        /* generate new parameter vectors */
+        rp_copy_params(&next_params, worker_params, -1, 1);
+        if (cb_in_copy_params) {
+            rp_copy_params(&next_params, cb_in_copy_params, -1, 0);
+        }
+
         pthread_mutex_lock(&rp_cb_out_params_mutex);
         if (!rp_cb_out_params) {  // the outer context removed the list, a current new one has to be created here
-            fprintf(stderr, "INFO worker_thread: rp_cb_out_params cleared --> do_normal_state=1\n");
-            /* take FSM out of idle state */
-        	do_normal_state = 1;
+            fprintf(stderr, "INFO worker_thread: rp_cb_out_params_mutex - making copy for outer world, before ...\n");
+
+            fprintf(stderr, "INFO worker_thread: rp_cb_out_params cleared, prepare parameters to the outside ...\n");
+            rp_copy_params(&rp_cb_out_params, next_params, -1, 1);  // get all attributes
+            fprintf(stderr, "INFO worker_thread: rp_cb_out_params cleared, ... prepare finished\n");
+
+            fprintf(stderr, "INFO worker_thread: rp_cb_out_params_mutex - making copy for outer world, ... after\n");
         }
         pthread_mutex_unlock(&rp_cb_out_params_mutex);
 
@@ -188,12 +202,12 @@ void* worker_thread(void* args)
             do_normal_state = 0;
         }
 
-
         /* request to stop worker thread, we will shut down */
         if (state == worker_quit_state) {
             fprintf(stderr, "worker_thread: worker_quit_state received\n");
             fprintf(stderr, "worker_thread: before freeing curr_params\n");
-            rp_free_params(&curr_params);
+            rp_free_params(&cb_in_copy_params);
+            rp_free_params(&next_params);
             fprintf(stderr, "worker_thread: after freeing curr_params\n");
             break;
 
@@ -207,44 +221,45 @@ void* worker_thread(void* args)
             continue;
 
         } else if (state == worker_normal_state) {
-            fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data ...\n");
-        	int fpga_update_count = mark_changed_fpga_update_entries(worker_params, curr_params);  // return count of modified FPGA update values
-            fprintf(stderr, "INFO worker_thread: worker_normal_state, ... update_count = %d\n", fpga_update_count);
-        	if (fpga_update_count > 0) {
-                fprintf(stderr, "INFO worker_thread: fpga_update:count > 0  -->  delegate to fpga_rb_update_all_params()\n");
-                if (fpga_rb_update_all_params(curr_params)) {
-                    fprintf(stderr, "ERROR worker - RadioBox: setting of FPGA registers failed\n");
+            int loc_params_init_done = 0;
+
+            if (cb_in_copy_params) {
+                pthread_mutex_lock(&rp_cb_in_params_mutex);
+                loc_params_init_done = params_init_done;
+                pthread_mutex_unlock(&rp_cb_in_params_mutex);
+
+                fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data ...\n");
+                int fpga_update_count = mark_changed_fpga_update_entries(worker_params, cb_in_copy_params, !loc_params_init_done);  // return count of modified FPGA update values
+                fprintf(stderr, "INFO worker_thread: worker_normal_state, ... update_count = %d\n", fpga_update_count);
+                if (fpga_update_count > 0) {
+                    //fprintf(stderr, "INFO worker_thread: fpga_update: count>0  -->  delegate to fpga_rb_update_all_params()\n");
+                    if (fpga_rb_update_all_params(cb_in_copy_params)) {
+                        fprintf(stderr, "ERROR worker - RadioBox: setting of FPGA registers failed\n");
+                    }
+
+                    pthread_mutex_lock(&rp_cb_in_params_mutex);
+                    params_init_done = 1;
+                    pthread_mutex_unlock(&rp_cb_in_params_mutex);
                 }
+
+                /* update worker_params and drop next_param */
+                fprintf(stderr, "INFO worker_thread: updating worker_params\n");
+                rp_copy_params(&worker_params, cb_in_copy_params, -1, 0);
+                rp_free_params(&cb_in_copy_params);
             }
+            rp_free_params(&next_params);
 
-            fprintf(stderr, "INFO worker_thread: updating worker_params\n");
-        	/* update worker_params */
-        	rp_copy_params(&worker_params, curr_params, -1, 0);
-
-            fprintf(stderr, "INFO worker_thread: mutex - before state change to idle\n");
+            //fprintf(stderr, "INFO worker_thread: mutex - before state change to idle\n");
             pthread_mutex_lock(&worker_ctrl_mutex);
             worker_ctrl_state = worker_idle_state;
             pthread_mutex_unlock(&worker_ctrl_mutex);
-            fprintf(stderr, "INFO worker_thread: mutex - after  state change to idle\n");
+            //fprintf(stderr, "INFO worker_thread: mutex - after  state change to idle\n");
 
         } else {  // any unknown states are mapped to QUIT
             pthread_mutex_lock(&worker_ctrl_mutex);
             worker_ctrl_state = worker_quit_state;
             pthread_mutex_unlock(&worker_ctrl_mutex);
         }
-
-
-        fprintf(stderr, "INFO worker_thread: rp_cb_out_params_mutex - making copy for outer world, before ...\n");
-        pthread_mutex_lock(&rp_cb_out_params_mutex);
-        if (!rp_cb_out_params) {  // the outer context removed the list, a current new one has to be created here
-            fprintf(stderr, "INFO worker_thread: rp_cb_out_params cleared, prepare parameters to the outside ...\n");
-        	rp_free_params(&rp_cb_out_params);
-        	rp_copy_params(&rp_cb_out_params, worker_params, -1, 1);  // get all attributes
-            fprintf(stderr, "INFO worker_thread: rp_cb_out_params cleared, ... prepare finished\n");
-        }
-        pthread_mutex_unlock(&rp_cb_out_params_mutex);
-        fprintf(stderr, "INFO worker_thread: rp_cb_out_params_mutex - making copy for outer world, ... after\n");
-
     }  // while (1)
 
     fprintf(stderr, "worker_thread: END\n");
@@ -253,47 +268,50 @@ void* worker_thread(void* args)
 
 
 /*----------------------------------------------------------------------------------*/
-int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp)
+int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp, int do_init)
 {
     fprintf(stderr, "mark_changed_fpga_update_entries: BEGIN\n");
-	if (!ref || !cmp) {
-		return -1;
-	}
+    if (!ref || !cmp) {
+        fprintf(stderr, "ERROR mark_changed_fpga_update_entries - bad arguments: ref = %p, cmp = %p\n", ref, cmp);
+        return -1;
+    }
 
-    //fprintf(stderr, "INFO mark_changed_fpga_update_entries: starting loop\n");
-	int count = 0;
-	int i = 0;
-	while (cmp[i].name) {  // for each cmp parameter entry of the list do a check and mark
-	    //fprintf(stderr, "INFO mark_changed_fpga_update_entries: processing name = %s\n", cmp[i].name);
-		int idx = -1;
-		int j = 0;
-		while (ref[j].name) {
-			if (!strcmp(ref[j].name, cmp[i].name)) {  // known parameter
-				idx = j;
-			    //fprintf(stderr, "INFO mark_changed_fpga_update_entries: matching idx = %d\n", idx);
-				break;
-			}
-			j++;
-		}
+    fprintf(stderr, "INFO mark_changed_fpga_update_entries: starting loop\n");
+    int count = 0;
+    int i = 0;
+    while (cmp[i].name) {  // for each cmp parameter entry of the list do a check and mark
+        fprintf(stderr, "INFO mark_changed_fpga_update_entries: processing name = %s, value = %f\n", cmp[i].name, cmp[i].value);
+        int idx = -1;
+        int j = 0;
+        while (ref[j].name) {
+            if (!strcmp(ref[j].name, cmp[i].name)) {  // known parameter
+                idx = j;
+                //fprintf(stderr, "INFO mark_changed_fpga_update_entries: matching idx = %d\n", idx);
+                break;
+            }
+            j++;
+        }
 
-		if (idx == -1) {  // ignore unknown parameter
-			continue;
-		}
+        if (idx == -1) {  // ignore unknown parameter
+            fprintf(stderr, "WARNING mark_changed_fpga_update_entries - unknown param: name = %s\n", cmp[i].name);
+            i++;
+            continue;
+        }
 
-		if (ref[idx].value != cmp[i].value) {
-		    //fprintf(stderr, "INFO mark_changed_fpga_update_entries: values differ ...\n");
-			if (ref[idx].fpga_update & ~0x80) {  // if fpga_update is set but the MARKER is masked out before the comparison
-			    //fprintf(stderr, "INFO mark_changed_fpga_update_entries: ... fpga_update is ON --> MARK\n");
-				cmp[i].fpga_update |= 0x80;  // add FPGA update MARKER
-				count++;
-			}
-		}
-		i++;
-	}
-    fprintf(stderr, "INFO mark_changed_fpga_update_entries: FPGA update count = %d\n", count);
+        if (do_init || (ref[idx].value != cmp[i].value)) {
+            fprintf(stderr, "INFO mark_changed_fpga_update_entries: values differ ...\n");
+            if (ref[idx].fpga_update & ~0x80) {  // if fpga_update is set but the MARKER is masked out before the comparison
+                //fprintf(stderr, "INFO mark_changed_fpga_update_entries: ... fpga_update is ON --> MARK\n");
+                cmp[i].fpga_update |= 0x80;  // add FPGA update MARKER
+                count++;
+            }
+        }
+        i++;
+    }
+    fprintf(stderr, "INFO mark_changed_fpga_update_entries: FPGA update count = %d, do_init = %d\n", count, do_init);
 
     fprintf(stderr, "mark_changed_fpga_update_entries: END\n");
-	return count;
+    return count;
 }
 
 

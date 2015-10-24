@@ -17,23 +17,6 @@
  * @{
  */
 
-/* Parameters indexes - these defines should be in the same order as
- * rp_app_params_t structure defined in cb_http.c */
-
-/** @brief RadioBox parameters */
-enum rb_enum_t {
-	RB_RUN         = 0,
-	RB_OSC1_QRG,
-	RB_OSC1_AMP,
-	RB_OSC1_MODSRC,
-	RB_OSC1_MODTYP,
-	RB_OSC2_QRG,
-	RB_OSC2_MAG,
-
-	RB_PARAMS_NUM
-} RB_PARAMS_ENUM;
-
-
 /* module entry points */
 
 /** @brief When entering the application the web-server does this call-back for init'ing the application
