@@ -1,19 +1,75 @@
-# Get the current working ecosystem for RedPitaya_RadioBox
+# DF4IAH/RedPitaya_RadioBox - a radio box full of transmitters and receivers
 
-If you have not installed **ecosystem-0.94** on your **Red Pitaya hardware** yet, 
-you can get a working copy from my DropBox-Account:
+With this GitHub repository you can easily build up your
+
+* **transmitters**
+
+* **receivers**
+
+* doing **filtering**
+
+* doing **signal convertions** with **FFT** and **R-FFT**
+
+* **encoding** for data transfer
+
+* **decoding** of data transfer
+
+* setting up your **test signal generator** for up to *abt.* **55 MHz** easily
+
+and all that is based on a **Red Pitaya hardware** running with a current **ecosystem-0.94**.
+
+The *ecosystem* on the SD-card is modified for *RadioBox* just in one way: you have to
+expand the **RadioBox** application in its application directory:
+
+    redpitaya/www/apps/         (on the SD-card itself)
+    /opt/redpitaya/www/apps/    (on the Red Pitaya filesystem)
+
+## Quick access to the RadioBox binaries
+
+To get a first quick view you can download ready to use *RadioBox-xyz.zip* files containing
+the application directory **radiobox** .
 
 [Dropbox Ulrich Habel: public/RedPitaya_RadioBox](https://www.dropbox.com/sh/zi3yuyec6ogl6v8/AADzWqsFQqYCRVs4KPHtj3R1a?dl=0)
 
-You are welcome to download from Red Pitaya directly, my Dropbox folder 
+## Building the RedPitaya binaries with the RadioBox application included
+
+Simply do a [Fork](https://github.com/login?return_to=%2FDF4IAH%2FRedPitaya_RadioBox) from
+[GitHub: DF4IAH/RedPitaya_RadioBox](https://github.com/DF4IAH/RedPitaya_RadioBox) and
+compile it by yourself.
+
+You can restrict the build process to build only the **RadioBox** application and not all the
+other things, that RedPitaya comes with.
+
+Or restrict the **RadioBox Makefile** to do the other (lightly modified) applications, also.
+
+_Please note_: Doxygen documentation generation is activated for **RadioBox**. Either you can
+install the **LaTeX**, **Doxygen** and **plantuml.jar** tools or you can simply drop the
+documentation step out of the **Makefile** of RadioBox.
+
+Feel free to send me **Pull request**. I like to see your enhancements to be included
+to RedPitaya_RadioBox. This repository is **open-source** as it should be   ;-)
+
+The current **fpga_rb-xyz.bit** configuration file is included, so you do not need to set
+up the XILINX tools to build it by yourself.
+
+The **RadioBox Makefile system** is not tested to build the complete ecosystem, yet.
+
+## Get the current working ecosystem for RedPitaya_RadioBox
+
+If you have not installed **ecosystem-0.94** on your **Red Pitaya hardware** yet, you can
+get a working copy from my DropBox-Account:
+
+[Dropbox Ulrich Habel: public/RedPitaya_RadioBox](https://www.dropbox.com/sh/zi3yuyec6ogl6v8/AADzWqsFQqYCRVs4KPHtj3R1a?dl=0)
+
+You are welcome to download from Red Pitaya directly, my Dropbox folder
 is for your convenience, only.
 
-The Github **RedPitaya_RadioBox** variant does compile all the other applications, also. So you 
-can give it a try to fork from.
+This Github **RedPitaya_RadioBox** variant does compile all the other (lightly enhanced)
+applications, too. So you can give this repository a try to *Fork* from.
 
 The following text of this file comes from [GitHub: RedPitaya/RedPitaya](https://github.com/RedPitaya/RedPitaya) ...
 
-----
+***
 
 # Red Pitaya ecosystem and applications
 
