@@ -19,7 +19,7 @@ PDF=doc/RedPitaya_RadioBox_Development_Manual.pdf
 BUILD_NUMBER ?= $(shell git rev-list HEAD --count)
 REVISION ?= $(shell git log -n1 --pretty=%h)
 
-VER:=$(shell cat info/info.json | grep version | sed -e 's/.*:\ *\"//' | sed -e 's/-.*//' | sed -e 's/",//')
+VER:=$(shell grep version info/info.json | sed -E 's/^[^:]*:[^"]*"([^-]*)-.*/\1/')
 
 
 INSTALL_DIR ?= ../../build

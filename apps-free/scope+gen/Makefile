@@ -9,7 +9,7 @@ APP=$(notdir $(CURDIR:%/=%))
 # Versioning system
 BUILD_NUMBER ?= 0
 REVISION ?= devbuild
-VER:=$(shell grep version info/info.json | sed -E 's/[^:]*:[^"]*"([^-]*)-.*$/\1/')
+VER:=$(shell grep version info/info.json | sed -E 's/^[^:]*:[^"]*"([^-]*)-.*/\1/')
 
 INSTALL_DIR ?= ../../build
 

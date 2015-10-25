@@ -7,7 +7,7 @@
 # Versioning system
 # BUILD_NUMBER ?= 0
 # REVISION ?= devbuild
-# VER:=$(shell cat info/info.json | grep version | sed -e 's/.*:\ *\"//' | sed -e 's/-.*//')
+# VER:=$(shell grep version info/info.json | sed -E 's/^[^:]*:[^"]*"([^-]*)-.*/\1/')
 
 LIBRP=../lib/librp.so
 
