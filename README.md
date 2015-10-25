@@ -1,3 +1,20 @@
+# Get the current working ecosystem for RedPitaya_RadioBox
+
+If you have not installed **ecosystem-0.94** on your **Red Pitaya hardware** yet, 
+you can get a working copy from my DropBox-Account:
+
+[Dropbox Ulrich Habel: public/RedPitaya_RadioBox](https://www.dropbox.com/sh/zi3yuyec6ogl6v8/AADzWqsFQqYCRVs4KPHtj3R1a?dl=0)
+
+You are welcome to download from Red Pitaya directly, my Dropbox folder 
+is for your convenience, only.
+
+The Github **RedPitaya_RadioBox** variant does compile all the other applications, also. So you 
+can give it a try to fork from.
+
+The following text of this file comes from [GitHub: RedPitaya/RedPitaya](https://github.com/RedPitaya/RedPitaya) ...
+
+----
+
 # Red Pitaya ecosystem and applications
 
 Here you will find the sources of various software components of the
