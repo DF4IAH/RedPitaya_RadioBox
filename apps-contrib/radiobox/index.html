@@ -103,7 +103,7 @@
         <table class="table-toolbox">
         <tr>
         <td class="table-header" colspan="3">
-          Transmitter
+          Transmitter &nbsp; <span style="font-size: 70%">RF Output 1 (SMA)</span>
         </td>
         </tr>
 
@@ -112,8 +112,8 @@
         <div id="osc1_qrg" class="form-group">
           <label for="osc1_qrg_i" class="col-xs-5 control-label">OSC-1 frequency:</label>
           <div class="col-xs-4">
-            <input type="text" id="osc1_qrg_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
-            <span id="apply_osc1_qrg" class="input-group-btn" _style="display:none;">
+            <input type="text" id="osc1_qrg_imil" value="0" class="form-control form-bg-osc1-qrg" autocomplete="off" />
+            <span id="apply_osc1_qrg" class="input-group-btn" _style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>
@@ -125,8 +125,8 @@
         <div id="osc1_amp" class="form-group">
           <label for="osc1_amp_i" class="col-xs-5 control-label">OSC-1 amplitude:</label>
           <div class="col-xs-4">
-            <input type="text" id="osc1_amp_i" value="0" class="form-control form-bg-osc1" autocomplete="off" />
-            <span id="apply_osc1_amp" class="input-group-btn" _style="display:none;">
+            <input type="text" id="osc1_amp_imil" value="0" class="form-control form-bg-osc1-amp" autocomplete="off" />
+            <span id="apply_osc1_amp" class="input-group-btn" _style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>
@@ -138,12 +138,17 @@
         <div id="osc1_modsrc" class="form-group">
           <label for="osc1_modsrc_s" class="col-xs-5 control-label">OSC-1 mod. source:</label>
           <div class="col-xs-6">
-            <select id="osc1_modsrc_s" class="form-control form-bg-osc1">
+            <select id="osc1_modsrc_s" class="form-control form-bg-osc1-modsrc">
               <option value="0">(none)</option>
-              <option value="1">OSC2</option>
-              <option value="2">XADC-0</option>
+              <option value="1">RF Input 1</option>
+              <option value="2">RF Input 2</option>
+              <option value="4">EXP AI0</option>
+              <option value="5">EXP AI1</option>
+              <option value="6">EXP AI2</option>
+              <option value="7">EXP AI3</option>
+              <option value="15">OSC2</option>
             </select>
-            <span id="apply_osc1_modsrc" class="input-group-btn" _style="display:none;">
+            <span id="apply_osc1_modsrc" class="input-group-btn" _style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>
@@ -158,30 +163,32 @@
         <td>
         </td>
 
+
         <td>
         <div id="osc1_modtyp" class="form-group">
           <label for="osc1_modtyp_s" class="col-xs-5 control-label">OSC-1 mod. type:</label>
           <div class="col-xs-6">
-            <select id="osc1_modtyp_s" class="form-control form-bg-osc1">
+            <select id="osc1_modtyp_s" class="form-control form-bg-osc1-modtyp" disabled="disabled">
               <option value="0">AM</option>
               <option value="1">FM</option>
               <option value="2">PM</option>
             </select>
-            <span id="apply_osc1_modtyp" class="input-group-btn" _style="display:none;">
+            <span id="apply_osc1_modtyp" class="input-group-btn" style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>
         </div>
         </td>
         </tr>
+
 
         <tr>
         <td>
         <div id="osc2_qrg" class="form-group">
         <label for="osc2_qrg_i" class="col-xs-5 control-label">OSC-2 frequency:</label>
           <div class="col-xs-4">
-            <input type="text" id="osc2_qrg_i" value="0" class="form-control form-bg-osc2" autocomplete="off" />
-            <span id="apply_osc2_qrg" class="input-group-btn" _style="display:none;">
+            <input type="text" id="osc2_qrg_imil" value="0" class="form-control form-bg-osc2-qrg" autocomplete="off" disabled="disabled" />
+            <span id="apply_osc2_qrg" class="input-group-btn" style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>
@@ -193,8 +200,8 @@
         <div id="osc2_mag" class="form-group">
           <label for="osc2_mag_i" class="col-xs-5 control-label">OSC-2 magnitude:</label>
           <div class="col-xs-4">
-            <input type="text" id="osc2_mag_i" value="0" class="form-control form-bg-osc2" autocomplete="off" />
-            <span id="apply_osc2_mag" class="input-group-btn" _style="display:none;">
+            <input type="text" id="osc2_mag_imil" value="0" class="form-control form-bg-osc2-mag" autocomplete="off" disabled="disabled" />
+            <span id="apply_osc2_mag" class="input-group-btn" style="visibility:hidden">
               <button class="btn btn-primary btn-lg" type="button"><span class="glyphicon glyphicon-ok-circle" /></button>
             </span>
           </div>

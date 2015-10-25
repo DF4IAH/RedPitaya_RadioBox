@@ -102,7 +102,7 @@ int rp_set_params(const rp_app_params_t* p, int len)
 {
     //int fpga_update = 0;
 
-    fprintf(stderr, "rp_set_params: BEGIN\n");
+    //fprintf(stderr, "rp_set_params: BEGIN\n");
     TRACE("%s()\n", __FUNCTION__);
 
     if (!p) {
@@ -119,7 +119,7 @@ int rp_set_params(const rp_app_params_t* p, int len)
     rp_copy_params(&rp_cb_in_params, p, len, !params_init_done);  // piping to the worker thread
     pthread_mutex_unlock(&rp_cb_in_params_mutex);
 
-    fprintf(stderr, "rp_set_params: END\n");
+    //fprintf(stderr, "rp_set_params: END\n");
     return 0;
 }
 
@@ -128,32 +128,32 @@ int rp_get_params(rp_app_params_t** p)
 {
     int count = 0;
 
-    fprintf(stderr, "rp_get_params: BEGIN\n");
+    //fprintf(stderr, "rp_get_params: BEGIN\n");
     *p = NULL;  // TODO is input parameter filled? Is freeing needed here instead of dropping any input?
 
-    fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
+    //fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
     pthread_mutex_lock(&rp_cb_out_params_mutex);
     rp_cb_out_params = NULL;  // discard old data to receive a current copy from the worker - free'd externally
     pthread_mutex_unlock(&rp_cb_out_params_mutex);
-    fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
+    //fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
 
     while (!(*p)) {
         usleep(100000);  // delay the busy loop
 
-        fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
+        //fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
         pthread_mutex_lock(&rp_cb_out_params_mutex);
         *p = rp_cb_out_params;
         pthread_mutex_unlock(&rp_cb_out_params_mutex);
-        fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
+        //fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
     }
 
     int i = 0;
     while ((*p)[i++].name) {
         count++;
     }
-    fprintf(stderr, "INFO rp_get_params - having list with count = %d\n", count);
+    //fprintf(stderr, "INFO rp_get_params - having list with count = %d\n", count);
 
-    fprintf(stderr, "rp_get_params: END\n");
+    //fprintf(stderr, "rp_get_params: END\n");
     return count;
 }
 

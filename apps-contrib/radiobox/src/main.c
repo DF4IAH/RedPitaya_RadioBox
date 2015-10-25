@@ -54,21 +54,38 @@ fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
 /** @brief Describes app. parameters with some info/limitations */
 const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
     { /* Running mode */
-        "rb_run",           0, 1, 0, 0,         1 },
-    { /* Oscillator-1 modulation source selector (0: none, 1: VCO2, 2: XADC0) */
-        "osc1_modsrc_s",    0, 1, 0, 0,         2 },
+        "rb_run",           0.0f,  1, 0, 0.0f,      1.0f },
+
+    { /* Oscillator-1 modulation source selector
+       * ( 0: none,
+       *   1: RF Input 1,
+       *   2: RF Input 2,
+       *   4: EXT AI0,
+       *   5: EXT AI1,
+       *   6: EXT AI2,
+       *   7: EXT AI3,
+       *  15: OSC2
+       * )
+       **/
+        "osc1_modsrc_s",    0.0f,  1,  0, 0.0f,    15.0f },
+
     { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
-        "osc1_modtyp_s",    0, 1, 0, 0,         2 },
+        "osc1_modtyp_s",    0.0f,  1,  0, 0.0f,     2.0f },
+
     { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_i",       0, 1, 0, 0,  62500000 },
+        "osc1_qrg_imil",    0.0f,  1,  0, 0.0f, 62.5e+9f },
+
     { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_i",       0, 1, 0, 0,  62500000 },
+        "osc2_qrg_imil",    0.0f,  1,  0, 0.0f, 62.5e+9f },
+
     { /* Oscillator-1 amplitude (µV) */
-        "osc1_amp_i",       0, 1, 0, 0,      2047 },
+        "osc1_amp_imil",    0.0f,  1,  0, 0.0f, 2047e+3f },
+
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
-        "osc2_mag_i",       0, 1, 0, 0,   1000000 },
+        "osc2_mag_imil",    0.0f,  1,  0, 0.0f,    1e+9f },
+
     { /* Must be last! */
-        NULL,               0.0, -1, -1, 0.0, 0.0 }
+        NULL,               0.0f, -1, -1, 0.0f,     0.0f }
 };
 
 /** @brief CallBack copy of params to inform the worker */

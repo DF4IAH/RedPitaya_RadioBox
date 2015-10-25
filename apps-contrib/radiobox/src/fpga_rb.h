@@ -389,7 +389,7 @@ int fpga_rb_update_all_params(rp_app_params_t* p);
 /**
  * @brief Calculates and programs the FPGA RB ctrl and oscillator registers
  *
- * @param[in]  modsrc     0==(none), 2==RF-I-1, 3==RF-I-2, 4==AI-0, 5==AI-1, 6==AI-2, 7==AI-3, 15==OSC2
+ * @param[in]  modsrc     0==(none), 1==RF Input 1, 2==RF Input 2, 4==EXP AI0, 5==EXP AI1, 6==EXP AI2, 7==EXP AI3, 15==OSC2
  * @param[in]  modtyp     when modsrc == OSC2: 0==AM, 1==FM, 2==PM - else ignored.
  * @param[in]  rb_run     RadioBox application  0: disabled, else: enabled.
  * @param[in]  osc1_qrg   Frequency for OSC1 in Hz.

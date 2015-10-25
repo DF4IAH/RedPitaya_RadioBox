@@ -174,21 +174,21 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc1_qrg_i", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_i = %f\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, (int) (p[idx].value), loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+        } else if (!strcmp("osc1_qrg_imil", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_imil = %f\n", p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc2_qrg_i", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_i = %f\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, (int) (p[idx].value), loc_osc1_amp, loc_osc2_mag);
+        } else if (!strcmp("osc2_qrg_imil", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_imil = %f\n", p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc1_amp_i", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_i = %f\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, (int) (p[idx].value), loc_osc2_mag);
+        } else if (!strcmp("osc1_amp_imil", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_imil = %f\n", p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag);
 
-        } else if (!strcmp("osc2_mag_i", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: setting magnitude = %f\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, (int) (p[idx].value));
+        } else if (!strcmp("osc2_mag_imil", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_imil = %f\n", p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value);
         }  // else if ()
 
         idx++;
@@ -200,8 +200,13 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
 
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float osc2_qrg, float osc1_amp, float osc2_mag)
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg_mil, float osc2_qrg_mil, float osc1_amp_mil, float osc2_mag_mil)
 {
+	float osc1_qrg = osc1_qrg_mil / 1000.0f;
+	float osc2_qrg = osc2_qrg_mil / 1000.0f;
+	float osc1_amp = osc1_amp_mil / 1000.0f;
+	float osc2_mag = osc2_mag_mil / 1000.0f;
+
     if (rb_run) {
         fpga_rb_set_osc1_mod_none_am_pm(osc1_qrg);                                                      // OSC1 frequency
         fpga_rb_set_osc2_mod_am_fm_pm(osc2_qrg);                                                        // OSC2 frequency
@@ -210,18 +215,15 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float 
         switch (modsrc) {
 
         default:
-        case 0: {
-            /* modsrc == (none) */
+        case RB_MODSRC_NONE: {
             g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                     // control: turn off all streams into OSC1 and OSC1 mixer
         }
         break;
 
-        case 1: {
-            /* modsrc == OSC2 */
+        case RB_MODSRC_OSC2: {
             switch (modtyp) {
 
-            case 0: {
-                /* AM */
+            case RB_MODTYP_AM: {
                 fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for AM\n");
 
                 g_fpga_rb_reg_mem->ctrl &= ~0x00000060;                                                 // control: turn off all other streams
@@ -230,8 +232,7 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float 
             }
             break;
 
-            case 1: {
-                /* FM */
+            case RB_MODTYP_FM: {
                 fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for FM\n");
 
                 g_fpga_rb_reg_mem->ctrl &= ~0x000000c0;                                                 // control: turn off all other streams
@@ -240,8 +241,7 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float 
             }
             break;
 
-            case 2: {
-                /* PM */
+            case RB_MODTYP_PM: {
                 fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for PM\n");
 
                 g_fpga_rb_reg_mem->ctrl &= ~0x000000a0;                                                 // control: turn off all other streams
@@ -254,8 +254,7 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float 
         }
         break;
 
-        case 2: {
-            /* modsrc == XADC1 */
+        case RB_MODSRC_RF_IN1: {
             // TODO to be defined
         }
         break;

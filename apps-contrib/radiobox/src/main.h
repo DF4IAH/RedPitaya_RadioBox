@@ -54,8 +54,8 @@ typedef struct rp_app_params_s {
  * rp_app_params_t structure defined in main.c */
 
 /** @brief RadioBox parameters */
-enum rb_enum_t {
-    RB_RUN          = 0,
+enum rb_params_enum_t {
+    RB_RUN                  =  0,
     RB_OSC1_MODSRC,
     RB_OSC1_MODTYP,
     RB_OSC1_QRG,
@@ -65,6 +65,27 @@ enum rb_enum_t {
 
     RB_PARAMS_NUM
 } RB_PARAMS_ENUM;
+
+
+/** @brief RadioBox modulation sources */
+enum rb_modsrc_enum_t {
+    RB_MODSRC_NONE          =  0,
+    RB_MODSRC_RF_IN1,
+    RB_MODSRC_RF_IN2,
+    RB_MODSRC_EXP_AI0       =  4,
+    RB_MODSRC_EXP_AI1,
+    RB_MODSRC_EXP_AI2,
+    RB_MODSRC_EXP_AI3,
+    RB_MODSRC_OSC2          = 15
+} RB_MODSRC_ENUM;
+
+
+/** @brief RadioBox modulation types */
+enum rb_modtyp_enum_t {
+    RB_MODTYP_AM            =  0,
+    RB_MODTYP_FM,
+    RB_MODTYP_PM
+} RB_MODTYP_ENUM;
 
 
 /* Output signals */

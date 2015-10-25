@@ -57,10 +57,10 @@
     rb_run:               1,  // application running
     osc1_modsrc_s:        0,  // mod-source: (none)
     osc1_modtyp_s:        0,  // modulation: AM
-    osc1_qrg_i:       10000,  // 10 kHz
-    osc2_qrg_i:         440,  // 440 Hz
-    osc1_amp_i:         447,  // 447 mV Vpp @ 50R gives 0 dBm
-    osc2_mag_i:           0
+    osc1_qrg_imil:  1000000,  //   1 kHz
+    osc2_qrg_imil:   440000,  // 440  Hz
+    osc1_amp_imil:   447000,  // 447 mV Vpp @ 50R results to 0 dBm
+    osc2_mag_imil:        0
   };
 
   // Other global variables
@@ -208,14 +208,15 @@
 
       //console.log("CHECK: param_name='" + param_name + "', content='" + RB.params.orig[param_name] + "'");
 
-      if (param_name.indexOf('osc1_qrg_i') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+      if (param_name.indexOf('osc1_qrg_imil') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
       }
-      else if (param_name.indexOf('osc1_amp_i') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+      else if (param_name.indexOf('osc1_amp_imil') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
       }
       else if (param_name.indexOf('osc1_modsrc_s') == 0) {
         $('#'+param_name).val(intVal);
+        checkKeyDoEnable(param_name, intVal);
       }
       else if (param_name.indexOf('osc1_modtyp_s') == 0) {
         $('#'+param_name).val(intVal);
@@ -232,12 +233,13 @@
           default:
             $('#osc2_mag_units').text('( )');
         }
+        checkKeyDoEnable(param_name, intVal);
       }
-      else if (param_name.indexOf('osc2_qrg_i') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+      else if (param_name.indexOf('osc2_qrg_imil') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
       }
-      else if (param_name.indexOf('osc2_mag_i') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+      else if (param_name.indexOf('osc2_mag_imil') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
       }
 
       /*
@@ -396,34 +398,52 @@
 
   // Exits from editing mode - create local parameters of changed values and send them away
   RB.exitEditing = function(noclose) {
-   for (var key in RB.params.orig) {
+    for (var key in RB.params.orig) {
       var field = $('#' + key);
       var value = undefined;
 
       if (key == 'RB_RUN'){
         value = (field.is(':visible') ? 1 : 0);
       }
+
       else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
-        value = parseInt(field.val());
+        value = parseFloat(field.val());
+        if (checkKeyIs_IMil(key)) {
+          value = parseInt(0.5 + 1000.0 * value);
+        } else {
+          value = parseInt(value);
+        }
       }
+
       else if (field.is('button')) {
         value = (field.hasClass('active') ? 1 : 0);
       }
+
       else if (field.is('input:radio')) {
         value = parseInt($('input[name="' + key + '"]:checked').val());
       }
-      /*
-      else {
-        value = field.html();
-      }
-      */
+
+
+      // Check for specific values and enables/disables controllers
+      checkKeyDoEnable(key, value);
 
       if (value !== undefined && value != RB.params.orig[key]) {
         var new_value = ($.type(RB.params.orig[key]) == 'boolean' ?  !!value : value);
 
-        console.log(key + ' changed from ' + RB.params.orig[key] + ' to ' + new_value);
+        // clear magnitude field when modulation source or type has changed
+        if ((key == 'osc1_modsrc_s') || (key == 'osc1_modtyp_s')) {
+          $('#osc2_mag_imil').val(0);
+        }
+
+        //console.log(key + ' changed from ' + RB.params.orig[key] + ' to ' + new_value);
         RB.params.local[key] = new_value;
         //RB.params.local[key] = { value: new_value };
+        // } else {
+        //   if (value === undefined) {
+        //     console.log(key + ' value is undefined');
+        //   } else {
+        //     console.log(key + ' not changed with that value = ' + value);
+        // }
       }
     }
 
@@ -438,6 +458,37 @@
     $('#right_menu').show();
   };
 }(window.RB = window.RB || {}, jQuery));
+
+function checkKeyDoEnable(key, value) {
+  if (key == 'osc1_modsrc_s') {
+    if (value == 15) {
+      /* (none) --> disable osc1_modtyp_s */
+      $('#osc1_modtyp_s').removeAttr("disabled");
+      $('#apply_osc1_modtyp').removeAttr("style");
+
+      $('#osc2_qrg_imil').removeAttr("disabled");
+      $('#apply_osc2_qrg').removeAttr("style");
+
+      $('#osc2_mag_imil').removeAttr("disabled");
+      $('#apply_osc2_mag').removeAttr("style");
+
+    } else {
+      /* else --> enable osc1_modtyp_s */
+      $('#osc1_modtyp_s').attr("disabled", "disabled");
+      $('#apply_osc1_modtyp').attr("style", "visibility:hidden");
+
+      $('#osc2_qrg_imil').attr("disabled", "disabled");
+      $('#apply_osc2_qrg').attr("style", "visibility:hidden");
+
+      $('#osc2_mag_imil').attr("disabled", "disabled");
+      $('#apply_osc2_mag').attr("style", "visibility:hidden");
+    }
+  }
+}
+
+function checkKeyIs_IMil(key) {
+  return (key.lastIndexOf("_imil") == (key.length - 5));
+}
 
 
 // Page onload event handler
