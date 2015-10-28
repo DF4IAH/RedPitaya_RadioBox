@@ -144,66 +144,69 @@ int                             params_init_done = 0;  /* @see worker.c */
 /** @brief offset value for the double <--> 2x float conversion system using a shared residue float */
 const uint32_t cast_residue_bias = 512;
 
-const char cast_name_ext_rs[]   = "RS_";
 const char cast_name_ext_lo[]   = "LO_";
 const char cast_name_ext_hi[]   = "HI_";
+const char cast_name_ext_rs[]   = "SE_";
 const int  cast_name_ext_len    = 3;
 
-typedef struct cast_2xui32_s {
-    uint32_t ui32_lo;
-    uint32_t ui32_hi;
-} cast_2xui32_s_t;
+/** @brief Structure holds three bitfield members that reconstruct the IEEE754 double data format */
+typedef struct cast_3xbf_s {
+	/** @brief Lower 26 bits of the mantissa */
+    uint32_t ui32_lo : 26;
 
+	/** @brief Higher 26 bits of the mantissa */
+    uint32_t ui32_hi : 26;
+
+	/** @brief 1 Sign and 11 exponent bits */
+    uint32_t ui32_se : 12;
+} cast_3xbf_s_t;
+
+/** @brief Structure holds an IEEE754 double member */
 typedef struct cast_1xdouble_s {
+	/** @brief The double member */
     double d;
 } cast_1xdouble_s_t;
 
-typedef union cast_2xui32_1xdouble_u {
-    cast_2xui32_s_t    ui;
+/** @brief Union gives two representations for a IEEE754 double variable */
+typedef union cast_3xbf_1xdouble_u {
+	/** @brief Union access to the bitfield members */
+    cast_3xbf_s_t      bf;
+
+	/** @brief Union access to the double member */
     cast_1xdouble_s_t  d;
-} cast_2xui32_1xdouble_u_t;
+} cast_3xbf_1xdouble_u_t;
+
 
 /*----------------------------------------------------------------------------------*/
-double cast_3xfloat_to_1xdouble(float f_rs, float f_lo, float f_hi)
+double cast_3xbf_to_1xdouble(float f_se, float f_hi, float f_lo)
 {
-    cast_2xui32_1xdouble_u_t u;
+	cast_3xbf_1xdouble_u_t u;
 
-    /* union face: 2x float */
-    u.ui.ui32_lo = (uint32_t) f_lo;
-    u.ui.ui32_hi = (uint32_t) f_hi;
-
-    /* decode residue values */
-    uint32_t rs_bf = (uint32_t) f_rs;
-    int32_t  rs_lo = (int32_t) ( rs_bf        & 0x3ff) - cast_residue_bias;
-    int32_t  rs_hi = (int32_t) ((rs_bf >> 10) & 0x3ff) - cast_residue_bias;
-
-    /* do residue corrections */
-    u.ui.ui32_lo += rs_lo;
-    u.ui.ui32_hi += rs_hi;
+    /* union face: 3x float/bitfield */
+    u.bf.ui32_lo = ((uint32_t) f_lo) & 0x3ffffff;
+    u.bf.ui32_hi = ((uint32_t) f_hi) & 0x3ffffff;
+    u.bf.ui32_se = ((uint32_t) f_se) & 0xfff;
 
     /* union face: 1x double */
     return u.d.d;
 }
 
 /*----------------------------------------------------------------------------------*/
-int cast_1xdouble_to_3xfloat(float* f_rs, float* f_lo, float* f_hi, double d)
+int cast_1xdouble_to_3xbf(float* f_se, float* f_hi, float* f_lo, double d)
 {
-    cast_2xui32_1xdouble_u_t u;
+	cast_3xbf_1xdouble_u_t u;
 
-    if (!f_rs || !f_lo || !f_hi) {
+    if (!f_se || !f_hi || !f_lo) {
         return -1;
     }
 
     /* union face: 1x double */
     u.d.d = d;
 
-    /* union face: 2x uint32 */
-    *f_lo = (float) u.ui.ui32_lo;    // float cast simulates the data transport through the webserver-interface
-    *f_hi = (float) u.ui.ui32_hi;    // float cast simulates the data transport through the webserver-interface
-
-    uint32_t rs_lo = cast_residue_bias + (u.ui.ui32_lo - ((uint32_t) (*f_lo)));
-    uint32_t rs_hi = cast_residue_bias + (u.ui.ui32_hi - ((uint32_t) (*f_hi)));
-    *f_rs = (rs_lo & 0x3ff) | ((rs_hi & 0x3ff) << 10);
+    /* union face: 3x uint32/bitfield, float cast simulates the data transport through the webserver-interface */
+    *f_se = (float) u.bf.ui32_se;    // sign/exponent part
+    *f_hi = (float) u.bf.ui32_hi;    // MSB part of the mantissa
+    *f_lo = (float) u.bf.ui32_lo;    // LSB part of the mantissa
 
     return 0;
 }
@@ -280,27 +283,64 @@ void rp_free_traces(float** a_traces[TRACE_NUM])
 
 
 /*----------------------------------------------------------------------------------*/
+int rp_find_parms_index(const rp_app_params_t* src, const char* name)
+{
+    if (!src || !name) {
+        fprintf(stderr, "ERROR find_parms_index - Bad function arguments received.\n");
+        return -2;
+    }
+
+    int i = 0;
+    while (src[i].name) {
+        if (!strcmp(src[i].name, name)) {
+            return i;
+        }
+        ++i;
+    }
+    return -1;
+}
+
+/*----------------------------------------------------------------------------------*/
+int rb_find_parms_index(const rb_app_params_t* src, const char* name)
+{
+    if (!src || !name) {
+        fprintf(stderr, "ERROR find_parms_index - Bad function arguments received.\n");
+        return -2;
+    }
+
+    int i = 0;
+    while (src[i].name) {
+        if (!strcmp(src[i].name, name)) {
+            return i;
+        }
+        ++i;
+    }
+    return -1;
+}
+
+
+/*----------------------------------------------------------------------------------*/
 void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_rs, const rp_app_params_t src_line_lo, const rp_app_params_t src_line_hi)
 {
-    dst_line->value          = cast_3xfloat_to_1xdouble(src_line_rs.value, src_line_lo.value, src_line_hi.value);
+    dst_line->value          = cast_3xbf_to_1xdouble(src_line_rs.value, src_line_lo.value, src_line_hi.value);
     dst_line->fpga_update    = src_line_lo.fpga_update;
     dst_line->read_only      = src_line_lo.read_only;
-    dst_line->min_val        = cast_3xfloat_to_1xdouble(src_line_rs.value, src_line_lo.min_val, src_line_hi.min_val);
-    dst_line->max_val        = cast_3xfloat_to_1xdouble(src_line_rs.value, src_line_lo.max_val, src_line_hi.max_val);
+    dst_line->min_val        = cast_3xbf_to_1xdouble(src_line_rs.value, src_line_lo.min_val, src_line_hi.min_val);
+    dst_line->max_val        = cast_3xbf_to_1xdouble(src_line_rs.value, src_line_lo.max_val, src_line_hi.max_val);
 }
 
 /*----------------------------------------------------------------------------------*/
 void rb2rp_params_value_copy(rp_app_params_t* dst_line_rs, rp_app_params_t* dst_line_lo, rp_app_params_t* dst_line_hi, const rb_app_params_t src_line)
 {
-    cast_1xdouble_to_3xfloat(&(dst_line_rs->value), &(dst_line_lo->value), &(dst_line_hi->value), src_line.value);
+    cast_1xdouble_to_3xbf(&(dst_line_rs->value), &(dst_line_lo->value), &(dst_line_hi->value), src_line.value);
     dst_line_rs->fpga_update = 0.0f;
     dst_line_lo->fpga_update = src_line.fpga_update;
     dst_line_hi->fpga_update = 0.0f;
     dst_line_rs->read_only   = 0.0f;
     dst_line_lo->read_only   = src_line.read_only;
     dst_line_hi->read_only   = 0.0f;
-    cast_1xdouble_to_3xfloat(&(dst_line_rs->min_val), &(dst_line_lo->min_val), &(dst_line_hi->min_val), src_line.min_val);
-    cast_1xdouble_to_3xfloat(&(dst_line_rs->max_val), &(dst_line_lo->max_val), &(dst_line_hi->max_val), src_line.max_val);
+    cast_1xdouble_to_3xbf(&(dst_line_rs->min_val), &(dst_line_lo->min_val), &(dst_line_hi->min_val), src_line.min_val);
+    cast_1xdouble_to_3xbf(&(dst_line_rs->max_val), &(dst_line_lo->max_val), &(dst_line_hi->max_val), src_line.max_val);
 }
 
 
@@ -688,39 +728,4 @@ int rb_free_params(rb_app_params_t** params)
         *params = NULL;
     }
     return 0;
-}
-
-
-int rp_find_parms_index(const rp_app_params_t* src, const char* name)
-{
-    if (!src || !name) {
-        fprintf(stderr, "ERROR find_parms_index - Bad function arguments received.\n");
-        return -2;
-    }
-
-    int i = 0;
-    while (src[i].name) {
-        if (!strcmp(src[i].name, name)) {
-            return i;
-        }
-        ++i;
-    }
-    return -1;
-}
-
-int rb_find_parms_index(const rb_app_params_t* src, const char* name)
-{
-    if (!src || !name) {
-        fprintf(stderr, "ERROR find_parms_index - Bad function arguments received.\n");
-        return -2;
-    }
-
-    int i = 0;
-    while (src[i].name) {
-        if (!strcmp(src[i].name, name)) {
-            return i;
-        }
-        ++i;
-    }
-    return -1;
 }

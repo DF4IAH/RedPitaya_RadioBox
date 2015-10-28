@@ -126,24 +126,24 @@ enum rb_modtyp_enum_t {
 /**
  * @brief Converts from 2x float data to 1x double data by re-interpreting data structure
  *
- * @param[in]   f_rs     Single precision data, paired shared residue value for corrections to be done.
- * @param[in]   f_lo     Single precision data, LSB part to be re-interpreted.
- * @param[in]   f_hi     Single precision data, MSB part to be re-interpreted.
+ * @param[in]   f_se     Single precision data, sign/exponent part.
+ * @param[in]   f_hi     Single precision data, MSB part.
+ * @param[in]   f_lo     Single precision data, LSB part.
  * @retval      double   Double precision data.
  */
-double cast_3xfloat_to_1xdouble(float f_rs, float f_lo, float f_hi);
+double cast_3xbf_to_1xdouble(float f_se, float f_hi, float f_lo);
 
 /**
  * @brief Converts from 1x double data to 2x float data by re-interpreting the data structure
  *
- * @param[inout] f_rs    Pointer to output float variable for the shared residue part.
- * @param[inout] f_lo    Pointer to output float variable for the LSB part.
+ * @param[inout] f_se    Pointer to output float variable for the sign/exponent part.
  * @param[inout] f_hi    Pointer to output float variable for the MSB part.
+ * @param[inout] f_lo    Pointer to output float variable for the LSB part.
  * @param[in]    d       Double precision data to be re-interpreted.
  * @retval       0       Success.
  * @retval       -1      Failed due to argument failure.
  */
-int cast_1xdouble_to_3xfloat(float* f_rs, float* f_lo, float* f_hi, double d);
+int cast_1xdouble_to_3xbf(float* f_se, float* f_hi, float* f_lo, double d);
 
 
 /**
@@ -179,6 +179,29 @@ int  rp_create_traces(float** a_traces[TRACE_NUM]);
  * @param[inout] a_traces  Pointer to traces buffer
  */
 void rp_free_traces(float** a_traces[TRACE_NUM]);
+
+
+/**
+ * @brief Returns the index number of the params vector for which the name attribute matches
+ *
+ * @param[in]   src      Params vector to be scanned.
+ * @param[in]   name     Name to be search for.
+ * @retval      -2       Bad attributes.
+ * @retval      -1       No matching vector entry found.
+ * @retval      int      Value 0..(n-1) as index of the vector.
+ */
+int rp_find_parms_index(const rp_app_params_t* src, const char* name);
+
+/**
+ * @brief Returns the index number of the params vector for which the name attribute matches
+ *
+ * @param[in]   src      Params vector to be scanned.
+ * @param[in]   name     Name to be search for.
+ * @retval      -2       Bad attributes.
+ * @retval      -1       No matching vector entry found.
+ * @retval      int      Value 0..(n-1) as index of the vector.
+ */
+int rb_find_parms_index(const rb_app_params_t* src, const char* name);
 
 
 /**
@@ -251,6 +274,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[], int
  */
 int rp_copy_params_rp2rb(rb_app_params_t** dst, const rp_app_params_t src[]);
 
+
 /**
  * @brief Deallocate the specified buffer of Application parameters
  *
@@ -274,29 +298,6 @@ int rp_free_params(rp_app_params_t** params);
  * @retval      -1      Failed with non-valid params
  */
 int rb_free_params(rb_app_params_t** params);
-
-
-/**
- * @brief Returns the index number of the params vector for which the name attribute matches
- *
- * @param[in]   src      Params vector to be scanned.
- * @param[in]   name     Name to be search for.
- * @retval      -2       Bad attributes.
- * @retval      -1       No matching vector entry found.
- * @retval      int      Value 0..(n-1) as index of the vector.
- */
-int rp_find_parms_index(const rp_app_params_t* src, const char* name);
-
-/**
- * @brief Returns the index number of the params vector for which the name attribute matches
- *
- * @param[in]   src      Params vector to be scanned.
- * @param[in]   name     Name to be search for.
- * @retval      -2       Bad attributes.
- * @retval      -1       No matching vector entry found.
- * @retval      int      Value 0..(n-1) as index of the vector.
- */
-int rb_find_parms_index(const rb_app_params_t* src, const char* name);
 
 /** @} */
 

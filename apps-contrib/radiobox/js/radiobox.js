@@ -54,13 +54,13 @@
     init: {}
   };
   RB.params.init = {
-    rb_run:               1,  // application running
-    osc1_modsrc_s:        0,  // mod-source: (none)
-    osc1_modtyp_s:        0,  // modulation: AM
-    osc1_qrg_imil:  1000000,  //   1 kHz
-    osc2_qrg_imil:   440000,  // 440  Hz
-    osc1_amp_imil:   447000,  // 447 mV Vpp @ 50R results to 0 dBm
-    osc2_mag_imil:        0
+    rb_run:            1,  // application running
+    osc1_modsrc_s:     0,  // mod-source: (none)
+    osc1_modtyp_s:     0,  // modulation: AM
+    osc1_qrg_f:     1000,  //   1 kHz
+    osc2_qrg_f:        0,  //   0  Hz
+    osc1_amp_f:      447,  // 447 mV Vpp @ 50R results to 0 dBm
+    osc2_mag_f:        0
   };
 
   // Other global variables
@@ -105,7 +105,8 @@
   RB.ac = function() {
     $.post(
       RB.config.post_url,
-      JSON.stringify({ datasets: { params: RB.params.init } })
+//    JSON.stringify({ datasets: { params: RB.params.init } })
+      JSON.stringify({ datasets: { params: cast_params2transport(RB.params.init)  } })
     )
     .done(function(dresult) {
       RB.state.socket_opened = true;
@@ -196,23 +197,23 @@
   };
 
   // Processes newly received values for parameters
-  RB.processParameters = function(new_params) {
+  RB.processParameters = function(new_params_transport) {
+    var new_params = cast_transport2params(new_params_transport);
     var old_params = $.extend(true, {}, RB.params.orig);
     var send_all_params = Object.keys(new_params).indexOf('send_all_params') != -1;
 
     for (var param_name in new_params) {
       // Save new parameter value
-      //RB.params.orig[param_name] = new_params[param_name].value;
       RB.params.orig[param_name] = new_params[param_name];
       var intVal = parseInt(RB.params.orig[param_name]);
 
-      //console.log("CHECK: param_name='" + param_name + "', content='" + RB.params.orig[param_name] + "'");
+      console.log("CHECK: param_name='" + param_name + "', content='" + RB.params.orig[param_name] + "'");
 
-      if (param_name.indexOf('osc1_qrg_imil') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
+      if (param_name.indexOf('osc1_qrg_f') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
-      else if (param_name.indexOf('osc1_amp_imil') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
+      else if (param_name.indexOf('osc1_amp_f') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
       else if (param_name.indexOf('osc1_modsrc_s') == 0) {
         $('#'+param_name).val(intVal);
@@ -235,11 +236,11 @@
         }
         checkKeyDoEnable(param_name, intVal);
       }
-      else if (param_name.indexOf('osc2_qrg_imil') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
+      else if (param_name.indexOf('osc2_qrg_f') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
-      else if (param_name.indexOf('osc2_mag_imil') == 0) {
-        $('#'+param_name).val(RB.params.orig[param_name] / 1000.0);
+      else if (param_name.indexOf('osc2_mag_f') == 0) {
+        $('#'+param_name).val(RB.params.orig[param_name]);
       }
 
       /*
@@ -354,7 +355,7 @@
     $.ajax({
       type: 'POST',
       url: RB.config.post_url,
-      data: JSON.stringify({ app: { id: 'radiobox' }, datasets: { params: RB.params.local } }),
+      data: JSON.stringify({ app: { id: 'radiobox' }, datasets: { params: cast_params2transport(RB.params.local) } }),
       timeout: RB.config.request_timeout,
       cache: false
     })
@@ -408,9 +409,7 @@
 
       else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
         value = parseFloat(field.val());
-        if (checkKeyIs_IMil(key)) {
-          value = parseInt(0.5 + 1000.0 * value);
-        } else {
+        if (!checkKeyIs_F(key)) {
           value = parseInt(value);
         }
       }
@@ -432,7 +431,7 @@
 
         // clear magnitude field when modulation source or type has changed
         if ((key == 'osc1_modsrc_s') || (key == 'osc1_modtyp_s')) {
-          $('#osc2_mag_imil').val(0);
+          $('#osc2_mag_f').val(0);
         }
 
         //console.log(key + ' changed from ' + RB.params.orig[key] + ' to ' + new_value);
@@ -466,10 +465,10 @@ function checkKeyDoEnable(key, value) {
       $('#osc1_modtyp_s').removeAttr("disabled");
       $('#apply_osc1_modtyp').removeAttr("style");
 
-      $('#osc2_qrg_imil').removeAttr("disabled");
+      $('#osc2_qrg_f').removeAttr("disabled");
       $('#apply_osc2_qrg').removeAttr("style");
 
-      $('#osc2_mag_imil').removeAttr("disabled");
+      $('#osc2_mag_f').removeAttr("disabled");
       $('#apply_osc2_mag').removeAttr("style");
 
     } else {
@@ -477,17 +476,17 @@ function checkKeyDoEnable(key, value) {
       $('#osc1_modtyp_s').attr("disabled", "disabled");
       $('#apply_osc1_modtyp').attr("style", "visibility:hidden");
 
-      $('#osc2_qrg_imil').attr("disabled", "disabled");
+      $('#osc2_qrg_f').attr("disabled", "disabled");
       $('#apply_osc2_qrg').attr("style", "visibility:hidden");
 
-      $('#osc2_mag_imil').attr("disabled", "disabled");
+      $('#osc2_mag_f').attr("disabled", "disabled");
       $('#apply_osc2_mag').attr("style", "visibility:hidden");
     }
   }
 }
 
-function checkKeyIs_IMil(key) {
-  return (key.lastIndexOf("_imil") == (key.length - 5));
+function checkKeyIs_F(key) {
+  return (key.lastIndexOf("_f") == (key.length - 2));
 }
 
 
@@ -691,6 +690,216 @@ $( document ).ready(function() {
   formatVals();
 });
 */
+
+
+function cast_3xfloat_to_1xdouble(triple)
+{
+  var IEEE754_DOUBLE_EXP_BIAS = 1023;
+  var IEEE754_DOUBLE_EXP_BITS = 11;
+  var IEEE754_DOUBLE_MNT_BITS = 52;
+  var d = 0.0;
+
+  var mant_idx;
+  for (mant_idx = 0; mant_idx < IEEE754_DOUBLE_MNT_BITS; ++mant_idx) {
+    if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
+      if (triple.hi & 0x1) {
+        d += 1.0;
+      }
+      triple.hi >>= 1;
+    } else {
+      if (triple.lo & 0x1) {
+        d += 1.0;
+      }
+      triple.lo >>= 1;
+    }
+    d /= 2.0;
+  }
+  v += 1.0;  // hidden '1' of IEEE mantissa
+
+  // exponent shifter
+  var exp = triple.se & 0x7ff;
+  var sgn = triple.se >> ();
+  if (triple.se > IEEE754_DOUBLE_EXP_BIAS) {
+    while (triple.se > IEEE754_DOUBLE_EXP_BIAS) {
+      v *= 2.0;
+      triple.se -= 1;
+    }
+  } else if (triple.se < IEEE754_DOUBLE_EXP_BIAS) {
+    while (triple.se < IEEE754_DOUBLE_EXP_BIAS) {
+      v /= 2.0;
+      triple.se += 1;
+    }
+  }
+
+  if (sgn) {
+    d = -d;
+  }
+  return d;
+}
+
+function cast_1xdouble_to_3xfloat(d)
+{
+  var IEEE754_DOUBLE_EXP_BIAS = 1023;
+  var IEEE754_DOUBLE_MNT_BITS = 52;
+  var triple = { se: 0, hi: 0, lo: 0 };
+  var direction = 0;
+  var v;
+
+  if (v < 0.0) {
+    v = -v;
+    triple.se = (IEEE754_DOUBLE_EXP_BIAS + 1) << 1;  // that is the sign bit
+  }
+
+  // determine the exponent
+  triple.rs = IEEE754_DOUBLE_EXP_BIAS;
+  if (v >= 2.0) {
+    while (v >= 2.0) {
+      v /= 2.0;
+      triple.rs += 1;
+    }
+
+  } else if (v < 1.0) {
+    while (v < 1.0) {
+      v *= 2.0;
+      triple.rs -= 1;
+    }
+  }
+
+  // scan the mantissa
+  var mant_idx;
+  for (mant_idx = IEEE754_DOUBLE_MNT_BITS - 1; mant_idx >= 0; --mant_idx) {
+    if (v >= 1.0) {  // hidden '1' of IEEE mantissa is discarded
+      v -= 1.0;
+    }
+
+    v *= 2.0;
+    if (v >= 1.0) {
+      if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
+        triple.hi += 1;
+      } else {
+        triple.lo += 1;
+      }
+    }
+
+    if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
+      triple.hi <<= 1;
+    } else {
+      triple.lo <<= 1;
+    }
+  }
+
+  return triple;
+}
+
+function cast_params2transport(params)
+{
+  var transport = {
+    rb_run:            0,
+    osc1_modsrc_s:     0,
+    osc1_modtyp_s:     0,
+
+    SE_osc1_qrg_f:     0,
+    HI_osc1_qrg_f:     0,
+    LO_osc1_qrg_f:     0,
+
+    SE_osc2_qrg_f:     0,
+    HI_osc2_qrg_f:     0,
+    LO_osc2_qrg_f:     0,
+
+    SE_osc1_amp_f:     0,
+    HI_osc1_amp_f:     0,
+    LO_osc1_amp_f:     0,
+
+    SE_osc2_mag_f:     0,
+    HI_osc2_mag_f:     0,
+    LO_osc2_mag_f:     0
+  }
+
+  transport.rb_run        = params.rb_run;
+  transport.osc1_modsrc_s = params.osc1_modsrc_s;
+  transport.osc1_modtyp_s = params.osc1_modtyp_s;
+
+  {
+    var triple = cast_1xdouble_to_3xfloat(params.osc1_qrg_f);
+    transport.SE_osc1_qrg_f = triple.se;
+    transport.HI_osc1_qrg_f = triple.hi;
+    transport.LO_osc1_qrg_f = triple.lo;
+  }
+
+  {
+    var triple = cast_1xdouble_to_3xfloat(params.osc2_qrg_f);
+    transport.SE_osc2_qrg_f = triple.se;
+    transport.HI_osc2_qrg_f = triple.hi;
+    transport.LO_osc2_qrg_f = triple.lo;
+  }
+
+  {
+    var triple = cast_1xdouble_to_3xfloat(params.osc1_amp_f);
+    transport.SE_osc1_amp_f = triple.se;
+    transport.HI_osc1_amp_f = triple.hi;
+    transport.LO_osc1_amp_f = triple.lo;
+  }
+
+  {
+    var triple = cast_1xdouble_to_3xfloat(params.osc2_mag_f);
+    transport.SE_osc2_mag_f = triple.se;
+    transport.HI_osc2_mag_f = triple.hi;
+    transport.LO_osc2_mag_f = triple.lo;
+  }
+
+  return transport;
+}
+
+function cast_transport2params(transport)
+{
+  var params = {
+    rb_run:            0,
+    osc1_modsrc_s:     0,
+    osc1_modtyp_s:     0,
+    osc1_qrg_f:        0,
+    osc2_qrg_f:        0,
+    osc1_amp_f:        0,
+    osc2_mag_f:        0
+  }
+
+  params.rb_run        = transport.rb_run;
+  params.osc1_modsrc_s = transport.osc1_modsrc_s;
+  params.osc1_modtyp_s = transport.osc1_modtyp_s;
+
+  {
+    var triple;
+    triple.se = transport.SE_osc1_qrg_f;
+    triple.hi = transport.HI_osc1_qrg_f;
+    triple.lo = transport.LO_osc1_qrg_f;
+    params.osc1_qrg_f = cast_3xfloat_to_1xdouble(triple);
+  }
+
+  {
+    var triple;
+    triple.se = transport.SE_osc2_qrg_f;
+    triple.hi = transport.HI_osc2_qrg_f;
+    triple.lo = transport.LO_osc2_qrg_f;
+    params.osc2_qrg_f = cast_3xfloat_to_1xdouble(triple);
+  }
+
+  {
+    var triple;
+    triple.se = transport.SE_osc1_amp_f;
+    triple.hi = transport.HI_osc1_amp_f;
+    triple.lo = transport.LO_osc1_amp_f;
+    params.osc1_amp_f = cast_3xfloat_to_1xdouble(triple);
+  }
+
+  {
+    var triple;
+    triple.se = transport.SE_osc2_mag_f;
+    triple.hi = transport.HI_osc2_mag_f;
+    triple.lo = transport.LO_osc2_mag_f;
+    params.osc2_mag_f = cast_3xfloat_to_1xdouble(triple);
+  }
+
+  return params;
+}
 
 
 (function ($) {
