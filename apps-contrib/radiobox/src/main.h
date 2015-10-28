@@ -28,7 +28,10 @@
  * @{
  */
 
-/** @brief Parameters description structure - must be the same for all RP controllers */
+/** @brief Parameters description structure - must be the same for all RP controllers
+ *
+ * This structure is used for data transportation between the HTTP-Server and the controlle.so
+ **/
 typedef struct rp_app_params_s {
     /** @brief name  Name of the parameter */
     char  *name;
@@ -48,6 +51,31 @@ typedef struct rp_app_params_s {
     /** @brief max_val  The upper limit of the value */
     float  max_val;
 } rp_app_params_t;
+
+/** @brief High definition parameters description structure
+ *
+ * This structure has got expanded data types for higher precision
+ * in contrast to  struct rb_app_params_s.
+ **/
+typedef struct rb_app_params_s {
+    /** @brief name  Name of the parameter */
+    char  *name;
+
+    /** @brief value  Value of the parameter with high precision */
+    double value;
+
+    /** @brief fpga_update  Do a FPGA register update based on this parameter */
+    int    fpga_update;
+
+    /** @brief read_only  The value of this parameter can not be changed */
+    int    read_only;
+
+    /** @brief min_val  The lower limit of the value high precision */
+    double min_val;
+
+    /** @brief max_val  The upper limit of the value high precision */
+    double max_val;
+} rb_app_params_t;
 
 
 /* Parameters indexes - these defines should be in the same order as
@@ -96,6 +124,29 @@ enum rb_modtyp_enum_t {
 
 
 /**
+ * @brief Converts from 2x float data to 1x double data by re-interpreting data structure
+ *
+ * @param[in]   f_rs     Single precision data, paired shared residue value for corrections to be done.
+ * @param[in]   f_lo     Single precision data, LSB part to be re-interpreted.
+ * @param[in]   f_hi     Single precision data, MSB part to be re-interpreted.
+ * @retval      double   Double precision data.
+ */
+double cast_3xfloat_to_1xdouble(float f_rs, float f_lo, float f_hi);
+
+/**
+ * @brief Converts from 1x double data to 2x float data by re-interpreting the data structure
+ *
+ * @param[inout] f_rs    Pointer to output float variable for the shared residue part.
+ * @param[inout] f_lo    Pointer to output float variable for the LSB part.
+ * @param[inout] f_hi    Pointer to output float variable for the MSB part.
+ * @param[in]    d       Double precision data to be re-interpreted.
+ * @retval       0       Success.
+ * @retval       -1      Failed due to argument failure.
+ */
+int cast_1xdouble_to_3xfloat(float* f_rs, float* f_lo, float* f_hi, double d);
+
+
+/**
  * @brief Returns description cstring for this RadioBox sub-module
  *
  * This function returns a null terminated cstring.
@@ -129,6 +180,28 @@ int  rp_create_traces(float** a_traces[TRACE_NUM]);
  */
 void rp_free_traces(float** a_traces[TRACE_NUM]);
 
+
+/**
+ * @brief Copies RedPitaya standard parameters vector to RadioBox high definition parameters vector
+ *
+ * @param[inout] dst_line     RadioBox high definition parameters vector.
+ * @param[in]    src_line_rs  RedPitaya standard parameters vector for data interchange, shared residue for reconstruction.
+ * @param[in]    src_line_lo  RedPitaya standard parameters vector for data interchange, LSB.
+ * @param[in]    src_line_hi  RedPitaya standard parameters vector for data interchange, MSB.
+ */
+void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_rs, const rp_app_params_t src_line_lo, const rp_app_params_t src_line_hi);
+
+/**
+ * @brief Copies RadioBox high definition parameters vector to RedPitaya standard parameters vector
+ *
+ * @param[inout] dst_line_rs  RedPitaya standard parameters vector for data interchange, shared residue for reconstruction.
+ * @param[inout] dst_line_lo  RedPitaya standard parameters vector for data interchange, LSB.
+ * @param[inout] dst_line_hi  RedPitaya standard parameters vector for data interchange, MSB.
+ * @param[in]    src_line     RadioBox high definition parameters vector.
+ */
+void rb2rp_params_value_copy(rp_app_params_t* dst_line_rs, rp_app_params_t* dst_line_lo, rp_app_params_t* dst_line_hi, const rb_app_params_t src_line);
+
+
 /**
  * @brief Make a copy of Application parameters
  *
@@ -154,6 +227,31 @@ void rp_free_traces(float** a_traces[TRACE_NUM]);
 int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
 
 /**
+ * @brief Copies the RadioBox high definition parameters vector to a Red Pitaya parameters vector
+ *
+ * In contrast to rp_copy_params() this function copies all attributes.
+ *
+ * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
+ * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
+ * @param[in]   len               The count of parameters in the src vector.
+ * @retval      0                 Successful operation
+ * @retval      -1                Failure, error message is output on standard error
+ */
+int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[], int len);
+
+/**
+ * @brief Copies a Red Pitaya parameters vector to the RadioBox high definition parameters vector
+ *
+ * In contrast to rp_copy_params() this function copies all attributes.
+ *
+ * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
+ * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
+ * @retval      0                 Successful operation
+ * @retval      -1                Failure, error message is output on standard error
+ */
+int rp_copy_params_rp2rb(rb_app_params_t** dst, const rp_app_params_t src[]);
+
+/**
  * @brief Deallocate the specified buffer of Application parameters
  *
  * Function is used to deallocate the specified buffers, which were previously
@@ -164,6 +262,41 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
  * @retval      -1      Failed with non-valid params
  */
 int rp_free_params(rp_app_params_t** params);
+
+/**
+ * @brief Deallocate the specified buffer of Application parameters
+ *
+ * Function is used to deallocate the specified buffers, which were previously
+ * allocated by calling rb_copy_params() function.
+ *
+ * @param[in]   params  Application parameters to be deallocated
+ * @retval      0       Success
+ * @retval      -1      Failed with non-valid params
+ */
+int rb_free_params(rb_app_params_t** params);
+
+
+/**
+ * @brief Returns the index number of the params vector for which the name attribute matches
+ *
+ * @param[in]   src      Params vector to be scanned.
+ * @param[in]   name     Name to be search for.
+ * @retval      -2       Bad attributes.
+ * @retval      -1       No matching vector entry found.
+ * @retval      int      Value 0..(n-1) as index of the vector.
+ */
+int rp_find_parms_index(const rp_app_params_t* src, const char* name);
+
+/**
+ * @brief Returns the index number of the params vector for which the name attribute matches
+ *
+ * @param[in]   src      Params vector to be scanned.
+ * @param[in]   name     Name to be search for.
+ * @retval      -2       Bad attributes.
+ * @retval      -1       No matching vector entry found.
+ * @retval      int      Value 0..(n-1) as index of the vector.
+ */
+int rb_find_parms_index(const rb_app_params_t* src, const char* name);
 
 /** @} */
 
