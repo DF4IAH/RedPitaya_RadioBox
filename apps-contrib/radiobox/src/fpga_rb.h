@@ -383,42 +383,43 @@ int fpga_rb_exit(void);
  * @retval        0      Success
  * @retval        -1     Failure, parameter list or RB accessor not valid
  */
-int fpga_rb_update_all_params(rp_app_params_t* p);
+int fpga_rb_update_all_params(rb_app_params_t* p);
 
 
 /**
  * @brief Calculates and programs the FPGA RB ctrl and oscillator registers
  *
+ * @param[in]  rb_run     RadioBox application  0: disabled, else: enabled.
  * @param[in]  modsrc     0==(none), 1==RF Input 1, 2==RF Input 2, 4==EXP AI0, 5==EXP AI1, 6==EXP AI2, 7==EXP AI3, 15==OSC2
  * @param[in]  modtyp     when modsrc == OSC2: 0==AM, 1==FM, 2==PM - else ignored.
- * @param[in]  rb_run     RadioBox application  0: disabled, else: enabled.
  * @param[in]  osc1_qrg   Frequency for OSC1 in Hz.
  * @param[in]  osc2_qrg   Frequency for OSC2 in Hz.
  * @param[in]  osc1_amp   Vpp of OSC1 mixer output in mV.
  * @param[in]  osc2_mag   Magnitude of OSC2 mixer output. AM: 0-100%, FM: 0-1000000 Hz deviation, PM: 0-360°.
  */
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg, float osc2_qrg, float osc1_amp, float osc2_mag);
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag);
 
 /**
  * @brief Calculates and programs the FPGA OSC1 for AM and PM
  *
  * @param[in]  osc1_qrg   Frequency for OSC1 in Hz.
  */
-void fpga_rb_set_osc1_mod_none_am_pm(float osc1_qrg);
+//void fpga_rb_set_osc1_mod_none_am_pm(double osc1_qrg);
+void fpga_rb_set_osc1_mod_none_am_pm(double osc1_qrg);
 
 /**
  * @brief Calculates and programs the FPGA OSC1 mixer for AM
  *
  * @param[in]  osc1_amp   Vpp amplitude in mV.
  */
-void fpga_rb_set_osc1_mixer_mod_none_fm_pm(float osc1_amp);
+void fpga_rb_set_osc1_mixer_mod_none_fm_pm(double osc1_amp);
 
 /**
  * @brief Calculates and programs the FPGA OSC2 for AM and PM
  *
  * @param[in]  osc2_qrg   Frequency for OSC2 in Hz.
  */
-void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg);
+void fpga_rb_set_osc2_mod_am_fm_pm(double osc2_qrg);
 
 /**
  * @brief Calculates and programs the FPGA OSC2 mixer for AM
@@ -426,7 +427,7 @@ void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg);
  * @param[in]  osc1_amp   Vpp amplitude in mV.
  * @param[in]  osc2_mag   Magnitude percentage 0 - 100.
  */
-void fpga_rb_set_osc2_mixer_mod_am(float osc1_amp, float osc2_mag);
+void fpga_rb_set_osc2_mixer_mod_am(double osc1_amp, double osc2_mag);
 
 /**
  * @brief Calculates and programs the FPGA OSC2 mixer for FM
@@ -434,7 +435,7 @@ void fpga_rb_set_osc2_mixer_mod_am(float osc1_amp, float osc2_mag);
  * @param[in]  osc1_qrg   Frequency for OSC1 in Hz.
  * @param[in]  osc2_mag   Deviation in Hz.
  */
-void fpga_rb_set_osc2_mixer_mod_fm(float osc1_qrg, float osc2_mag);
+void fpga_rb_set_osc2_mixer_mod_fm(double osc1_qrg, double osc2_mag);
 
 /**
  * @brief Calculates and programs the FPGA OSC2 mixer for PM
@@ -442,7 +443,7 @@ void fpga_rb_set_osc2_mixer_mod_fm(float osc1_qrg, float osc2_mag);
  * @param[in]  osc1_qrg   Base frequency in Hz.
  * @param[in]  osc2_mag   Deviation in deg.
  */
-void fpga_rb_set_osc2_mixer_mod_pm(float osc1_qrg, float osc2_mag);
+void fpga_rb_set_osc2_mixer_mod_pm(double osc1_qrg, double osc2_mag);
 
 /**
  * @brief Enables or disables RadioBox FPGA sub-module

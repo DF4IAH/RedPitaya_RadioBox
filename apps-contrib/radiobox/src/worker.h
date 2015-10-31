@@ -2,7 +2,7 @@
  * @brief Red Pitaya RadioBox worker.
  *
  * @author Ulrich Habel (DF4IAH) <espero7757@gmx.net>
- *         
+ *
  * (c) Red Pitaya  http://www.redpitaya.com
  *
  * This part of code is written in C programming language.
@@ -23,20 +23,20 @@
 
 /** @brief FSM state of the worker */
 typedef enum worker_state_e {
-	/** @brief do nothing */
-	worker_idle_state = 0,
+    /** @brief do nothing */
+    worker_idle_state = 0,
 
-	/** @brief shutdown worker */
-	worker_quit_state,
+    /** @brief shutdown worker */
+    worker_quit_state,
 
-	/** @brief abort current measurement */
-	worker_abort_state,
+    /** @brief abort current measurement */
+    worker_abort_state,
 
-	/** @brief normal mode */
-	worker_normal_state,
+    /** @brief normal mode */
+    worker_normal_state,
 
-	/** @brief must be last entry */
-	worker_nonexisting_state
+    /** @brief must be last entry */
+    worker_nonexisting_state
 } worker_state_t;
 
 
@@ -46,7 +46,7 @@ typedef enum worker_state_e {
  * @param[in]    params_len    Count of parameters that params holds.
  * @retval       int           The return value of the pthread_create() call.
  */
-int worker_init(rp_app_params_t* params, int params_len);
+int worker_init(rb_app_params_t* params, int params_len);
 
 /** @brief Shuts-down the running worker thread
  *
@@ -75,7 +75,7 @@ void* worker_thread(void* args);
  * @param[in]    do_init  If true all comparisons will indicate a changed state.
  * @retval       int      Number of parameters that changed the value AND their attribute fpga_update is set.
  */
-int mark_changed_fpga_update_entries(const rp_app_params_t* ref, rp_app_params_t* cmp, int do_init);
+int mark_changed_fpga_update_entries(const rb_app_params_t* ref, rb_app_params_t* cmp, int do_init);
 
 
 /** @brief Removes 'dirty' flags */
@@ -90,7 +90,7 @@ int worker_clear_signals(void);
 int worker_get_signals(float*** traces, int* trc_idx);
 
 /** @brief Fills the output signal structure from temp one after calculation is done
- * and marks it dirty 
+ * and marks it dirty
  */
 int worker_set_signals(float** source, int index);
 

@@ -55,7 +55,7 @@ typedef struct rp_calib_params_s {
 	int32_t  be_ch2_dc_offs;
 
 	/** @brief Base attributes: real frequency of the 125 MHz ADC clock in Hz */
-	float	 base_osc125mhz_realhz;
+	double	 base_osc125mhz_realhz;
 
 } rp_calib_params_t;
 

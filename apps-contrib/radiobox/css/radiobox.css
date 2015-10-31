@@ -51,7 +51,7 @@ select#osc1_modtyp_s[disabled] {
 .form-bg-osc2-qrg {
   background:#002050;
 }
-input#osc2_qrg_imil[disabled] {
+input#osc2_qrg_f[disabled] {
   background:#707070;
 }
 
@@ -62,7 +62,7 @@ input#osc2_qrg_imil[disabled] {
 .form-bg-osc2-mag {
   background:#602000;
 }
-input#osc2_mag_imil[disabled] {
+input#osc2_mag_f[disabled] {
   background:#707070;
 }
 

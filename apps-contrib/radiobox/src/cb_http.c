@@ -25,7 +25,7 @@
 extern rp_calib_params_t    rp_main_calib_params;
 
 /** @brief Describes app. parameters with some info/limitations */
-extern rp_app_params_t      rp_default_params[];
+extern rb_app_params_t      rb_default_params[];
 
 /** @brief CallBack copy of params to inform the worker */
 extern rp_app_params_t*     rp_cb_in_params;
@@ -44,17 +44,20 @@ extern int                  params_init_done;
 /*----------------------------------------------------------------------------*/
 int rp_app_init(void)
 {
-    fprintf(stderr, "Loading radiobox version %s-%s.\n", VERSION, REVISION);
+    fprintf(stderr, "\n<=== Loading RadioBox version %s-%s ===>\n\n", VERSION, REVISION);
 
     fpga_init();
 
+    //fprintf(stderr, "INFO rp_app_init: sizeof(double)=%d, sizeof(float)=%d, sizeof(long long)=%d, sizeof(long)=%d, sizeof(int)=%d, sizeof(short)=%d\n",
+    //        sizeof(double), sizeof(float), sizeof(long long), sizeof(long), sizeof(int), sizeof(short));
+
     // Debugging
-    fprintf(stderr, "rp_app_init: setting pattern HK LEDs\n");
+    //fprintf(stderr, "rp_app_init: setting pattern HK LEDs\n");
     fpga_hk_setLeds(0, 0xff, 0xaa);
 
     rp_default_calib_params(&rp_main_calib_params);
-    float default_osc125mhz = rp_main_calib_params.base_osc125mhz_realhz;
-    fprintf(stderr, "INFO rp_app_init: default_osc125mhz = %f\n", default_osc125mhz);
+    double default_osc125mhz = rp_main_calib_params.base_osc125mhz_realhz;
+    //fprintf(stderr, "INFO rp_app_init: default_osc125mhz = %lf\n", default_osc125mhz);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
         fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
@@ -62,37 +65,35 @@ int rp_app_init(void)
         fprintf(stderr, "WARNING rp_app_init: non-valid osc125mhz data found, overwriting with default value\n");
         rp_main_calib_params.base_osc125mhz_realhz = default_osc125mhz;
     }
-    fprintf(stderr, "INFO rp_app_init: osc125mhz = %f\n", rp_main_calib_params.base_osc125mhz_realhz);
+    //fprintf(stderr, "INFO rp_app_init: osc125mhz = %lf\n", rp_main_calib_params.base_osc125mhz_realhz);
 
     /* start-up worker thread */
-    if (worker_init(rp_default_params, RB_PARAMS_NUM) < 0) {
+    if (worker_init(rb_default_params, RB_PARAMS_NUM) < 0) {
         fprintf(stderr, "ERROR rp_app_init - failed to start worker_init.\n");
         return -1;
     }
 
-    /* Init with a CallBack fake */
-    rp_set_params(rp_default_params, RB_PARAMS_NUM);
-
-    fprintf(stderr, "rp_app_init: END\n");
+    //fprintf(stderr, "rp_app_init: END\n");
     return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 int rp_app_exit(void)
 {
-    fprintf(stderr, "rp_app_exit: BEGIN\n");
-    fprintf(stderr, "Unloading radiobox version %s-%s.\n", VERSION, REVISION);
+    //fprintf(stderr, "rp_app_exit: BEGIN\n");
+    fprintf(stderr, ">### Unloading radiobox version %s-%s. ###<\n", VERSION, REVISION);
 
-    fprintf(stderr, "rp_app_exit: calling fpga_exit()\n");
+    //fprintf(stderr, "rp_app_exit: calling fpga_exit()\n");
     fpga_exit();
 
-    fprintf(stderr, "rp_app_exit: calling worker_exit()\n");
+    //fprintf(stderr, "rp_app_exit: calling worker_exit()\n");
     /* shut-down worker thread */
     worker_exit();
 
     rp_free_params(&rp_cb_in_params);  // in case the pipe is not cleared
 
-    fprintf(stderr, "rp_app_exit: END.\n");
+    //fprintf(stderr, "rp_app_exit: END.\n");
+    //fprintf(stderr, "RadioBox unloaded\n\n");
     return 0;
 }
 

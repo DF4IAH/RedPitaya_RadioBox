@@ -22,6 +22,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include "main.h"
 #include "calib.h"
 #include "fpga.h"
 #include "cb_http.h"
@@ -31,9 +32,9 @@
 extern rp_calib_params_t    rp_main_calib_params;
 
 /** @brief CallBack copy of params from the worker when requested */
-extern rp_app_params_t*     rp_cb_out_params;
+extern rb_app_params_t*     rb_info_worker_params;
 /** @brief Holds mutex to access on parameters from the worker thread to any other context */
-extern pthread_mutex_t      rp_cb_out_params_mutex;
+extern pthread_mutex_t      rb_info_worker_params_mutex;
 
 /** @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
 extern int                  g_fpga_rb_mem_fd;
@@ -44,7 +45,7 @@ extern fpga_rb_reg_mem_t*   g_fpga_rb_reg_mem;
 /*----------------------------------------------------------------------------*/
 int fpga_rb_init(void)
 {
-    fprintf(stderr, "fpga_rb_init: BEGIN\n");
+    //fprintf(stderr, "fpga_rb_init: BEGIN\n");
 
     /* make sure all previous data is vanished */
     fpga_rb_exit();
@@ -75,14 +76,14 @@ int fpga_rb_init(void)
     // enable RadioBox sub-module
     fpga_rb_enable(1);
 
-    fprintf(stderr, "fpga_rb_init: END\n");
+    //fprintf(stderr, "fpga_rb_init: END\n");
     return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 int fpga_rb_exit(void)
 {
-    fprintf(stderr, "fpga_rb_exit: BEGIN\n");
+    //fprintf(stderr, "fpga_rb_exit: BEGIN\n");
 
     /* disable RadioBox sub-module */
     fpga_rb_enable(0);
@@ -102,23 +103,23 @@ int fpga_rb_exit(void)
             g_fpga_rb_mem_fd = -1;
         }
     }
-    fprintf(stderr, "fpga_rb_exit: END\n");
+    //fprintf(stderr, "fpga_rb_exit: END\n");
     return 0;
 }
 
 
 /*----------------------------------------------------------------------------*/
-int fpga_rb_update_all_params(rp_app_params_t* p)
+int fpga_rb_update_all_params(rb_app_params_t* p)
 {
-    int   loc_rb_run   = 0;
-    int   loc_modsrc   = 0;
-    int   loc_modtyp   = 0;
-    float loc_osc1_qrg = 0.0f;
-    float loc_osc2_qrg = 0.0f;
-    float loc_osc1_amp = 0.0f;
-    float loc_osc2_mag = 0.0f;
+    int    loc_rb_run   = 0;
+    int    loc_modsrc   = 0;
+    int    loc_modtyp   = 0;
+    double loc_osc1_qrg = 0.0;
+    double loc_osc2_qrg = 0.0;
+    double loc_osc1_amp = 0.0;
+    double loc_osc2_mag = 0.0;
 
-    fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
+    //fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
 
     if (!g_fpga_rb_reg_mem || !p) {
         fprintf(stderr, "ERROR - fpga_rb_update_all_params: bad parameter (p=%p) or not init'ed(g=%p)\n", p, g_fpga_rb_reg_mem);
@@ -132,31 +133,31 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
         }
 
         if (!(p[idx].fpga_update & 0x80)) {  // MARKer set?
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
             idx++;
             continue;  // this value is not marked to update the FPGA
         }
-        fprintf(stderr, "INFO - fpga_rb_update_all_params: this parameter has to update the FPGA (name=%s)\n", p[idx].name);
+        //fprintf(stderr, "INFO - fpga_rb_update_all_params: this parameter has to update the FPGA (name=%s)\n", p[idx].name);
 
         /* Remove the marker */
         p[idx].fpga_update &= ~0x80;
 
-
         /* Get current parameters from the worker */
         {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: waiting for cb_out_params ...\n");
-            pthread_mutex_lock(&rp_cb_out_params_mutex);
-            if (rp_cb_out_params) {
-                loc_rb_run   = (int) rp_cb_out_params[RB_RUN].value;
-                loc_modsrc   = (int) rp_cb_out_params[RB_OSC1_MODSRC].value;
-                loc_modtyp   = (int) rp_cb_out_params[RB_OSC1_MODTYP].value;
-                loc_osc1_qrg = rp_cb_out_params[RB_OSC1_QRG].value;
-                loc_osc2_qrg = rp_cb_out_params[RB_OSC2_QRG].value;
-                loc_osc1_amp = rp_cb_out_params[RB_OSC1_AMP].value;
-                loc_osc2_mag = rp_cb_out_params[RB_OSC2_MAG].value;
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: waiting for cb_out_params ...\n");
+            pthread_mutex_lock(&rb_info_worker_params_mutex);
+            if (rb_info_worker_params) {
+                //print_rb_params(rb_info_worker_params);
+                loc_rb_run   = (int) rb_info_worker_params[RB_RUN].value;
+                loc_modsrc   = (int) rb_info_worker_params[RB_OSC1_MODSRC].value;
+                loc_modtyp   = (int) rb_info_worker_params[RB_OSC1_MODTYP].value;
+                loc_osc1_qrg = rb_info_worker_params[RB_OSC1_QRG].value;
+                loc_osc2_qrg = rb_info_worker_params[RB_OSC2_QRG].value;
+                loc_osc1_amp = rb_info_worker_params[RB_OSC1_AMP].value;
+                loc_osc2_mag = rb_info_worker_params[RB_OSC2_MAG].value;
             }
-            pthread_mutex_unlock(&rp_cb_out_params_mutex);
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: ... done\n");
+            pthread_mutex_unlock(&rb_info_worker_params_mutex);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: ... done\n");
         }
 
         /* Since here process on each known parameter accordingly */
@@ -164,7 +165,7 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
         if (!strcmp("rb_run", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
             fpga_rb_enable((int) (p[idx].value));
-               fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modsrc_s", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
@@ -174,38 +175,36 @@ int fpga_rb_update_all_params(rp_app_params_t* p)
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc1_qrg_imil", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_imil = %f\n", p[idx].value);
+        } else if (!strcmp("osc1_qrg_f", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc2_qrg_imil", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_imil = %f\n", p[idx].value);
+        } else if (!strcmp("osc2_qrg_f", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag);
 
-        } else if (!strcmp("osc1_amp_imil", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_imil = %f\n", p[idx].value);
+        } else if (!strcmp("osc1_amp_f", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag);
 
-        } else if (!strcmp("osc2_mag_imil", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_imil = %f\n", p[idx].value);
+        } else if (!strcmp("osc2_mag_f", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value);
         }  // else if ()
 
         idx++;
     }  // while (1)
 
-    fprintf(stderr, "fpga_rb_update_all_params: END\n");
+    //fprintf(stderr, "fpga_rb_update_all_params: END\n");
     return 0;
 }
 
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg_mil, float osc2_qrg_mil, float osc1_amp_mil, float osc2_mag_mil)
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag)
 {
-	float osc1_qrg = osc1_qrg_mil / 1000.0f;
-	float osc2_qrg = osc2_qrg_mil / 1000.0f;
-	float osc1_amp = osc1_amp_mil / 1000.0f;
-	float osc2_mag = osc2_mag_mil / 1000.0f;
+    //fprintf(stderr, "INFO - fpga_rb_set_ctrl: rb_run=%d, modsrc=%d, modtyp=%d, osc1_qrg=%lf, osc2_qrg=%lf, osc1_amp=%lf, osc2_mag=%lf\n",
+    //        rb_run, modsrc, modtyp, osc1_qrg, osc2_qrg, osc1_amp, osc2_mag);
 
     if (rb_run) {
         fpga_rb_set_osc1_mod_none_am_pm(osc1_qrg);                                                      // OSC1 frequency
@@ -262,19 +261,22 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, float osc1_qrg_mil, fl
         }  // switch ()
 
     } else {
-        fpga_rb_set_osc1_mod_none_am_pm(0.0f);                                                          // OSC1 frequency
-        fpga_rb_set_osc2_mod_am_fm_pm(0.0f);                                                            // OSC2 frequency
-        fpga_rb_set_osc1_mixer_mod_none_fm_pm(0.0f);                                                    // OSC1 mixer
-        fpga_rb_set_osc2_mixer_mod_fm(0.0f, 0.0f);                                                      // OSC2 mixer
+        fpga_rb_set_osc1_mod_none_am_pm(0.0);                                                           // OSC1 frequency
+        fpga_rb_set_osc2_mod_am_fm_pm(0.0);                                                             // OSC2 frequency
+        fpga_rb_set_osc1_mixer_mod_none_fm_pm(0.0);                                                     // OSC1 mixer
+        fpga_rb_set_osc2_mixer_mod_fm(0.0f, 0.0);                                                       // OSC2 mixer
 
         g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                         // control: turn off all streams into OSC1 and OSC1 mixer
     }
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc1_mod_none_am_pm(float osc1_qrg)
+void fpga_rb_set_osc1_mod_none_am_pm(double osc1_qrg)
 {
-    double qrg1 = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+    double qrg1 = 0.5 + (1ULL << 48) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+
+    //fprintf(stderr, "INFO - fpga_rb_set_osc1_mod_none_am_pm: qrg1=%lf (INC steps)  <--  in(osc1_qrg=%lf)\n",
+    //        qrg1, osc1_qrg);
 
     g_fpga_rb_reg_mem->osc1_inc_lo = (uint32_t) (((uint64_t) qrg1) & 0xffffffff);
     g_fpga_rb_reg_mem->osc1_inc_hi = (uint32_t) (((uint64_t) qrg1) >> 32);
@@ -283,11 +285,13 @@ void fpga_rb_set_osc1_mod_none_am_pm(float osc1_qrg)
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc1_mixer_mod_none_fm_pm(float osc1_amp)
+void fpga_rb_set_osc1_mixer_mod_none_fm_pm(double osc1_amp)
 {
     double gain1 = 0.5 + ((double) (1ULL << 31)) * (osc1_amp / 2048.0);                                 // TODO: DAC amplitude correction goes into here
     double ofs1  = 0.0f;                                                                                // TODO: DAC offset correction goes into here
 //  double ofs1  = (1ULL << 46);                                                                        // TODO: DAC offset correction goes into here
+
+    //fprintf(stderr, "INFO - fpga_rb_set_osc1_mixer_mod_none_fm_pm: in(gain1=%lf, ofs=%lf)\n", gain1, ofs1);
 
     g_fpga_rb_reg_mem->osc1_mix_gain = (uint32_t) (((uint64_t) gain1) & 0xffffffff);
     g_fpga_rb_reg_mem->osc1_mix_ofs_lo = (uint32_t) (((uint64_t) ofs1)  & 0xffffffff);
@@ -295,9 +299,11 @@ void fpga_rb_set_osc1_mixer_mod_none_fm_pm(float osc1_amp)
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg)
+void fpga_rb_set_osc2_mod_am_fm_pm(double osc2_qrg)
 {
     double qrg2 = 0.5 + ((double) (1ULL << 48)) * (osc2_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+
+    //fprintf(stderr, "INFO - fpga_rb_set_osc2_mod_am_fm_pm: in(qrg2=%lf)\n", qrg2);
 
     g_fpga_rb_reg_mem->osc2_inc_lo = (uint32_t) (((uint64_t) qrg2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_inc_hi = (uint32_t) (((uint64_t) qrg2) >> 32);
@@ -306,31 +312,37 @@ void fpga_rb_set_osc2_mod_am_fm_pm(float osc2_qrg)
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc2_mixer_mod_am(float osc1_amp, float osc2_mag)
+void fpga_rb_set_osc2_mixer_mod_am(double osc1_amp, double osc2_mag)
 {
     double gain2 = 0.5 +  ((double) (1ULL << 30))                           * (osc2_mag / 100.0)  * (osc1_amp / 2048.0);
     double ofs2  = 0.5 + (((double) (1ULL << 47)) - ((double) (1ULL << 46)) * (osc2_mag / 100.0)) * (osc1_amp / 2048.0);
 
+    //fprintf(stderr, "INFO - fpga_rb_set_osc2_mixer_mod_am: in(gain2=%lf, ofs2=%lf)\n", gain2, ofs2);
+
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc2_mixer_mod_fm(float osc1_qrg, float osc2_mag)
+void fpga_rb_set_osc2_mixer_mod_fm(double osc1_qrg, double osc2_mag)
 {
     double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / rp_main_calib_params.base_osc125mhz_realhz);
     double ofs2  = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
 
+    //fprintf(stderr, "INFO - fpga_rb_set_osc2_mixer_mod_fm: in(gain2=%lf, ofs2=%lf)\n", gain2, ofs2);
+
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) (((uint64_t) ofs2)  & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) (((uint64_t) ofs2) >> 32);
 }
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_osc2_mixer_mod_pm(float osc1_qrg, float osc2_mag)
+void fpga_rb_set_osc2_mixer_mod_pm(double osc1_qrg, double osc2_mag)
 {
     double gain2 = 0.5 + ((double) (1ULL << 31)) * (osc2_mag / 360.0);
+
+    //fprintf(stderr, "INFO - fpga_rb_set_osc2_mixer_mod_pm: osc1_qrg=%lf, osc2_mag=%lf\n", osc1_qrg, osc2_mag);
 
     g_fpga_rb_reg_mem->osc2_mix_gain   = (uint32_t) (((uint64_t) gain2) & 0xffffffff);
     g_fpga_rb_reg_mem->osc2_mix_ofs_lo = (uint32_t) 0;
@@ -345,7 +357,7 @@ void fpga_rb_enable(int enable)
         return;
     }
 
-    fprintf(stderr, "fpga_rb_enable(%d): BEGIN\n", enable);
+    //fprintf(stderr, "fpga_rb_enable(%d): BEGIN\n", enable);
 
     if (enable) {
         // enable RadioBox
@@ -358,15 +370,15 @@ void fpga_rb_enable(int enable)
 #endif
 
     } else {
-        fprintf(stderr, "fpga_rb_enable: turning off RB LEDs\n");
+        //fprintf(stderr, "fpga_rb_enable: turning off RB LEDs\n");
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000000;    // disable RB LEDs
 
         // disable RadioBox
-        fprintf(stderr, "fpga_rb_enable: disabling RB sub-module\n");
+        //fprintf(stderr, "fpga_rb_enable: disabling RB sub-module\n");
         g_fpga_rb_reg_mem->ctrl        = 0x00000000;    // disable RB sub-module
     }
 
-    fprintf(stderr, "fpga_rb_enable(%d): END\n", enable);
+    //fprintf(stderr, "fpga_rb_enable(%d): END\n", enable);
 }
 
 /*----------------------------------------------------------------------------*/

@@ -208,22 +208,46 @@ int rb_find_parms_index(const rb_app_params_t* src, const char* name);
  * @brief Copies RedPitaya standard parameters vector to RadioBox high definition parameters vector
  *
  * @param[inout] dst_line     RadioBox high definition parameters vector.
- * @param[in]    src_line_rs  RedPitaya standard parameters vector for data interchange, shared residue for reconstruction.
- * @param[in]    src_line_lo  RedPitaya standard parameters vector for data interchange, LSB.
- * @param[in]    src_line_hi  RedPitaya standard parameters vector for data interchange, MSB.
+ * @param[in]    src_line_se  RedPitaya standard parameters vector for data interchange, sign/exponent part.
+ * @param[in]    src_line_hi  RedPitaya standard parameters vector for data interchange, MSB part.
+ * @param[in]    src_line_lo  RedPitaya standard parameters vector for data interchange, LSB part.
  */
-void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_rs, const rp_app_params_t src_line_lo, const rp_app_params_t src_line_hi);
+void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_se, const rp_app_params_t src_line_hi, const rp_app_params_t src_line_lo);
 
 /**
  * @brief Copies RadioBox high definition parameters vector to RedPitaya standard parameters vector
  *
- * @param[inout] dst_line_rs  RedPitaya standard parameters vector for data interchange, shared residue for reconstruction.
- * @param[inout] dst_line_lo  RedPitaya standard parameters vector for data interchange, LSB.
- * @param[inout] dst_line_hi  RedPitaya standard parameters vector for data interchange, MSB.
+ * @param[inout] dst_line_se  RedPitaya standard parameters vector for data interchange, sign/exponent part.
+ * @param[inout] dst_line_hi  RedPitaya standard parameters vector for data interchange, MSB part.
+ * @param[inout] dst_line_lo  RedPitaya standard parameters vector for data interchange, LSB part.
  * @param[in]    src_line     RadioBox high definition parameters vector.
  */
-void rb2rp_params_value_copy(rp_app_params_t* dst_line_rs, rp_app_params_t* dst_line_lo, rp_app_params_t* dst_line_hi, const rb_app_params_t src_line);
+void rb2rp_params_value_copy(rp_app_params_t* dst_line_se, rp_app_params_t* dst_line_hi, rp_app_params_t* dst_line_lo, const rb_app_params_t src_line);
 
+
+/**
+ * @brief Make a copy of Transport parameters
+ *
+ * Function copies actual Application parameters to the specified destination
+ * buffer. This action was intended to prepare two parameter instances, where the first
+ * one can be further modified from the user side, while the second one is processed by
+ * the worker thread.
+ * In case the destination buffer is not allocated yet, it is allocated internally and must
+ * be freed outside of the function scope by calling rp_clean_params() function. Note that
+ * if function returns failure, the destination buffer could be partially allocated and must
+ * be freed in the same way.
+ * If the specified destination buffer is already allocated, it is assumed the number of table
+ * entries is the same as in the source table. No special check is made internally if this is really
+ * the case.
+ *
+ * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
+ * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
+ * @param[in]   len               The count of parameters in the src vector.
+ * @param[in]   do_copy_all_attr  Do a fully copy of all attributes, not just the name, value and fpga_update entries.
+ * @retval      0                 Successful operation
+ * @retval      -1                Failure, error message is output on standard error
+ */
+int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
 
 /**
  * @brief Make a copy of Application parameters
@@ -247,7 +271,7 @@ void rb2rp_params_value_copy(rp_app_params_t* dst_line_rs, rp_app_params_t* dst_
  * @retval      0                 Successful operation
  * @retval      -1                Failure, error message is output on standard error
  */
-int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
+int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, int do_copy_all_attr);
 
 /**
  * @brief Copies the RadioBox high definition parameters vector to a Red Pitaya parameters vector
@@ -273,6 +297,19 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[], int
  * @retval      -1                Failure, error message is output on standard error
  */
 int rp_copy_params_rp2rb(rb_app_params_t** dst, const rp_app_params_t src[]);
+
+
+/**
+ * @brief Deallocate the specified buffer of Application parameters
+ *
+ * Function is used to deallocate the specified buffers, which were previously
+ * allocated by calling rp_copy_params() function.
+ *
+ * @param[in]   params  Application parameters to be showed
+ * @retval      0                 Successful operation
+ * @retval      -1                Failure, error message is output on standard error
+ */
+int print_rb_params(rb_app_params_t* params);
 
 
 /**
