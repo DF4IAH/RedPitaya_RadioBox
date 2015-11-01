@@ -209,17 +209,33 @@
       RB.params.orig[param_name] = new_params[param_name];
       var intVal = parseInt(RB.params.orig[param_name]);
 
-      if (param_name.indexOf('osc1_qrg_f') == 0) {
+      if (param_name == 'rb_run') {
+          console.log("DEBUG rb_run");
+          if (intVal) {  // enabling RB
+              console.log("SETTING RB.processParameters: RB_RUN ON, RB_STOP off");
+              $('#RB_STOP').hide();
+              $('#RB_RUN').show();
+              $('#RB_RUN').css('display', 'block');
+
+          } else {  // disabling RB
+              console.log("SETTING RB.processParameters: RB_RUN off, RB_STOP ON");
+              $('#RB_RUN').hide();
+              $('#RB_STOP').show();
+              $('#RB_STOP').css('display', 'block');
+          }
+      }
+      else if (param_name == 'osc1_qrg_f') {
+        console.log("DEBUG osc1_qrg_f");
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
-      else if (param_name.indexOf('osc1_amp_f') == 0) {
+      else if (param_name == 'osc1_amp_f') {
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
-      else if (param_name.indexOf('osc1_modsrc_s') == 0) {
+      else if (param_name == 'osc1_modsrc_s') {
         $('#'+param_name).val(intVal);
         checkKeyDoEnable(param_name, intVal);
       }
-      else if (param_name.indexOf('osc1_modtyp_s') == 0) {
+      else if (param_name == 'osc1_modtyp_s') {
         $('#'+param_name).val(intVal);
         switch (intVal) {
           case 0:
@@ -236,10 +252,10 @@
         }
         checkKeyDoEnable(param_name, intVal);
       }
-      else if (param_name.indexOf('osc2_qrg_f') == 0) {
+      else if (param_name == 'osc2_qrg_f') {
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
-      else if (param_name.indexOf('osc2_mag_f') == 0) {
+      else if (param_name == 'osc2_mag_f') {
         $('#'+param_name).val(RB.params.orig[param_name]);
       }
 
@@ -510,6 +526,7 @@ $(function() {
   $('#RB_RUN').on('click', function(ev) {
     ev.preventDefault();
     $('#RB_RUN').hide();
+    $('#RB_STOP').show();
     $('#RB_STOP').css('display','block');
     //RB.params.local['rb_run'] = { value: false };
     RB.params.local['rb_run'] = 0;
@@ -521,6 +538,7 @@ $(function() {
     ev.preventDefault();
     $('#RB_STOP').hide();
     $('#RB_RUN').show();
+    $('#RB_RUN').css('display','block');
     RB.params.local['rb_run'] = 1;
     RB.sendParams();
   });
