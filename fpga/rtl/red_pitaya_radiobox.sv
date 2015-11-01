@@ -395,6 +395,7 @@ always @(posedge clk_adc_125mhz)
 begin
    if (!adc_rstn_i) begin
       regs[REG_RD_RB_STATUS] <= 32'b0;
+
    end else begin
       regs[REG_RD_RB_STATUS][RB_STAT_CLK_EN]                    <= rb_clk_en;
       regs[REG_RD_RB_STATUS][RB_STAT_RESET]                     <= rb_reset_n;
@@ -416,11 +417,9 @@ end
 //---------------------------------------------------------------------------------
 //  LEDs Magnitude indicator
 
-wire [3:0] led_ctrl = regs[REG_RW_RB_LED_CTRL][3:0];
+reg  [19:0] led_ctr  = 20'b0;
 
-//reg         rb_leds_en          =  1'b0;
-//reg  [ 7:0] rb_leds_data        =  8'b0;
-reg    [19:0] led_ctr             = 20'b0;
+wire [ 3:0] led_ctrl = regs[REG_RW_RB_LED_CTRL][3:0];
 
 function bit [7:0] fct_mag (input bit [15:0] val);
    automatic bit [7:0] leds = 8'b0;             // exakt zero indicator
@@ -428,26 +427,22 @@ function bit [7:0] fct_mag (input bit [15:0] val);
    if (!val[15]) begin                          // positive value
       if (val[14])
          leds = 8'b11110000;
-      else if (val[14:13] == 2'b01)
+      else if (val[14:12] >= 3'b001)
          leds = 8'b01110000;
-      else if (val[14:12] == 3'b001)
+      else if (val[14:10] >= 5'b00001)
          leds = 8'b00110000;
-      else if (val[14:11] == 4'b0001)
-         leds = 8'b00010000;
       else if (val)
-         leds = 8'b10000000;                    // minimal positive indicator
+         leds = 8'b00010000;
 
    end else begin                               // negative value
       if (!val[14])
          leds = 8'b00001111;
-      else if (val[14:13] == 2'b10)
+      else if (val[14:12] <= 3'b110)
          leds = 8'b00001110;
-      else if (val[14:12] == 3'b110)
+      else if (val[14:10] <= 5'b11110)
          leds = 8'b00001100;
-      else if (val[14:11] == 4'b1110)
-         leds = 8'b00001000;
       else
-         leds = 8'b00000001;                    // minimal negative indicator
+         leds = 8'b00001000;
    end
 
    fct_mag = leds;
