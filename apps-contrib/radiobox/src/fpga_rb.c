@@ -122,7 +122,7 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
     //fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
 
     if (!g_fpga_rb_reg_mem || !p) {
-        fprintf(stderr, "ERROR - fpga_rb_update_all_params: bad parameter (p=%p) or not init'ed(g=%p)\n", p, g_fpga_rb_reg_mem);
+        //fprintf(stderr, "ERROR - fpga_rb_update_all_params: bad parameter (p=%p) or not init'ed(g=%p)\n", p, g_fpga_rb_reg_mem);
         return -1;
     }
 
@@ -163,32 +163,32 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         /* Since here process on each known parameter accordingly */
 
         if (!strcmp("rb_run", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
             fpga_rb_enable((int) (p[idx].value));
             fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modsrc_s", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, (int) (p[idx].value), loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modtyp_s", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_qrg_f", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc2_qrg_f", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_amp_f", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag);
 
         } else if (!strcmp("osc2_mag_f", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
+            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value);
         }  // else if ()
 

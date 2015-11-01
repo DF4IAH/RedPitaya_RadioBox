@@ -166,7 +166,7 @@ void* worker_thread(void* args)
 
             /* take FSM out of idle state */
             do_normal_state = 1;
-            fprintf(stderr, "INFO worker_thread: !params_init_done - loading default data for setting the FPGA\n");
+            //fprintf(stderr, "INFO worker_thread: !params_init_done - loading default data for setting the FPGA\n");
             //print_rb_params(cb_in_copy_params);
 
         } else if (rp_cb_in_params) {
@@ -176,7 +176,7 @@ void* worker_thread(void* args)
 
             /* take FSM out of idle state */
             do_normal_state = 1;
-            fprintf(stderr, "INFO worker_thread: rp_cb_in_params new data, ... local copy made\n");
+            //fprintf(stderr, "INFO worker_thread: rp_cb_in_params new data, ... local copy made\n");
             //print_rb_params(cb_in_copy_params);
         }
         pthread_mutex_unlock(&rp_cb_in_params_mutex);
@@ -246,7 +246,7 @@ void* worker_thread(void* args)
             if (cb_in_copy_params) {
                 int fpga_update_count = mark_changed_fpga_update_entries(worker_params, cb_in_copy_params, !loc_params_init_done);  // return count of modified FPGA update values
 
-                fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data --> update_count = %d\n", fpga_update_count);
+                //fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data --> update_count = %d\n", fpga_update_count);
                 if (fpga_update_count > 0) {
                     //fprintf(stderr, "INFO worker_thread: fpga_update: -->  delegate to fpga_rb_update_all_params()\n");
                     if (fpga_rb_update_all_params(cb_in_copy_params)) {

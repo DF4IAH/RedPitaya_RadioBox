@@ -59,10 +59,10 @@ int rp_app_init(void)
     double default_osc125mhz = rp_main_calib_params.base_osc125mhz_realhz;
     //fprintf(stderr, "INFO rp_app_init: default_osc125mhz = %lf\n", default_osc125mhz);
     if (rp_read_calib_params(&rp_main_calib_params) < 0) {
-        fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
+        //fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
     if (!((uint32_t) rp_main_calib_params.base_osc125mhz_realhz)) {  // non-valid data
-        fprintf(stderr, "WARNING rp_app_init: non-valid osc125mhz data found, overwriting with default value\n");
+        //fprintf(stderr, "WARNING rp_app_init: non-valid osc125mhz data found, overwriting with default value\n");
         rp_main_calib_params.base_osc125mhz_realhz = default_osc125mhz;
     }
     //fprintf(stderr, "INFO rp_app_init: osc125mhz = %lf\n", rp_main_calib_params.base_osc125mhz_realhz);
