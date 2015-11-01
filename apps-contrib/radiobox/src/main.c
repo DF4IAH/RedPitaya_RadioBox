@@ -112,16 +112,16 @@ const rb_app_params_t rb_default_params[RB_PARAMS_NUM + 1] = {
         "osc1_modtyp_s",    0.0,   1,  0, 0.0,      2.0  },
 
     { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_f",       0.0,   1,  0, 0.0,  62.5e+9  },
+        "osc1_qrg_f",       0.0,   1,  0, 0.0,  62.5e+6  },
 
     { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_f",       0.0,   1,  0, 0.0,  62.5e+9  },
+        "osc2_qrg_f",       0.0,   1,  0, 0.0,  62.5e+6  },
 
     { /* Oscillator-1 amplitude (mV) */
-        "osc1_amp_f",       0.0,   1,  0, 0.0,  2047e+3  },
+        "osc1_amp_f",       0.0,   1,  0, 0.0,   2047.0  },
 
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
-        "osc2_mag_f",       0.0,   1,  0, 0.0,     1e+9  },
+        "osc2_mag_f",       0.0,   1,  0, 0.0,     1e+6  },
 
     { /* Must be last! */
         NULL,               0.0,  -1, -1, 0.0,      0.0  }
