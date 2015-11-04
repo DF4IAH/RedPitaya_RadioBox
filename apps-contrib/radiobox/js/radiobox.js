@@ -488,7 +488,7 @@
 function checkKeyDoEnable(key, value) {
   if (key == 'osc1_modsrc_s') {
     if (value == 15) {
-      /* (none) --> disable osc1_modtyp_s */
+      /* OSC2 */
       $('#osc1_modtyp_s').removeAttr("disabled");
       $('#apply_osc1_modtyp').removeAttr("style");
 
@@ -498,8 +498,19 @@ function checkKeyDoEnable(key, value) {
       $('#osc2_mag_f').removeAttr("disabled");
       $('#apply_osc2_mag').removeAttr("style");
 
+    } else if (value) {
+      /* External */
+      $('#osc1_modtyp_s').removeAttr("disabled");
+      $('#apply_osc1_modtyp').removeAttr("style");
+
+      $('#osc2_qrg_f').attr("disabled", "disabled");
+      $('#apply_osc2_qrg').attr("style", "visibility:hidden");
+
+      $('#osc2_mag_f').removeAttr("disabled");
+      $('#apply_osc2_mag').removeAttr("style");
+
     } else {
-      /* else --> enable osc1_modtyp_s */
+      /* (none) */
       $('#osc1_modtyp_s').attr("disabled", "disabled");
       $('#apply_osc1_modtyp').attr("style", "visibility:hidden");
 
