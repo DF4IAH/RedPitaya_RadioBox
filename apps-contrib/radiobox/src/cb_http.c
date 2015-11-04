@@ -21,6 +21,9 @@
 #include "cb_http.h"
 
 
+/** @brief name of the param element for the packet counter */
+extern const char TRANSPORT_pktIdx[];
+
 /** @brief Calibration data layout within the EEPROM device. */
 extern rp_calib_params_t    g_rp_main_calib_params;
 
@@ -32,13 +35,17 @@ extern rp_app_params_t*     g_rp_cb_in_params;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
 extern pthread_mutex_t      g_rp_cb_in_params_mutex;
 
-/** @brief CallBack copy of params to inform the worker */
-extern rp_app_params_t*     g_rp_cb_out_params;
-/** @brief Holds mutex to access on parameters from the worker thread to any other context */
-extern pthread_mutex_t      g_rp_cb_out_params_mutex;
+/** @brief Current copy of params of the worker thread */
+extern rb_app_params_t*     g_rb_info_worker_params;
+/** @brief Holds mutex to access parameters from the worker thread to any other context */
+extern pthread_mutex_t      g_rb_info_worker_params_mutex;
 
 /** @brief params initialized */
 extern int                  g_params_init_done;
+
+/** @brief Holds last received transport frame index number and flag 0x80 for processing data */
+extern unsigned char        g_transport_pktIdx;
+
 
 
 /*----------------------------------------------------------------------------*/
@@ -102,76 +109,90 @@ int rp_app_exit(void)
 /*----------------------------------------------------------------------------*/
 int rp_set_params(rp_app_params_t* p, int len)
 {
-    //int fpga_update = 0;
+    rp_app_params_t* p_copy = NULL;
 
     fprintf(stderr, "!!! rp_set_params: BEGIN\n");
-    //TRACE("%s()\n", __FUNCTION__);
 
     if (!p || (len < 0)) {
         fprintf(stderr, "ERROR rp_set_params - non-valid parameter\n");
         return -1;
-    }
 
-    if (!len) {                                                                                         // short-cut
+    } else if (!len) {                                                                                  // short-cut
         return 0;
     }
 
-    /* create a local copy to release CallBack caller */
+    /* create a local copy to release the caller */
     pthread_mutex_lock(&g_rp_cb_in_params_mutex);
-    fprintf(stderr, "INFO rp_set_params: g_rp_cb_in_params - freeing (1) ...\n");
-    rp_free_params(&g_rp_cb_in_params);
-    fprintf(stderr, "INFO rp_set_params: g_rp_cb_in_params - rp_copy_params(&g_rp_cb_in_params, p, ) ...\n");
-    rp_copy_params(&g_rp_cb_in_params, p, len, !g_params_init_done);                                    // piping to the worker thread
+    do {
+        p_copy = g_rp_cb_in_params;
+        if (!p_copy) {
+            fprintf(stderr, "INFO rp_set_params: g_rp_cb_in_params - rp_copy_params(&g_rp_cb_in_params, p, ) ...\n");
+            rp_copy_params(&g_rp_cb_in_params, p, len, !g_params_init_done);                            // piping to the worker thread
+            break;
+
+        } else {
+            pthread_mutex_unlock(&g_rp_cb_in_params_mutex);
+            /* wait for the worker to process previous job */
+            usleep(10000);
+            pthread_mutex_lock(&g_rp_cb_in_params_mutex);
+        }
+    } while (1);
     pthread_mutex_unlock(&g_rp_cb_in_params_mutex);
 
+    /* set current pktIdx */
+    int idx = rp_find_parms_index(p, TRANSPORT_pktIdx);
+    g_transport_pktIdx = (int) (p[idx].value) | 0x80;                                                   // 0x80 flag: processing changed data
+
+    fprintf(stderr, "!!! rp_set_params: END - pktIdx = %s = %lf\n", p[0].name, p[0].value);
 #if 0
     rp_free_params(&p);                                                                                 // do NOT free this object!
 #endif
-
-    fprintf(stderr, "!!! rp_set_params: END - pktIdx = %s = %lf\n", p[0].name, p[0].value);
     return 0;
 }
 
 /*----------------------------------------------------------------------------*/
 int rp_get_params(rp_app_params_t** p)
 {
+    rp_app_params_t* p_copy = NULL;
     int count = 0;
 
     fprintf(stderr, "??? rp_get_params: BEGIN\n");
-    if (!p) {
-        fprintf(stderr, "ERROR rp_get_params: no valid p argument. Null pointer.\n");
-        return -1;
-    } else if (*p) {
-        fprintf(stderr, "WARNING rp_get_params: no valid p argument. Destination already in use.\n");
-        *p = NULL;
-    }
 
-    //fprintf(stderr, "INFO rp_get_params - before mutex out_param NULLing\n");
-    pthread_mutex_lock(&g_rp_cb_out_params_mutex);
-#if 0
-    rp_free_params(&g_rp_cb_out_params);                                                                // do NOT free this object! - do overwrite instead!
-#else
-    g_rp_cb_out_params = NULL;
-#endif
-    pthread_mutex_unlock(&g_rp_cb_out_params_mutex);
-    //fprintf(stderr, "INFO rp_get_params - after  mutex out_param NULLing\n");
+    /* wait until the worker has processed the input data */
+    fprintf(stderr, "?.. rp_get_params: waiting for worker has processed the input data - waiting ...\n");
+    do {
+        if (!(g_transport_pktIdx & 0x80)) {
+            break;
 
-    while (!(*p)) {
-        usleep(100000);  // delay the busy loop
+        } else {
+            /* wait for the worker to process previous job */
+            //pthread_yield();
+            usleep(1000);
+        }
+    } while (1);
+    fprintf(stderr, "?.. rp_get_params: waiting for worker has processed data - done.\n");
 
-        //fprintf(stderr, "INFO rp_get_params - before mutex out_param getting\n");
-        pthread_mutex_lock(&g_rp_cb_out_params_mutex);
-        *p = g_rp_cb_out_params;
-        pthread_mutex_unlock(&g_rp_cb_out_params_mutex);
-        //fprintf(stderr, "INFO rp_get_params - after  mutex out_param getting\n");
-    }
+    fprintf(stderr, "?.. rp_get_params: waiting for worker has exported the current params data - waiting ...\n");
+    pthread_mutex_lock(&g_rb_info_worker_params_mutex);
+    do {
+        if (g_rb_info_worker_params) {
+            /* get the memory - free() is called by the caller */
+            count = rp_copy_params_rb2rp(&p_copy, g_rb_info_worker_params);
+            break;
 
-    int i = 0;
-    while ((*p)[i++].name) {
-        count++;
-        fprintf(stderr, "?.. rp_get_params - out name = %s\n", (*p)[i - 1].name);
-    }
-    fprintf(stderr, "?.> rp_get_params - having list with count = %d\n", count);
+        } else {
+            pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
+            /* wait for the worker to export its current params data */
+            //pthread_yield();
+            usleep(1000);
+            pthread_mutex_lock(&g_rb_info_worker_params_mutex);
+        }
+    } while (1);
+    pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
+    fprintf(stderr, "?.. rp_get_params: waiting for worker has exported the current params data - done.\n");
+
+    fprintf(stderr, "?-> rp_get_params - having list with count = %d\n", count);
+    *p = p_copy;
 
     fprintf(stderr, "??? rp_get_params: END\n");
     return count;

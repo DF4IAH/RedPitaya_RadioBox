@@ -41,11 +41,6 @@ extern rp_app_params_t*         g_rp_cb_in_params;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
 extern pthread_mutex_t          g_rp_cb_in_params_mutex;
 
-/** @brief CallBack copy of params from the worker when requested */
-extern rp_app_params_t*         g_rp_cb_out_params;
-/** @brief Holds mutex to access parameters from the worker thread to any other context */
-extern pthread_mutex_t          g_rp_cb_out_params_mutex;
-
 /** @brief Current copy of params of the worker thread */
 extern rb_app_params_t*         g_rb_info_worker_params;
 /** @brief Holds mutex to access parameters from the worker thread to any other context */
@@ -59,6 +54,9 @@ static float**                  s_worker_traces_tmp;  /* used for calculation, o
 
 /** @brief params initialized */
 extern int                      g_params_init_done;  /* @see main.c */
+
+/** @brief Holds last received transport frame index number and flag 0x80 for processing data */
+extern unsigned char            g_transport_pktIdx;
 
 
 /*----------------------------------------------------------------------------------*/
@@ -158,12 +156,7 @@ void* worker_thread(void* args)
         l_state = s_worker_ctrl_state;
         pthread_mutex_unlock(&s_worker_ctrl_mutex);
 
-        fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (3) ...\n");
-        rb_free_params(&l_next_params);
-
         pthread_mutex_lock(&g_rp_cb_in_params_mutex);
-        fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (1) ...\n");
-        rb_free_params(&l_cb_in_copy_params);
         int l_params_init_done = g_params_init_done;
         if (!l_params_init_done) {
             /* copy default params in worker_params to cb_in_copy_params, also - the FPGA is going to be configured by these entries */
@@ -177,7 +170,7 @@ void* worker_thread(void* args)
             /* check if new parameters are available */
             fprintf(stderr, "INFO worker_thread: g_rp_cb_in_params - new data, copying ...\n");
             rp_copy_params_rp2rb(&l_cb_in_copy_params, g_rp_cb_in_params);
-#if 0
+#if 1
             fprintf(stderr, "INFO worker_thread: g_rp_cb_in_params - freeing (2) ...\n");
             rp_free_params(&g_rp_cb_in_params);
 #else
@@ -185,8 +178,9 @@ void* worker_thread(void* args)
             g_rp_cb_in_params = NULL;
 #endif
 
-            /* take FSM out of idle l_state */
+            /* take FSM out of idle */
             l_do_normal_state = 1;
+
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - printing ...\n");
             print_rb_params(l_cb_in_copy_params);
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - ... done\n");
@@ -199,35 +193,20 @@ void* worker_thread(void* args)
 
         /* when new data is seen, purge old revisions at the interfaces */
         if (l_cb_in_copy_params) {
-            fprintf(stderr, "DEBUG worker_thread: before print_rb_params(l_next_params)\n");
-            print_rb_params(l_next_params);
-
             /* update modified entries */
             rb_copy_params(&l_next_params, l_cb_in_copy_params, -1, 0);  // modify l_next_params data
 
-            /* drop outdated data */
-            pthread_mutex_lock(&g_rp_cb_out_params_mutex);
-#if 0
-            fprintf(stderr, "INFO worker_thread: g_rp_cb_out_params - freeing (4) ...\n");
-            rp_free_params(&g_rp_cb_out_params);
-#else
-            fprintf(stderr, "INFO worker_thread: g_rp_cb_out_params - NULLing (4) ...\n");
-            g_rp_cb_out_params = NULL;
-#endif
-            pthread_mutex_unlock(&g_rp_cb_out_params_mutex);
+            fprintf(stderr, "DEBUG worker_thread: before print_rb_params(l_next_params)\n");
+            print_rb_params(l_next_params);
 
+            /* drop outdated data */
             pthread_mutex_lock(&g_rb_info_worker_params_mutex);
-            fprintf(stderr, "INFO worker_thread: g_rb_info_worker_params - freeing (5) ...\n");
-            rb_free_params(&g_rb_info_worker_params);
+            {
+                fprintf(stderr, "INFO worker_thread: g_rb_info_worker_params - freeing (5) ...\n");
+                rb_free_params(&g_rb_info_worker_params);
+            }
             pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
         }
-
-        pthread_mutex_lock(&g_rp_cb_out_params_mutex);
-        if (!g_rp_cb_out_params) {  // the outer context removed the list, a current new one has to be created here
-            fprintf(stderr, "INFO worker_thread: UPDATE for rp_cb_out_params\n");
-            rp_copy_params_rb2rp(&g_rp_cb_out_params, l_next_params);
-        }
-        pthread_mutex_unlock(&g_rp_cb_out_params_mutex);
 
         pthread_mutex_lock(&g_rb_info_worker_params_mutex);
         if (!g_rb_info_worker_params) {  // the outer context removed the list, a current new one has to be created here
@@ -236,6 +215,9 @@ void* worker_thread(void* args)
             print_rb_params(g_rb_info_worker_params);
         }
         pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
+
+        //fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (3) ...\n");
+        rb_free_params(&l_next_params);
 
         if (l_do_normal_state) {
             pthread_mutex_lock(&s_worker_ctrl_mutex);
@@ -252,13 +234,9 @@ void* worker_thread(void* args)
 #if 0
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (9a) ...\n");
             rp_free_params(&g_rp_cb_in_params);
-            fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (9b) ...\n");
-            rp_free_params(&g_rp_cb_out_params);
 #else
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - NULLing (9b) ...\n");
             g_rp_cb_in_params = NULL;
-            fprintf(stderr, "INFO worker_thread: rp_cb_in_params - NULLing (9b) ...\n");
-            g_rp_cb_out_params = NULL;
 #endif
 
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (9c) ...\n");
@@ -299,7 +277,12 @@ void* worker_thread(void* args)
                 /* update worker_params */
                 fprintf(stderr, "INFO worker_thread: updating worker_params\n");
                 rb_copy_params(&s_worker_params, l_cb_in_copy_params, -1, 0);
+
+                //fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (1) ...\n");
+                rb_free_params(&l_cb_in_copy_params);
             }
+            /* drop working flag */
+            g_transport_pktIdx &= 0x7f;
 
             fprintf(stderr, "INFO worker_thread: mutex - before l_state change to idle\n");
             pthread_mutex_lock(&s_worker_ctrl_mutex);

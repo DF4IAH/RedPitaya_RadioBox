@@ -248,7 +248,7 @@ void rb2rp_params_value_copy(rp_app_params_t* dst_line_se, rp_app_params_t* dst_
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
  * @param[in]   len               The count of parameters in the src vector.
  * @param[in]   do_copy_all_attr  Do a fully copy of all attributes, not just the name, value and fpga_update entries.
- * @retval      0                 Successful operation
+ * @retval      count             Successful operation: count of entries in the vector.
  * @retval      -1                Failure, error message is output on standard error
  */
 int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr);
@@ -272,7 +272,7 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
  * @param[in]   len               The count of parameters in the src vector.
  * @param[in]   do_copy_all_attr  Do a fully copy of all attributes, not just the name, value and fpga_update entries.
- * @retval      0                 Successful operation
+ * @retval      count             Successful operation: count of entries in the vector.
  * @retval      -1                Failure, error message is output on standard error
  */
 int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, int do_copy_all_attr);
@@ -284,7 +284,7 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
  *
  * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
- * @retval      0                 Successful operation
+ * @retval      count             Successful operation: count of entries in the vector.
  * @retval      -1                Failure, argument dst not valid
  * @retval      -2                Failure, argument src not valid
  * @retval      -3                Failure, out of memory
@@ -298,7 +298,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[]);
  *
  * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
- * @retval      0                 Successful operation
+ * @retval      count             Successful operation: count of entries in the vector.
  * @retval      -1                Failure, argument dst not valid
  * @retval      -2                Failure, argument src not valid
  * @retval      -3                Failure, out of memory

@@ -41,8 +41,8 @@
 /** @brief calibration data layout within the EEPROM device */
 rp_calib_params_t               g_rp_main_calib_params;
 
-/** @brief Holds last received transport frame index number */
-int                             g_transport_pktIdx = 0;
+/** @brief Holds last received transport frame index number and flag 0x80 for processing data */
+unsigned char                   g_transport_pktIdx = 0;
 
 /** @brief HouseKeeping memory file descriptor used to mmap() the FPGA space */
 int                             g_fpga_hk_mem_fd = -1;
@@ -135,11 +135,6 @@ rp_app_params_t*                g_rp_cb_in_params = NULL;
 /** @brief Holds mutex to access on parameters from outside to the worker thread */
 pthread_mutex_t                 g_rp_cb_in_params_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-/** @brief CallBack copy of params from the worker when requested */
-rp_app_params_t*                g_rp_cb_out_params = NULL;
-/** @brief Holds mutex to access on parameters from the worker thread to any other context */
-pthread_mutex_t                 g_rp_cb_out_params_mutex = PTHREAD_MUTEX_INITIALIZER;
-
 /** @brief Current copy of params of the worker thread */
 rb_app_params_t*                g_rb_info_worker_params = NULL;
 /** @brief Holds mutex to access parameters from the worker thread to any other context */
@@ -150,6 +145,7 @@ pthread_mutex_t                 g_rb_info_worker_params_mutex = PTHREAD_MUTEX_IN
 int                             g_params_init_done = 0;  /* @see worker.c */
 
 
+/** @brief name of the param element for the packet counter */
 const char TRANSPORT_pktIdx[]      = "pktIdx";
 
 const int  IEEE754_DOUBLE_EXP_BIAS = 1023;
@@ -386,8 +382,7 @@ void rb2rp_params_value_copy(rp_app_params_t* dst_line_se, rp_app_params_t* dst_
 int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, int do_copy_all_attr)
 {
     const rp_app_params_t* s = src;
-    int l_num_params;
-    int i, j;
+    int l_num_params = 0;
 
     /* check arguments */
     if (!s || !dst) {
@@ -400,8 +395,9 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
     if (p_dst) {
         //fprintf(stderr, "INFO rp_copy_params - dst exists - updating into dst vector.\n");
         /* destination buffer exists */
-        i = 0;
-        while (s[i].name) {
+        int i;
+        for (i = 0; s[i].name; i++) {
+            l_num_params++;
             //fprintf(stderr, "INFO rp_copy_params - processing name = %s\n", s[i].name);
             /* process each parameter entry of the list */
 
@@ -423,34 +419,31 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
 
             } else {
                 //fprintf(stderr, "INFO rp_copy_params - iterative searching ...\n");
-                j = 0;
-                while (p_dst[j].name) {  // scanning the complete list
+                int j;
+                for (j = 0; p_dst[j].name; j++) {  // scanning the complete list
                     if (j == i) {  // do a short-cut here
-                        j++;
                         continue;
                     }
 
                     if (!strcmp(p_dst[j].name, s[i].name)) {
                         p_dst[j].value = s[i].value;
                         if (s[i].fpga_update & 0x80) {
-                            p_dst[i].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
+                            p_dst[j].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
                         } else {
-                            p_dst[i].fpga_update &= ~0x80;  // or remove it when it is not set
+                            p_dst[j].fpga_update &= ~0x80;  // or remove it when it is not set
                         }
 
                         if (do_copy_all_attr) {  // if default parameters are taken, use all attributes
-                            p_dst[i].fpga_update    = s[i].fpga_update;  // copy FPGA update marker in case it is present
-                            p_dst[i].read_only      = s[i].read_only;
-                            p_dst[i].min_val        = s[i].min_val;
-                            p_dst[i].max_val        = s[i].max_val;
+                            p_dst[j].fpga_update    = s[i].fpga_update;  // copy FPGA update marker in case it is present
+                            p_dst[j].read_only      = s[i].read_only;
+                            p_dst[j].min_val        = s[i].min_val;
+                            p_dst[j].max_val        = s[i].max_val;
                         }
                         break;
                     }
-                    j++;
-                }  // while (p_new[j].name)
+                }  // for (; p_dst[j].name ;)
             }  // if () else
-            i++;
-        }  // while (src[i].name)
+        }  // for ()
 
     } else {
         /* destination buffer has to be allocated, create a new parameter list */
@@ -460,11 +453,7 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
 
         } else {
             /* retrieve the number of source parameters */
-            i = 0;
-            l_num_params = 0;
-            while (s[i++].name) {
-                l_num_params++;
-            }
+            for (l_num_params = 0; s[l_num_params].name; l_num_params++) { }
         }
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
@@ -477,8 +466,8 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
         memcpy(p_dst, s, (l_num_params + 1) * sizeof(rp_app_params_t));
 
         /* allocate memory and copy character strings for params names */
-        i = 0;
-        while (s[i].name) {
+        int i;
+        for (i = 0; s[i].name; i++) {
             int slen = strlen(s[i].name);
             p_dst[i].name = (char*) malloc(slen + 1);  // old pointer to name does not belong to us and has to be discarded
             if (!(p_dst[i].name)) {
@@ -487,8 +476,6 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
             }
             strncpy(p_dst[i].name, s[i].name, slen);
             p_dst[i].name[slen] = '\0';
-
-            i++;
         }
 
         /* mark last one as final entry */
@@ -497,14 +484,14 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
     }
     *dst = p_dst;
 
-    return 0;
+    return l_num_params;
 }
 
 /*----------------------------------------------------------------------------------*/
 int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, int do_copy_all_attr)
 {
     const rb_app_params_t* s = src;
-    int l_num_params;
+    int l_num_params = 0;
 
     /* check arguments */
     if (!dst) {
@@ -523,6 +510,7 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
         /* destination buffer exists */
         int i, j;
         for (i = 0, j = 0; s[i].name; i++) {
+            l_num_params++;
             fprintf(stderr, "INFO rb_copy_params - processing name = %s\n", s[i].name);
             /* process each parameter entry of the list */
 
@@ -553,10 +541,7 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
 
         } else {
             /* retrieve the number of source parameters */
-            int i, l_num_params;
-            for (i = 0, l_num_params = 0; s[i].name; i++) {
-                l_num_params++;
-            }
+            for (l_num_params = 0; s[l_num_params].name; l_num_params++) { }
         }
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
@@ -595,7 +580,7 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
     }
     *dst = p_dst;
 
-    return 0;
+    return l_num_params;
 }
 
 
@@ -651,10 +636,9 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
         for (i = 0, j = 0; src[i].name; i++) {
             const int slen = strlen(src[i].name);
 
-            /* limit transfer volume to a part of all param entries */
-            switch (g_transport_pktIdx) {
-            default:
-            case 0:
+            /* limit transfer volume to a part of all param entries, @see cb_http.crp_set_params() */
+            switch (g_transport_pktIdx & 0x7f) {
+            case 1:
                 if (!strcmp("osc1_qrg_f", src[i].name) ||
                     !strcmp("osc2_qrg_f", src[i].name) ||
                     !strcmp("osc1_amp_f", src[i].name) ||
@@ -665,7 +649,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                 }
                 break;
 
-            case 1:
+            case 2:
                 if (!strcmp("rb_run",        src[i].name) ||
                     !strcmp("osc1_modsrc_s", src[i].name) ||
                     !strcmp("osc1_modtyp_s", src[i].name)) {
@@ -680,7 +664,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                 }
                 break;
 
-            case 2:
+            case 3:
                 if (!strcmp("rb_run",        src[i].name) ||
                     !strcmp("osc1_modsrc_s", src[i].name) ||
                     !strcmp("osc1_modtyp_s", src[i].name)) {
@@ -693,6 +677,10 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                     fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (3b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 }
+                break;
+
+            default:
+                /* no limitation of output data */
                 break;
             }
 
@@ -758,7 +746,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
     }
     *dst = p_dst;
 
-    return 0;
+    return l_num_single_params + (l_num_quad_params << 2);
 }
 
 /*----------------------------------------------------------------------------------*/
@@ -812,9 +800,6 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
             }
 
             if (!strcmp(TRANSPORT_pktIdx, src[i].name)) {
-                /* set the global g_transport_pktIdx variable */
-                g_transport_pktIdx = (int) src[i].value;
-
                 l_num_single_params--;
                 fprintf(stderr, "INFO rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
                 continue;
@@ -949,7 +934,6 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                 fprintf(stderr, "INFO rp_copy_params_rp2rb - SINGLE - name=%s\n", src[i].name);
 
                 if (!strcmp(TRANSPORT_pktIdx, src[i].name)) {
-                    g_transport_pktIdx = (int) (src[i].value);
                     l_num_single_params--;
                     fprintf(stderr, "INFO rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
@@ -981,7 +965,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
 
     *dst = p_dst;
 
-    return 0;
+    return l_num_single_params + l_num_quad_params;
 }
 
 
@@ -994,7 +978,7 @@ int print_rb_params(rb_app_params_t* params)
 
     int i;
     for (i = 0; params[i].name; i++) {
-        fprintf(stderr, "DEBUG print_rb_params: params[%d].name = %s - .value = %lf\n", i, params[i].name, params[i].value);
+        fprintf(stderr, "DEBUG print_rb_params: params[%d].name = %s - value = %lf\n", i, params[i].name, params[i].value);
     }
 
     return 0;

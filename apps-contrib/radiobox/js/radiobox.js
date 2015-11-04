@@ -106,8 +106,8 @@
     // init the RB.params.orig parameter list
     RB.params.orig = $.extend(true, {}, RB.params.init);
 
-    var pktIdx = 0;
-    while (pktIdx < 3) {
+    var pktIdx = 1;
+    while (pktIdx <= 3) {
       $.post(
         RB.config.post_url,
         JSON.stringify({ datasets: { params: cast_params2transport(RB.params.orig, pktIdx) } })
@@ -372,8 +372,8 @@
 
     RB.state.sending = true;
 
-    var pktIdx = 0;
-    while (pktIdx < 3) {
+    var pktIdx = 1;
+    while (pktIdx <= 3) {
       //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
       $.ajax({
         type: 'POST',
@@ -870,8 +870,7 @@ function cast_params2transport(params, pktIdx)
   transport['pktIdx']  = pktIdx;
 
   switch (pktIdx) {
-  default:
-  case 0:
+  case 1:
     if (params['rb_run'] !== undefined) {
       transport['rb_run'] = params['rb_run'];
     }
@@ -885,7 +884,7 @@ function cast_params2transport(params, pktIdx)
     }
     break;
 
-  case 1:
+  case 2:
     if (params['osc1_qrg_f'] !== undefined) {
       var quad = cast_1xdouble_to_4xfloat(params['osc1_qrg_f']);
       transport['SE_osc1_qrg_f'] = quad.se;
@@ -903,7 +902,7 @@ function cast_params2transport(params, pktIdx)
     }
     break;
 
-  case 2:
+  case 3:
     if (params['osc1_amp_f'] !== undefined) {
       var quad = cast_1xdouble_to_4xfloat(params['osc1_amp_f']);
       transport['SE_osc1_amp_f'] = quad.se;
@@ -919,6 +918,10 @@ function cast_params2transport(params, pktIdx)
       transport['MI_osc2_mag_f'] = quad.mi;
       transport['LO_osc2_mag_f'] = quad.lo;
     }
+    break;
+
+  default:
+    // no limitation of output data
     break;
   }
 
