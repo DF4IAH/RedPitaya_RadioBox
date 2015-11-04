@@ -40,7 +40,7 @@ int rp_app_exit(void);
  * @retval       0    Success.
  * @retval       -1   Failed due to bad parameter.
  */
-int rp_set_params(const rp_app_params_t* p, int len);
+int rp_set_params(rp_app_params_t* p, int len);
 
 /** @brief After POSTing from the front-end the web-server does a request for current parameters and
  *  calls this function. By doing that a current parameter list is returned by p.

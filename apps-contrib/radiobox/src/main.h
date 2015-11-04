@@ -128,22 +128,24 @@ enum rb_modtyp_enum_t {
  *
  * @param[in]   f_se     Single precision data, sign/exponent part.
  * @param[in]   f_hi     Single precision data, MSB part.
+ * @param[in]   f_mi     Single precision data, the middle part.
  * @param[in]   f_lo     Single precision data, LSB part.
  * @retval      double   Double precision data.
  */
-double cast_3xbf_to_1xdouble(float f_se, float f_hi, float f_lo);
+double cast_4xbf_to_1xdouble(float f_se, float f_hi, float f_mi, float f_lo);
 
 /**
  * @brief Converts from 1x double data to 2x float data by re-interpreting the data structure
  *
  * @param[inout] f_se    Pointer to output float variable for the sign/exponent part.
  * @param[inout] f_hi    Pointer to output float variable for the MSB part.
+ * @param[inout] f_mi    Pointer to outpus float variable for the middle part.
  * @param[inout] f_lo    Pointer to output float variable for the LSB part.
  * @param[in]    d       Double precision data to be re-interpreted.
  * @retval       0       Success.
  * @retval       -1      Failed due to argument failure.
  */
-int cast_1xdouble_to_3xbf(float* f_se, float* f_hi, float* f_lo, double d);
+int cast_1xdouble_to_4xbf(float* f_se, float* f_hi, float* f_mi, float* f_lo, double d);
 
 
 /**
@@ -210,19 +212,21 @@ int rb_find_parms_index(const rb_app_params_t* src, const char* name);
  * @param[inout] dst_line     RadioBox high definition parameters vector.
  * @param[in]    src_line_se  RedPitaya standard parameters vector for data interchange, sign/exponent part.
  * @param[in]    src_line_hi  RedPitaya standard parameters vector for data interchange, MSB part.
+ * @param[in]    src_line_mi  RedPitaya standard parameters vector for data interchange, the middle part.
  * @param[in]    src_line_lo  RedPitaya standard parameters vector for data interchange, LSB part.
  */
-void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_se, const rp_app_params_t src_line_hi, const rp_app_params_t src_line_lo);
+void rp2rb_params_value_copy(rb_app_params_t* dst_line, const rp_app_params_t src_line_se, const rp_app_params_t src_line_hi, const rp_app_params_t src_line_mi, const rp_app_params_t src_line_lo);
 
 /**
  * @brief Copies RadioBox high definition parameters vector to RedPitaya standard parameters vector
  *
  * @param[inout] dst_line_se  RedPitaya standard parameters vector for data interchange, sign/exponent part.
  * @param[inout] dst_line_hi  RedPitaya standard parameters vector for data interchange, MSB part.
+ * @param[inout] dst_line_mi  RedPitaya standard parameters vector for data interchange, the middle part.
  * @param[inout] dst_line_lo  RedPitaya standard parameters vector for data interchange, LSB part.
  * @param[in]    src_line     RadioBox high definition parameters vector.
  */
-void rb2rp_params_value_copy(rp_app_params_t* dst_line_se, rp_app_params_t* dst_line_hi, rp_app_params_t* dst_line_lo, const rb_app_params_t src_line);
+void rb2rp_params_value_copy(rp_app_params_t* dst_line_se, rp_app_params_t* dst_line_hi, rp_app_params_t* dst_line_mi, rp_app_params_t* dst_line_lo, const rb_app_params_t src_line);
 
 
 /**
@@ -280,11 +284,12 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
  *
  * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
- * @param[in]   len               The count of parameters in the src vector.
  * @retval      0                 Successful operation
- * @retval      -1                Failure, error message is output on standard error
+ * @retval      -1                Failure, argument dst not valid
+ * @retval      -2                Failure, argument src not valid
+ * @retval      -3                Failure, out of memory
  */
-int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[], int len);
+int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[]);
 
 /**
  * @brief Copies a Red Pitaya parameters vector to the RadioBox high definition parameters vector
@@ -294,7 +299,9 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[], int
  * @param[out]  dst               Destination application parameters, in case of ptr to NULL a new parameter list is generated.
  * @param[in]   src               Source application parameters. In case of a NULL point the default parameters are take instead.
  * @retval      0                 Successful operation
- * @retval      -1                Failure, error message is output on standard error
+ * @retval      -1                Failure, argument dst not valid
+ * @retval      -2                Failure, argument src not valid
+ * @retval      -3                Failure, out of memory
  */
 int rp_copy_params_rp2rb(rb_app_params_t** dst, const rp_app_params_t src[]);
 

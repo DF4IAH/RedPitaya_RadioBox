@@ -29,12 +29,12 @@
 
 
 /** @brief calibration data layout within the EEPROM device */
-extern rp_calib_params_t    rp_main_calib_params;
+extern rp_calib_params_t    g_rp_main_calib_params;
 
 /** @brief CallBack copy of params from the worker when requested */
-extern rb_app_params_t*     rb_info_worker_params;
+extern rb_app_params_t*     g_rb_info_worker_params;
 /** @brief Holds mutex to access on parameters from the worker thread to any other context */
-extern pthread_mutex_t      rb_info_worker_params_mutex;
+extern pthread_mutex_t      g_rb_info_worker_params_mutex;
 
 /** @brief The RadioBox memory file descriptor used to mmap() the FPGA space. */
 extern int                  g_fpga_rb_mem_fd;
@@ -145,18 +145,18 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         /* Get current parameters from the worker */
         {
             //fprintf(stderr, "INFO - fpga_rb_update_all_params: waiting for cb_out_params ...\n");
-            pthread_mutex_lock(&rb_info_worker_params_mutex);
-            if (rb_info_worker_params) {
+            pthread_mutex_lock(&g_rb_info_worker_params_mutex);
+            if (g_rb_info_worker_params) {
                 //print_rb_params(rb_info_worker_params);
-                loc_rb_run   = (int) rb_info_worker_params[RB_RUN].value;
-                loc_modsrc   = (int) rb_info_worker_params[RB_OSC1_MODSRC].value;
-                loc_modtyp   = (int) rb_info_worker_params[RB_OSC1_MODTYP].value;
-                loc_osc1_qrg = rb_info_worker_params[RB_OSC1_QRG].value;
-                loc_osc2_qrg = rb_info_worker_params[RB_OSC2_QRG].value;
-                loc_osc1_amp = rb_info_worker_params[RB_OSC1_AMP].value;
-                loc_osc2_mag = rb_info_worker_params[RB_OSC2_MAG].value;
+                loc_rb_run   = (int) g_rb_info_worker_params[RB_RUN].value;
+                loc_modsrc   = (int) g_rb_info_worker_params[RB_OSC1_MODSRC].value;
+                loc_modtyp   = (int) g_rb_info_worker_params[RB_OSC1_MODTYP].value;
+                loc_osc1_qrg = g_rb_info_worker_params[RB_OSC1_QRG].value;
+                loc_osc2_qrg = g_rb_info_worker_params[RB_OSC2_QRG].value;
+                loc_osc1_amp = g_rb_info_worker_params[RB_OSC1_AMP].value;
+                loc_osc2_mag = g_rb_info_worker_params[RB_OSC2_MAG].value;
             }
-            pthread_mutex_unlock(&rb_info_worker_params_mutex);
+            pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
             //fprintf(stderr, "INFO - fpga_rb_update_all_params: ... done\n");
         }
 
@@ -273,7 +273,7 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, doubl
 /*----------------------------------------------------------------------------*/
 void fpga_rb_set_osc1_mod_none_am_pm(double osc1_qrg)
 {
-    double qrg1 = 0.5 + (1ULL << 48) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+    double qrg1 = 0.5 + (1ULL << 48) * (osc1_qrg / g_rp_main_calib_params.base_osc125mhz_realhz);
 
     //fprintf(stderr, "INFO - fpga_rb_set_osc1_mod_none_am_pm: qrg1=%lf (INC steps)  <--  in(osc1_qrg=%lf)\n",
     //        qrg1, osc1_qrg);
@@ -301,7 +301,7 @@ void fpga_rb_set_osc1_mixer_mod_none_fm_pm(double osc1_amp)
 /*----------------------------------------------------------------------------*/
 void fpga_rb_set_osc2_mod_am_fm_pm(double osc2_qrg)
 {
-    double qrg2 = 0.5 + ((double) (1ULL << 48)) * (osc2_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+    double qrg2 = 0.5 + ((double) (1ULL << 48)) * (osc2_qrg / g_rp_main_calib_params.base_osc125mhz_realhz);
 
     //fprintf(stderr, "INFO - fpga_rb_set_osc2_mod_am_fm_pm: in(qrg2=%lf)\n", qrg2);
 
@@ -327,8 +327,8 @@ void fpga_rb_set_osc2_mixer_mod_am(double osc1_amp, double osc2_mag)
 /*----------------------------------------------------------------------------*/
 void fpga_rb_set_osc2_mixer_mod_fm(double osc1_qrg, double osc2_mag)
 {
-    double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / rp_main_calib_params.base_osc125mhz_realhz);
-    double ofs2  = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / rp_main_calib_params.base_osc125mhz_realhz);
+    double gain2 = 0.5 + ((double) (1ULL << 32)) * (osc2_mag / g_rp_main_calib_params.base_osc125mhz_realhz);
+    double ofs2  = 0.5 + ((double) (1ULL << 48)) * (osc1_qrg / g_rp_main_calib_params.base_osc125mhz_realhz);
 
     //fprintf(stderr, "INFO - fpga_rb_set_osc2_mixer_mod_fm: in(gain2=%lf, ofs2=%lf)\n", gain2, ofs2);
 

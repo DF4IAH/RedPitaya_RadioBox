@@ -103,19 +103,26 @@
 
   // Initial Ajax Connection set-up
   RB.ac = function() {
-    $.post(
-      RB.config.post_url,
-//    JSON.stringify({ datasets: { params: RB.params.init } })
-      JSON.stringify({ datasets: { params: cast_params2transport(RB.params.init)  } })
-    )
-    .done(function(dresult) {
-      RB.state.socket_opened = true;
-      RB.state.app_started = true;
-      RB.parsePacket(dresult);
-    })
-    .fail(function() {
-      showModalError('Can not initialize the application with the default parameters.', false, true);
-    });
+    // init the RB.params.orig parameter list
+    RB.params.orig = $.extend(true, {}, RB.params.init);
+
+    var pktIdx = 0;
+    while (pktIdx < 3) {
+      $.post(
+        RB.config.post_url,
+        JSON.stringify({ datasets: { params: cast_params2transport(RB.params.orig, pktIdx) } })
+      )
+      .done(function(dresult) {
+        RB.state.socket_opened = true;
+        RB.state.app_started = true;
+        RB.parsePacket(dresult);
+      })
+      .fail(function() {
+        showModalError('Can not initialize the application with the default parameters.', false, true);
+      });
+
+      pktIdx++;
+    }  // while()
   }
 
   /*
@@ -203,33 +210,31 @@
     var send_all_params = Object.keys(new_params).indexOf('send_all_params') != -1;
 
     for (var param_name in new_params) {
-      console.log("CHECK RB.processParameters: param_name='" + param_name + "', content_old='" + old_params[param_name] + "', content_new='" + new_params[param_name] + "'");
-
       // Save new parameter value
       RB.params.orig[param_name] = new_params[param_name];
       var intVal = parseInt(RB.params.orig[param_name]);
+      var dblVal = parseFloat(RB.params.orig[param_name]);
+      dblVal = Math.floor(dblVal * 1e+7 + 0.5) / 1e+7;
+
+      console.log("CHECK RB.processParameters: param_name='" + param_name + "', content_old='" + old_params[param_name] + "', content_new='" + new_params[param_name] + "', dblVal=" + dblVal);
 
       if (param_name == 'rb_run') {
-          console.log("DEBUG rb_run");
           if (intVal) {  // enabling RB
-              console.log("SETTING RB.processParameters: RB_RUN ON, RB_STOP off");
               $('#RB_STOP').hide();
               $('#RB_RUN').show();
               $('#RB_RUN').css('display', 'block');
 
           } else {  // disabling RB
-              console.log("SETTING RB.processParameters: RB_RUN off, RB_STOP ON");
               $('#RB_RUN').hide();
               $('#RB_STOP').show();
               $('#RB_STOP').css('display', 'block');
           }
       }
       else if (param_name == 'osc1_qrg_f') {
-        console.log("DEBUG osc1_qrg_f");
-        $('#'+param_name).val(RB.params.orig[param_name]);
+        $('#'+param_name).val(dblVal);
       }
       else if (param_name == 'osc1_amp_f') {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+        $('#'+param_name).val(dblVal);
       }
       else if (param_name == 'osc1_modsrc_s') {
         $('#'+param_name).val(intVal);
@@ -253,10 +258,10 @@
         checkKeyDoEnable(param_name, intVal);
       }
       else if (param_name == 'osc2_qrg_f') {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+        $('#'+param_name).val(dblVal);
       }
       else if (param_name == 'osc2_mag_f') {
-        $('#'+param_name).val(RB.params.orig[param_name]);
+        $('#'+param_name).val(dblVal);
       }
 
       /*
@@ -367,45 +372,49 @@
 
     RB.state.sending = true;
 
-    //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
-    $.ajax({
-      type: 'POST',
-      url: RB.config.post_url,
-      data: JSON.stringify({ app: { id: 'radiobox' }, datasets: { params: cast_params2transport(RB.params.local) } }),
-      timeout: RB.config.request_timeout,
-      cache: false
-    })
-    .done(function(dresult) {
-      // OK: Load the params received as POST result
-      if (dresult.datasets !== undefined) {
-        RB.parsePacket(dresult);
-        RB.params.local = {};
-      }
-      else if(dresult.status == 'ERROR') {
-           RB.state.socket_opened = false;
-        showModalError((dresult.reason ? dresult.reason : 'Failure returned when connecting the web-server - can not start the application (ERR1).'), false, true, true);
-        RB.state.send_que = false;
-      }
-      else {
+    var pktIdx = 0;
+    while (pktIdx < 3) {
+      //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
+      $.ajax({
+        type: 'POST',
+        url: RB.config.post_url,
+        data: JSON.stringify({ app: { id: 'radiobox' }, datasets: { params: cast_params2transport(RB.params.local, pktIdx) } }),
+        timeout: RB.config.request_timeout,
+        cache: false
+      })
+      .done(function(dresult) {
+        // OK: Load the params received as POST result
+        if (dresult.datasets !== undefined) {
+          RB.parsePacket(dresult);
+        }
+        else if(dresult.status == 'ERROR') {
+          RB.state.socket_opened = false;
+          showModalError((dresult.reason ? dresult.reason : 'Failure returned when connecting the web-server - can not start the application (ERR1).'), false, true, true);
+          RB.state.send_que = false;
+        }
+        else {
+          RB.state.socket_opened = false;
+          showModalError('Unknown connection state - can not start the application (ERR2).', false, true, true);
+        }
+      })
+      .fail(function() {
         RB.state.socket_opened = false;
-        showModalError('Unknown connection state - can not start the application (ERR2).', false, true, true);
-      }
-    })
-    .fail(function() {
-      RB.state.socket_opened = false;
-      showModalError('Can not connect the web-server (ERR3).', false, true, true);
-    })
-    .always(function() {
-      RB.state.sending = false;
-      RB.state.editing = false;
+        showModalError('Can not connect the web-server (ERR3).', false, true, true);
+      })
+      .always(function() {
+        RB.state.sending = false;
+        RB.state.editing = false;
 
-      if (RB.state.send_que) {
-        RB.state.send_que = false;
-        setTimeout(function(refresh_data) {
-          RB.sendParams(refresh_data);
-        }, 100);
-      }
-    });
+        if (RB.state.send_que) {
+          RB.state.send_que = false;
+          setTimeout(function(refresh_data) {
+            RB.sendParams(refresh_data);
+          }, 100);
+        }
+      });
+
+      pktIdx++;
+    }  // while ()
 
     return true;
   };
@@ -415,6 +424,7 @@
 
   // Exits from editing mode - create local parameters of changed values and send them away
   RB.exitEditing = function(noclose) {
+    console.log('INFO *** RB.exitEditing: RB.params.orig = ', RB.params.orig);
     for (var key in RB.params.orig) {
       var field = $('#' + key);
       var value = undefined;
@@ -424,9 +434,10 @@
       }
 
       else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
-        value = parseFloat(field.val());
-        if (!checkKeyIs_F(key)) {
-          value = parseInt(value);
+        if (checkKeyIs_F(key)) {
+          value = parseFloat(field.val());
+        } else {
+          value = parseInt(field.val());
         }
       }
 
@@ -437,7 +448,7 @@
       else if (field.is('input:radio')) {
         value = parseInt($('input[name="' + key + '"]:checked').val());
       }
-
+      console.log('INFO RB.exitEditing: ' + key + ' WANT to change from ' + RB.params.orig[key] + ' to ' + value);
 
       // Check for specific values and enables/disables controllers
       checkKeyDoEnable(key, value);
@@ -450,7 +461,7 @@
           $('#osc2_mag_f').val(0);
         }
 
-        //console.log(key + ' changed from ' + RB.params.orig[key] + ' to ' + new_value);
+        console.log('INFO RB.exitEditing: ' + key + ' CHANGED from ' + RB.params.orig[key] + ' to ' + new_value);
         RB.params.local[key] = new_value;
         //RB.params.local[key] = { value: new_value };
         // } else {
@@ -710,44 +721,61 @@ $( document ).ready(function() {
 */
 
 
-function cast_3xfloat_to_1xdouble(triple)
+function cast_4xfloat_to_1xdouble(quad)
 {
   var IEEE754_DOUBLE_EXP_BIAS = 1023;
   var IEEE754_DOUBLE_EXP_BITS = 11;
   var IEEE754_DOUBLE_MNT_BITS = 52;
-  var d = 0.0;
+  var RB_CELL_MNT_BITS        = 20;
 
-  if (triple.se || triple.hi || triple.lo) {
-  /* normalized data */
+  var d = 0.0;
+  var se_i = quad.se;
+  var hi_i = quad.hi;
+  var mi_i = quad.mi;
+  var lo_i = quad.lo;
+
+  if (quad.se || quad.hi || quad.mi || quad.lo) {
+    // avoid under-rounding to float
+//    quad.se = (int) (0.5 + quad.se);
+//    quad.hi = (int) (0.5 + quad.hi);
+//    quad.mi = (int) (0.5 + quad.mi);
+//    quad.lo = (int) (0.5 + quad.lo);
+
+    /* normalized data */
     var mant_idx;
     for (mant_idx = 0; mant_idx < IEEE754_DOUBLE_MNT_BITS; ++mant_idx) {
-      if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
-        if (triple.hi & 0x1) {
+      if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - RB_CELL_MNT_BITS)) {  // bits 51:32
+        if (quad.hi & 0x1) {
           d += 1.0;
         }
-        triple.hi >>= 1;
-      } else {
-        if (triple.lo & 0x1) {
+        quad.hi >>= 1;
+      } else if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - (RB_CELL_MNT_BITS << 1))) {  // bits 31:12
+        if (quad.mi & 0x1) {
           d += 1.0;
         }
-        triple.lo >>= 1;
+        quad.mi >>= 1;
+      } else {  // bits 11:0
+        if (quad.lo & 0x1) {
+          d += 1.0;
+        }
+        quad.lo >>= 1;
       }
       d /= 2.0;
     }
     d += 1.0;  // hidden '1' of IEEE mantissa
 
     // exponent shifter
-    var exp = triple.se & 0x7ff;
-    var sgn = triple.se >> (IEEE754_DOUBLE_EXP_BITS);
-    if (triple.se > IEEE754_DOUBLE_EXP_BIAS) {
-      while (triple.se > IEEE754_DOUBLE_EXP_BIAS) {
+    var exp = quad.se & 0x7ff;
+    var sgn = quad.se >> (IEEE754_DOUBLE_EXP_BITS);
+    if (quad.se > IEEE754_DOUBLE_EXP_BIAS) {
+      while (quad.se > IEEE754_DOUBLE_EXP_BIAS) {
         d *= 2.0;
-        triple.se -= 1;
+        quad.se -= 1;
       }
-    } else if (triple.se < IEEE754_DOUBLE_EXP_BIAS) {
-      while (triple.se < IEEE754_DOUBLE_EXP_BIAS) {
+    } else if (quad.se < IEEE754_DOUBLE_EXP_BIAS) {
+      while (quad.se < IEEE754_DOUBLE_EXP_BIAS) {
         d /= 2.0;
-        triple.se += 1;
+        quad.se += 1;
       }
     }
 
@@ -755,127 +783,146 @@ function cast_3xfloat_to_1xdouble(triple)
       d = -d;
     }
   }
-  //console.log('INFO cast_3xfloat_to_1xdouble: out(d=', d, ') <-- in(triple.se=', triple.se, ', triple.hi=', triple.hi, ', triple.lo=', triple.lo, ')\n');
 
+  console.log('INFO cast_4xfloat_to_1xdouble: out(d=', d, ') <-- in(quad.se=', se_i, ', quad.hi=', hi_i, ', quad.mi=', mi_i, ', quad.lo=', lo_i, ')\n');
   return d;
 }
 
-function cast_1xdouble_to_3xfloat(d)
+function cast_1xdouble_to_4xfloat(d)
 {
   var IEEE754_DOUBLE_EXP_BIAS = 1023;
   var IEEE754_DOUBLE_MNT_BITS = 52;
-  var triple = { se: 0, hi: 0, lo: 0 };
+  var RB_CELL_MNT_BITS        = 20;
 
-  //console.log('INFO cast_1xdouble_to_3xfloat (1): in(d=', d, ')\n');
+  var di = d;
+  var quad = { se: 0, hi: 0, mi: 0, lo: 0 };
+
+  //console.log('INFO cast_1xdouble_to_4xfloat (1): in(d=', d, ')\n');
 
   if (d == 0.0) {
     /* use unnormalized zero instead */
-    //console.log('INFO cast_1xdouble_to_3xfloat (9) (zero): out(se=', triple.se, ', hi=', triple.hi, ', lo=', triple.lo, ')\n');
-    return triple;
+    //console.log('INFO cast_1xdouble_to_4xfloat (9) (zero): out(se=', quad.se, ', hi=', quad.hi, ', mi=', quad.mi, ', lo=', quad.lo, ')\n');
+    return quad;
   }
 
   if (d < 0.0) {
     d = -d;
-    triple.se = (IEEE754_DOUBLE_EXP_BIAS + 1) << 1;  // that is the sign bit
+    quad.se = (IEEE754_DOUBLE_EXP_BIAS + 1) << 1;  // that is the sign bit
   }
 
   // determine the exponent
-  triple.se += IEEE754_DOUBLE_EXP_BIAS;
+  quad.se += IEEE754_DOUBLE_EXP_BIAS;
   if (d >= 2.0) {
     while (d >= 2.0) {
       d /= 2.0;
-      triple.se += 1;
+      quad.se += 1;
     }
 
   } else if (d < 1.0) {
     while (d < 1.0) {
       d *= 2.0;
-      triple.se -= 1;
+      quad.se -= 1;
     }
   }
 
   // hidden '1' of IEEE mantissa is discarded
   d -= 1.0;
-  //console.log('INFO cast_1xdouble_to_3xfloat (2): mantisssa w/o hidden 1  d=', d, ')\n');
+  //console.log('INFO cast_1xdouble_to_4xfloat (2): mantisssa w/o hidden 1  d=', d, ')\n');
 
   // scan the mantissa
   var mant_idx;
   for (mant_idx = IEEE754_DOUBLE_MNT_BITS - 1; mant_idx >= 0; --mant_idx) {
-    if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
-      triple.hi <<= 1;
+    if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - RB_CELL_MNT_BITS)) {  // bits 51:32
+      quad.hi <<= 1;
+    } else if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - (RB_CELL_MNT_BITS << 1))) {  // bits 31:12
+      quad.mi <<= 1;
     } else {
-      triple.lo <<= 1;
+      quad.lo <<= 1;
     }
 
     d *= 2.0;
     if (d >= 1.0) {
       d -= 1.0;
-      if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS >> 1)) {
-        triple.hi |= 1;
+      if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - RB_CELL_MNT_BITS)) {  // bits 51:32
+        quad.hi |= 1;
+      } else if (mant_idx >= (IEEE754_DOUBLE_MNT_BITS - (RB_CELL_MNT_BITS << 1))) {  // bits 31:12
+        quad.mi |= 1;
       } else {
-        triple.lo |= 1;
+        quad.lo |= 1;
       }
     }
   }
-  //console.log('INFO cast_1xdouble_to_3xfloat (9) (val): out(se=', triple.se, ', hi=', triple.hi, ', lo=', triple.lo, ')\n');
 
-  return triple;
+  // avoid under-rounding when float to int during transportation
+  //quad.se += 0.01;
+  //quad.hi += 0.01;
+  //quad.mi += 0.01;
+  //quad.lo += 0.01;
+
+  console.log('INFO cast_1xdouble_to_4xfloat: out(se=', quad.se, ', hi=', quad.hi, ', mi=', quad.mi, ', lo=', quad.lo, ') <-- in(d=', di, ')\n');
+  return quad;
 }
 
-function cast_params2transport(params)
+function cast_params2transport(params, pktIdx)
 {
   var transport = { };
 
-  if (params['rb_run'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['rb_run']);
-    transport['SE_rb_run'] = triple.se;
-    transport['HI_rb_run'] = triple.hi;
-    transport['LO_rb_run'] = triple.lo;
+  transport['pktIdx']  = pktIdx;
+
+  switch (pktIdx) {
+  default:
+  case 0:
+    if (params['rb_run'] !== undefined) {
+      transport['rb_run'] = params['rb_run'];
+    }
+
+    if (params['osc1_modsrc_s'] !== undefined) {
+      transport['osc1_modsrc_s'] = params['osc1_modsrc_s'];
+    }
+
+    if (params['osc1_modtyp_s'] !== undefined) {
+      transport['osc1_modtyp_s'] = params['osc1_modtyp_s'];
+    }
+    break;
+
+  case 1:
+    if (params['osc1_qrg_f'] !== undefined) {
+      var quad = cast_1xdouble_to_4xfloat(params['osc1_qrg_f']);
+      transport['SE_osc1_qrg_f'] = quad.se;
+      transport['HI_osc1_qrg_f'] = quad.hi;
+      transport['MI_osc1_qrg_f'] = quad.mi;
+      transport['LO_osc1_qrg_f'] = quad.lo;
+    }
+
+    if (params['osc2_qrg_f'] !== undefined) {
+      var quad = cast_1xdouble_to_4xfloat(params['osc2_qrg_f']);
+      transport['SE_osc2_qrg_f'] = quad.se;
+      transport['HI_osc2_qrg_f'] = quad.hi;
+      transport['MI_osc2_qrg_f'] = quad.mi;
+      transport['LO_osc2_qrg_f'] = quad.lo;
+    }
+    break;
+
+  case 2:
+    if (params['osc1_amp_f'] !== undefined) {
+      var quad = cast_1xdouble_to_4xfloat(params['osc1_amp_f']);
+      transport['SE_osc1_amp_f'] = quad.se;
+      transport['HI_osc1_amp_f'] = quad.hi;
+      transport['MI_osc1_amp_f'] = quad.mi;
+      transport['LO_osc1_amp_f'] = quad.lo;
+    }
+
+    if (params['osc2_mag_f'] !== undefined) {
+      var quad = cast_1xdouble_to_4xfloat(params['osc2_mag_f']);
+      transport['SE_osc2_mag_f'] = quad.se;
+      transport['HI_osc2_mag_f'] = quad.hi;
+      transport['MI_osc2_mag_f'] = quad.mi;
+      transport['LO_osc2_mag_f'] = quad.lo;
+    }
+    break;
   }
 
-  if (params['osc1_modsrc_s'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc1_modsrc_s']);
-    transport['SE_osc1_modsrc_s'] = triple.se;
-    transport['HI_osc1_modsrc_s'] = triple.hi;
-    transport['LO_osc1_modsrc_s'] = triple.lo;
-  }
-
-  if (params['osc1_modtyp_s'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc1_modtyp_s']);
-    transport['SE_osc1_modtyp_s'] = triple.se;
-    transport['HI_osc1_modtyp_s'] = triple.hi;
-    transport['LO_osc1_modtyp_s'] = triple.lo;
-  }
-
-  if (params['osc1_qrg_f'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc1_qrg_f']);
-    transport['SE_osc1_qrg_f'] = triple.se;
-    transport['HI_osc1_qrg_f'] = triple.hi;
-    transport['LO_osc1_qrg_f'] = triple.lo;
-  }
-
-  if (params['osc2_qrg_f'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc2_qrg_f']);
-    transport['SE_osc2_qrg_f'] = triple.se;
-    transport['HI_osc2_qrg_f'] = triple.hi;
-    transport['LO_osc2_qrg_f'] = triple.lo;
-  }
-
-  if (params['osc1_amp_f'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc1_amp_f']);
-    transport['SE_osc1_amp_f'] = triple.se;
-    transport['HI_osc1_amp_f'] = triple.hi;
-    transport['LO_osc1_amp_f'] = triple.lo;
-  }
-
-  if (params['osc2_mag_f'] !== undefined) {
-    var triple = cast_1xdouble_to_3xfloat(params['osc2_mag_f']);
-    transport['SE_osc2_mag_f'] = triple.se;
-    transport['HI_osc2_mag_f'] = triple.hi;
-    transport['LO_osc2_mag_f'] = triple.lo;
-  }
   console.log('INFO cast_params2transport: out(transport=', transport, ') <-- in(params=', params, ')\n');
-
   return transport;
 }
 
@@ -883,63 +930,55 @@ function cast_transport2params(transport)
 {
   var params = { };
 
-  if (transport['LO_rb_run'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_rb_run'];
-    triple.hi = transport['HI_rb_run'];
-    triple.lo = transport['LO_rb_run'];
-    params['rb_run'] = cast_3xfloat_to_1xdouble(triple);
+  if (transport['rb_run'] !== undefined) {
+    params['rb_run'] = transport['rb_run'];
   }
 
-  if (transport['LO_osc1_modsrc_s'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc1_modsrc_s'];
-    triple.hi = transport['HI_osc1_modsrc_s'];
-    triple.lo = transport['LO_osc1_modsrc_s'];
-    params['osc1_modsrc_s'] = cast_3xfloat_to_1xdouble(triple);
+  if (transport['osc1_modsrc_s'] !== undefined) {
+    params['osc1_modsrc_s'] = transport['osc1_modsrc_s'];
   }
 
-  if (transport['LO_osc1_modtyp_s'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc1_modtyp_s'];
-    triple.hi = transport['HI_osc1_modtyp_s'];
-    triple.lo = transport['LO_osc1_modtyp_s'];
-    params['osc1_modtyp_s'] = cast_3xfloat_to_1xdouble(triple);
+  if (transport['osc1_modtyp_s'] !== undefined) {
+    params['osc1_modtyp_s'] = transport['osc1_modtyp_s'];
   }
 
   if (transport['LO_osc1_qrg_f'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc1_qrg_f'];
-    triple.hi = transport['HI_osc1_qrg_f'];
-    triple.lo = transport['LO_osc1_qrg_f'];
-    params['osc1_qrg_f'] = cast_3xfloat_to_1xdouble(triple);
+    var quad = { };
+    quad.se = transport['SE_osc1_qrg_f'];
+    quad.hi = transport['HI_osc1_qrg_f'];
+    quad.mi = transport['MI_osc1_qrg_f'];
+    quad.lo = transport['LO_osc1_qrg_f'];
+    params['osc1_qrg_f'] = cast_4xfloat_to_1xdouble(quad);
   }
 
   if (transport['LO_osc2_qrg_f'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc2_qrg_f'];
-    triple.hi = transport['HI_osc2_qrg_f'];
-    triple.lo = transport['LO_osc2_qrg_f'];
-    params['osc2_qrg_f'] = cast_3xfloat_to_1xdouble(triple);
+    var quad = { };
+    quad.se = transport['SE_osc2_qrg_f'];
+    quad.hi = transport['HI_osc2_qrg_f'];
+    quad.mi = transport['MI_osc2_qrg_f'];
+    quad.lo = transport['LO_osc2_qrg_f'];
+    params['osc2_qrg_f'] = cast_4xfloat_to_1xdouble(quad);
   }
 
   if (transport['LO_osc1_amp_f'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc1_amp_f'];
-    triple.hi = transport['HI_osc1_amp_f'];
-    triple.lo = transport['LO_osc1_amp_f'];
-    params['osc1_amp_f'] = cast_3xfloat_to_1xdouble(triple);
+    var quad = { };
+    quad.se = transport['SE_osc1_amp_f'];
+    quad.hi = transport['HI_osc1_amp_f'];
+    quad.mi = transport['MI_osc1_amp_f'];
+    quad.lo = transport['LO_osc1_amp_f'];
+    params['osc1_amp_f'] = cast_4xfloat_to_1xdouble(quad);
   }
 
   if (transport['LO_osc2_mag_f'] !== undefined) {
-    var triple = { };
-    triple.se = transport['SE_osc2_mag_f'];
-    triple.hi = transport['HI_osc2_mag_f'];
-    triple.lo = transport['LO_osc2_mag_f'];
-    params['osc2_mag_f'] = cast_3xfloat_to_1xdouble(triple);
+    var quad = { };
+    quad.se = transport['SE_osc2_mag_f'];
+    quad.hi = transport['HI_osc2_mag_f'];
+    quad.mi = transport['MI_osc2_mag_f'];
+    quad.lo = transport['LO_osc2_mag_f'];
+    params['osc2_mag_f'] = cast_4xfloat_to_1xdouble(quad);
   }
-  console.log('INFO cast_transport2params: out(params=', params, ') <-- in(transport=', transport, ')\n');
 
+  console.log('INFO cast_transport2params: out(params=', params, ') <-- in(transport=', transport, ')\n');
   return params;
 }
 
