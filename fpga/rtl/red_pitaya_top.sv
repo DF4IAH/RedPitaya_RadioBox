@@ -69,6 +69,7 @@ module red_pitaya_top (
    inout            FIXED_IO_ps_srstb  ,
    inout            FIXED_IO_ddr_vrn   ,
    inout            FIXED_IO_ddr_vrp   ,
+
    // DDR
    inout  [15-1: 0] DDR_addr           ,
    inout  [ 3-1: 0] DDR_ba             ,
@@ -86,6 +87,7 @@ module red_pitaya_top (
    inout            DDR_reset_n        ,
    inout            DDR_we_n           ,
 
+
    // Red Pitaya periphery
   
    // ADC
@@ -95,25 +97,31 @@ module red_pitaya_top (
    input            adc_clk_n_i        ,  // ADC data clock
    output [ 2-1: 0] adc_clk_o          ,  // optional ADC clock source
    output           adc_cdcs_o         ,  // ADC clock duty cycle stabilizer
+
    // DAC
    output [14-1: 0] dac_dat_o          ,  // DAC combined data
    output           dac_wrt_o          ,  // DAC write
    output           dac_sel_o          ,  // DAC channel select
    output           dac_clk_o          ,  // DAC clock
    output           dac_rst_o          ,  // DAC reset
+
    // PWM DAC
    output [ 4-1: 0] dac_pwm_o          ,  // serial PWM DAC
+
    // XADC
    input  [ 5-1: 0] vinp_i             ,  // voltages p
    input  [ 5-1: 0] vinn_i             ,  // voltages n
+
    // Expansion connector
    inout  [ 8-1: 0] exp_p_io           ,
    inout  [ 8-1: 0] exp_n_io           ,
+
    // SATA connector
    output [ 2-1: 0] daisy_p_o          ,  // line 1 is clock capable
    output [ 2-1: 0] daisy_n_o          ,
    input  [ 2-1: 0] daisy_p_i          ,  // line 1 is clock capable
    input  [ 2-1: 0] daisy_n_i          ,
+
    // LED
    output [ 8-1: 0] led_o       
 );
@@ -151,6 +159,12 @@ wire             axi_wfixed [1:0]            ;
 wire             axi_werr   [1:0]            ;
 wire             axi_wrdy   [1:0]            ;
 
+// AXIS MASTER from the XADC
+wire  [ 16-1: 0] M_AXIS_XADC_tdata           ;
+wire  [  5-1: 0] M_AXIS_XADC_tid             ;
+wire             M_AXIS_XADC_tready          ;
+wire             M_AXIS_XADC_tvalid          ;
+
 
 red_pitaya_ps i_ps (
   .FIXED_IO_mio     (FIXED_IO_mio     ),
@@ -159,6 +173,7 @@ red_pitaya_ps i_ps (
   .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
   .FIXED_IO_ddr_vrn (FIXED_IO_ddr_vrn ),
   .FIXED_IO_ddr_vrp (FIXED_IO_ddr_vrp ),
+
   // DDR
   .DDR_addr      (DDR_addr    ),
   .DDR_ba        (DDR_ba      ),
@@ -178,10 +193,12 @@ red_pitaya_ps i_ps (
 
   .fclk_clk_o    (fclk        ),
   .fclk_rstn_o   (frstn       ),
+
   // ADC analog inputs
   .vinp_i        (vinp_i      ),  // voltages p
   .vinn_i        (vinn_i      ),  // voltages n
-   // system read/write channel
+
+  // system read/write channel
   .sys_clk_o     (ps_sys_clk  ),  // system clock
   .sys_rstn_o    (ps_sys_rstn ),  // system reset - active low
   .sys_addr_o    (ps_sys_addr ),  // system read/write address
@@ -192,6 +209,7 @@ red_pitaya_ps i_ps (
   .sys_rdata_i   (ps_sys_rdata),  // system read data
   .sys_err_i     (ps_sys_err  ),  // system error indicator
   .sys_ack_i     (ps_sys_ack  ),  // system acknowledge signal
+
   // two AXI masters - concatenated
   .axi_clk_i     ( {axi_clk   [1], axi_clk   [0]} ),  // global clock
   .axi_rstn_i    ( {axi_rstn  [1], axi_rstn  [0]} ),  // global reset
@@ -202,7 +220,13 @@ red_pitaya_ps i_ps (
   .axi_wlen_i    ( {axi_wlen  [1], axi_wlen  [0]} ),  // system write burst length
   .axi_wfixed_i  ( {axi_wfixed[1], axi_wfixed[0]} ),  // system write burst type (fixed / incremental)
   .axi_werr_o    ( {axi_werr  [1], axi_werr  [0]} ),  // system write error
-  .axi_wrdy_o    ( {axi_wrdy  [1], axi_wrdy  [0]} )    // system write ready
+  .axi_wrdy_o    ( {axi_wrdy  [1], axi_wrdy  [0]} ),  // system write ready
+
+  // AXIS MASTER from the XADC
+  .M_AXIS_XADC_tdata  (M_AXIS_XADC_tdata          ),  // AXI-streaming from the XADC, data
+  .M_AXIS_XADC_tid    (M_AXIS_XADC_tid            ),  // AXI-streaming from the XADC, analog data source channel for this data
+  .M_AXIS_XADC_tready (M_AXIS_XADC_tready         ),  // AXI-streaming from the XADC, slave indicating ready for data
+  .M_AXIS_XADC_tvalid (M_AXIS_XADC_tvalid         )   // AXI-streaming from the XADC, data transfer valid
 );
 
 ////////////////////////////////////////////////////////////////////////////////////////
@@ -376,12 +400,15 @@ red_pitaya_hk i_hk (
   // system signals
   .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
+
   // LED
   .led_o           (  led_o                      ),  // LED output
   .rb_led_en_i     (  rb_leds_en                 ),  // RadioBox does overwrite LEDs state
   .rb_led_d_i      (  rb_leds_data               ),  // RadioBox LEDs data
+
   // global configuration
   .digital_loop    (  digital_loop               ),
+
   // Expansion connector
   .exp_p_dat_i     (  exp_p_in                   ),  // input data
   .exp_p_dat_o     (  exp_p_out                  ),  // output data
@@ -389,7 +416,8 @@ red_pitaya_hk i_hk (
   .exp_n_dat_i     (  exp_n_in                   ),
   .exp_n_dat_o     (  exp_n_out                  ),
   .exp_n_dir_o     (  exp_n_dir                  ),
-   // System bus
+
+  // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
   .sys_sel         (  sys_sel                    ),  // write byte select
@@ -416,6 +444,7 @@ red_pitaya_scope i_scope (
   .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
   .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
   .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
+
   // two AXI masters - concatenated
   .axi_clk_o       ( {axi_clk   [1], axi_clk   [0]} ),  // global clock
   .axi_rstn_o      ( {axi_rstn  [1], axi_rstn  [0]} ),  // global reset
@@ -427,6 +456,7 @@ red_pitaya_scope i_scope (
   .axi_wfixed_o    ( {axi_wfixed[1], axi_wfixed[0]} ),  // system write burst type (fixed / incremental)
   .axi_werr_i      ( {axi_werr  [1], axi_werr  [0]} ),  // system write error
   .axi_wrdy_i      ( {axi_wrdy  [1], axi_wrdy  [0]} ),  // system write ready
+
   // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
@@ -442,7 +472,7 @@ red_pitaya_scope i_scope (
 //  DAC arbitrary signal generator
 
 red_pitaya_asg i_asg (
-   // DAC
+  // DAC
   .dac_a_o         (  asg_a                      ),  // CH 1
   .dac_b_o         (  asg_b                      ),  // CH 2
   .dac_clk_i       (  clk_adc_125mhz_000deg      ),  // clock
@@ -450,6 +480,7 @@ red_pitaya_asg i_asg (
   .trig_a_i        (  exp_p_in[0]                ),
   .trig_b_i        (  exp_p_in[0]                ),
   .trig_out_o      (  trig_asg_out               ),
+
   // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
@@ -465,13 +496,14 @@ red_pitaya_asg i_asg (
 //  MIMO PID controller
 
 red_pitaya_pid i_pid (
-   // signals
+  // signals
   .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
   .dat_a_i         (  adc_a                      ),  // in 1
   .dat_b_i         (  adc_b                      ),  // in 2
   .dat_a_o         (  pid_a                      ),  // out 1
   .dat_b_o         (  pid_b                      ),  // out 2
+
   // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
@@ -493,15 +525,17 @@ wire  [ 24-1: 0] pwm_cfg_c;
 wire  [ 24-1: 0] pwm_cfg_d;
 
 red_pitaya_ams i_ams (
-   // power test
+  // power test
   .clk_i           (  clk_adc_125mhz_000deg      ),  // clock
   .rstn_i          (  adc_rstn                   ),  // reset - active low
+
   // PWM configuration
   .dac_a_o         (  pwm_cfg_a                  ),
   .dac_b_o         (  pwm_cfg_b                  ),
   .dac_c_o         (  pwm_cfg_c                  ),
   .dac_d_o         (  pwm_cfg_d                  ),
-   // System bus
+
+  // System bus
   .sys_addr        (  sys_addr                   ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
   .sys_sel         (  sys_sel                    ),  // write byte select
@@ -516,8 +550,10 @@ red_pitaya_pwm i_pwm [4-1:0] (
   // system signals
   .clk   (clk_adc_250mhz_000deg),
   .rstn  (pwm_rstn),
+
   // configuration
   .cfg   ({pwm_cfg_d, pwm_cfg_c, pwm_cfg_b, pwm_cfg_a}),
+
   // PWM outputs
   .pwm_o (dac_pwm_o),
   .pwm_s ()
@@ -531,28 +567,32 @@ wire daisy_rx_rdy ;
 wire dly_clk = fclk[3];                              // 200MHz clock from PS - used for IDELAY (optionaly)
 
 red_pitaya_daisy i_daisy (
-   // SATA connector
+  // SATA connector
   .daisy_p_o       (  daisy_p_o                  ),  // line 1 is clock capable
   .daisy_n_o       (  daisy_n_o                  ),
   .daisy_p_i       (  daisy_p_i                  ),  // line 1 is clock capable
   .daisy_n_i       (  daisy_n_i                  ),
-   // Data
+
+  // Data
   .ser_clk_i       (  clk_adc_250mhz_000deg      ),  // high speed serial
   .dly_clk_i       (  dly_clk                    ),  // delay clock
-   // TX
+
+  // TX
   .par_clk_i       (  clk_adc_125mhz_000deg      ),  // data paralel clock
   .par_rstn_i      (  adc_rstn                   ),  // reset - active low
   .par_rdy_o       (  daisy_rx_rdy               ),
   .par_dv_i        (  daisy_rx_rdy               ),
   .par_dat_i       (  16'h1234                   ),
-   // RX
+
+  // RX
   .par_clk_o       (                             ),
   .par_rstn_o      (                             ),
   .par_dv_o        (                             ),
   .par_dat_o       (                             ),
 
   .debug_o         (/*led_o*/                    ),
-   // System bus
+
+  // System bus
   .sys_clk_i       (  sys_clk                    ),  // clock
   .sys_rstn_i      (  sys_rstn                   ),  // reset - active low
   .sys_addr_i      (  sys_addr                   ),  // address
@@ -569,13 +609,16 @@ red_pitaya_daisy i_daisy (
 //  RadioBox module
 
 red_pitaya_radiobox i_radiobox (
-  // ADC
+  // ADC clock & reset
   .clk_adc_125mhz  ( clk_adc_125mhz_000deg       ),  // clock 125 MHz
   .adc_rstn_i      ( adc_rstn                    ),  // reset - active low
 
   // LEDs
   .rb_leds_en      ( rb_leds_en                  ),  // RB does overwrite LEDs state
   .rb_leds_data    ( rb_leds_data                ),  // RB LEDs data
+
+  // ADC data
+  .adc_i           ( {adc_b, adc_a}              ),  // ADC data { CHB, CHA }
 
   // DAC data
   .rb_en           ( rb_en                       ),  // RadioBox is enabled
@@ -589,7 +632,13 @@ red_pitaya_radiobox i_radiobox (
   .sys_ren         ( sys_ren[6]                  ),  // read enable
   .sys_rdata       ( sys_rdata[ 6*32+:32]        ),  // read data
   .sys_err         ( sys_err[6]                  ),  // error indicator
-  .sys_ack         ( sys_ack[6]                  )   // acknowledge signal
+  .sys_ack         ( sys_ack[6]                  ),  // acknowledge signal
+
+  // AXIS MASTER from the XADC
+  .M_AXIS_XADC_tdata  (M_AXIS_XADC_tdata         ),  // AXI-streaming from the XADC, data
+  .M_AXIS_XADC_tid    (M_AXIS_XADC_tid           ),  // AXI-streaming from the XADC, analog data source channel for this data
+  .M_AXIS_XADC_tready (M_AXIS_XADC_tready        ),  // AXI-streaming from the XADC, slave indicating ready for data
+  .M_AXIS_XADC_tvalid (M_AXIS_XADC_tvalid        )   // AXI-streaming from the XADC, data transfer valid
 );
 
 endmodule

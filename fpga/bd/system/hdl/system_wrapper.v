@@ -1,7 +1,7 @@
 //Copyright 1986-2015 Xilinx, Inc. All Rights Reserved.
 //--------------------------------------------------------------------------------
 //Tool Version: Vivado v.2015.3 (win64) Build 1368829 Mon Sep 28 20:06:43 MDT 2015
-//Date        : Thu Oct 22 00:03:44 2015
+//Date        : Fri Nov 06 01:19:20 2015
 //Host        : ULRICHHABEL0244 running 64-bit Service Pack 1  (build 7601)
 //Command     : generate_target system_wrapper.bd
 //Design      : system_wrapper
@@ -40,6 +40,11 @@ module system_wrapper
     FIXED_IO_ps_porb,
     FIXED_IO_ps_srstb,
     IRQ_F2P,
+    M_AXIS_XADC_aclk,
+    M_AXIS_XADC_tdata,
+    M_AXIS_XADC_tid,
+    M_AXIS_XADC_tready,
+    M_AXIS_XADC_tvalid,
     M_AXI_GP0_ACLK,
     M_AXI_GP0_araddr,
     M_AXI_GP0_arburst,
@@ -198,6 +203,11 @@ module system_wrapper
   inout FIXED_IO_ps_porb;
   inout FIXED_IO_ps_srstb;
   input [14:0]IRQ_F2P;
+  input M_AXIS_XADC_aclk;
+  output [15:0]M_AXIS_XADC_tdata;
+  output [4:0]M_AXIS_XADC_tid;
+  input M_AXIS_XADC_tready;
+  output M_AXIS_XADC_tvalid;
   input M_AXI_GP0_ACLK;
   output [31:0]M_AXI_GP0_araddr;
   output [1:0]M_AXI_GP0_arburst;
@@ -357,6 +367,11 @@ module system_wrapper
   wire FIXED_IO_ps_porb;
   wire FIXED_IO_ps_srstb;
   wire [14:0]IRQ_F2P;
+  wire M_AXIS_XADC_aclk;
+  wire [15:0]M_AXIS_XADC_tdata;
+  wire [4:0]M_AXIS_XADC_tid;
+  wire M_AXIS_XADC_tready;
+  wire M_AXIS_XADC_tvalid;
   wire M_AXI_GP0_ACLK;
   wire [31:0]M_AXI_GP0_araddr;
   wire [1:0]M_AXI_GP0_arburst;
@@ -517,6 +532,11 @@ module system_wrapper
         .FIXED_IO_ps_porb(FIXED_IO_ps_porb),
         .FIXED_IO_ps_srstb(FIXED_IO_ps_srstb),
         .IRQ_F2P(IRQ_F2P),
+        .M_AXIS_XADC_aclk(M_AXIS_XADC_aclk),
+        .M_AXIS_XADC_tdata(M_AXIS_XADC_tdata),
+        .M_AXIS_XADC_tid(M_AXIS_XADC_tid),
+        .M_AXIS_XADC_tready(M_AXIS_XADC_tready),
+        .M_AXIS_XADC_tvalid(M_AXIS_XADC_tvalid),
         .M_AXI_GP0_ACLK(M_AXI_GP0_ACLK),
         .M_AXI_GP0_araddr(M_AXI_GP0_araddr),
         .M_AXI_GP0_arburst(M_AXI_GP0_arburst),

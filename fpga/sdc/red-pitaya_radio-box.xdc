@@ -251,12 +251,12 @@ set_property PACKAGE_PIN F16 [get_ports {led_o[0]}]
 #create_clock -period 8.000 -name adc_clk [get_ports adc_clk_p_i]
 
 # ADC-A
-set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -min 1.000 [get_ports {adc_dat_a_i[*]}]
-set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -max 3.400 [get_ports {adc_dat_a_i[*]}]
+set_input_delay -clock [get_clocks adc_clk_p_i] -min 1.000 [get_ports {adc_dat_a_i[*]}]
+set_input_delay -clock [get_clocks adc_clk_p_i] -max 3.400 [get_ports {adc_dat_a_i[*]}]
 
 # ADC-B
-set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -min 1.000 [get_ports {adc_dat_b_i[*]}]
-set_input_delay -clock [get_clocks -of_objects [get_ports adc_clk_p_i]] -max 3.400 [get_ports {adc_dat_b_i[*]}]
+set_input_delay -clock [get_clocks adc_clk_p_i] -min 1.000 [get_ports {adc_dat_b_i[*]}]
+set_input_delay -clock [get_clocks adc_clk_p_i] -max 3.400 [get_ports {adc_dat_b_i[*]}]
 
 # SATA
 create_clock -period 4.000 -name rx_clk [get_ports {daisy_p_i[1]}]
@@ -342,22 +342,22 @@ set_max_delay -rise_from [get_pins {i_ps/axi_slave_gp0/wr_wdata_reg[*]/C}] -rise
 # False paths                                                              #
 ############################################################################
 
-set_false_path -from [get_clocks clk_fpga_0] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks clk_fpga_1] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks clk_fpga_2] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks clk_fpga_3] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_clocks clk_fpga_0]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_clocks clk_fpga_1]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_clocks clk_fpga_2]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_clocks clk_fpga_3]
+set_false_path -from [get_clocks clk_fpga_0]   -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks clk_fpga_1]   -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks clk_fpga_2]   -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks clk_fpga_3]   -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_clocks clk_fpga_0]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_clocks clk_fpga_1]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_clocks clk_fpga_2]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_clocks clk_fpga_3]
 
-set_false_path -from rx_clk -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to rx_clk
+set_false_path -from [get_clocks rx_clk]       -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_clocks rx_clk]
 
-set_false_path -from [get_ports {exp_p_io[*]}] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_ports {exp_n_io[*]}] -to [get_clocks -of_objects [get_ports adc_clk_p_i]]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_ports {exp_p_io[*]}]
-set_false_path -from [get_clocks -of_objects [get_ports adc_clk_p_i]] -to [get_ports {exp_n_io[*]}]
+set_false_path -from [get_ports {exp_p_io[*]}] -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_ports {exp_n_io[*]}] -to [get_clocks adc_clk_p_i]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_ports {exp_p_io[*]}]
+set_false_path -from [get_clocks adc_clk_p_i]  -to [get_ports {exp_n_io[*]}]
 
 
 ############################################################################

@@ -48,6 +48,7 @@ module red_pitaya_ps (
   inout              FIXED_IO_ps_srstb  ,
   inout              FIXED_IO_ddr_vrn   ,
   inout              FIXED_IO_ddr_vrp   ,
+
   // DDR
   inout   [ 15-1: 0] DDR_addr           ,
   inout   [  3-1: 0] DDR_ba             ,
@@ -67,9 +68,11 @@ module red_pitaya_ps (
 
   output  [  4-1: 0] fclk_clk_o         ,
   output  [  4-1: 0] fclk_rstn_o        ,
+
   // XADC
   input    [ 5-1: 0] vinp_i             ,  // voltages p
   input    [ 5-1: 0] vinn_i             ,  // voltages n
+
   // system read/write channel
   output             sys_clk_o          ,  // system clock
   output             sys_rstn_o         ,  // system reset - active low
@@ -81,6 +84,7 @@ module red_pitaya_ps (
   input   [ 32-1: 0] sys_rdata_i        ,  // system read data
   input              sys_err_i          ,  // system error indicator
   input              sys_ack_i          ,  // system acknowledge signal
+
   // two AXI masters
   input   [1:0][  1-1: 0] axi_clk_i     ,  // global clock
   input   [1:0][  1-1: 0] axi_rstn_i    ,  // global reset
@@ -91,7 +95,13 @@ module red_pitaya_ps (
   input   [1:0][  4-1: 0] axi_wlen_i    ,  // system write burst length
   input   [1:0][  1-1: 0] axi_wfixed_i  ,  // system write burst type (fixed / incremental)
   output  [1:0][  1-1: 0] axi_werr_o    ,  // system write error
-  output  [1:0][  1-1: 0] axi_wrdy_o       // system write ready
+  output  [1:0][  1-1: 0] axi_wrdy_o    ,  // system write ready
+
+  // AXI streaming master from XADC
+  output  [ 16-1: 0] M_AXIS_XADC_tdata  ,  // AXI-streaming from the XADC, data
+  output  [  5-1: 0] M_AXIS_XADC_tid    ,  // AXI-streaming from the XADC, analog data source channel for this data
+  input              M_AXIS_XADC_tready ,  // AXI-streaming from the XADC, slave indicating ready for data
+  output             M_AXIS_XADC_tvalid    // AXI-streaming from the XADC, data transfer valid
 );
 
 //------------------------------------------------------------------------------
@@ -153,6 +163,7 @@ axi_master #(
    // global signals
   .axi_clk_i      (hp_saxi_clk_i       [i]),  // global clock
   .axi_rstn_i     (hp_saxi_rstn_i      [i]),  // global reset
+
    // axi write address channel
   .axi_awid_o     (hp_saxi_awid        [i]),  // write address ID
   .axi_awaddr_o   (hp_saxi_awaddr      [i]),  // write address
@@ -164,6 +175,7 @@ axi_master #(
   .axi_awprot_o   (hp_saxi_awprot      [i]),  // write protection type
   .axi_awvalid_o  (hp_saxi_awvalid     [i]),  // write address valid
   .axi_awready_i  (hp_saxi_awready     [i]),  // write ready
+
    // axi write data channel
   .axi_wid_o      (hp_saxi_wid         [i]),  // write data ID
   .axi_wdata_o    (hp_saxi_wdata       [i]),  // write data
@@ -171,11 +183,13 @@ axi_master #(
   .axi_wlast_o    (hp_saxi_wlast       [i]),  // write last
   .axi_wvalid_o   (hp_saxi_wvalid      [i]),  // write valid
   .axi_wready_i   (hp_saxi_wready      [i]),  // write ready
+
    // axi write response channel
   .axi_bid_i      (hp_saxi_bid         [i]),  // write response ID
   .axi_bresp_i    (hp_saxi_bresp       [i]),  // write response
   .axi_bvalid_i   (hp_saxi_bvalid      [i]),  // write response valid
   .axi_bready_o   (hp_saxi_bready      [i]),  // write response ready
+
    // axi read address channel
   .axi_arid_o     (hp_saxi_arid        [i]),  // read address ID
   .axi_araddr_o   (hp_saxi_araddr      [i]),  // read address
@@ -187,6 +201,7 @@ axi_master #(
   .axi_arprot_o   (hp_saxi_arprot      [i]),  // read protection type
   .axi_arvalid_o  (hp_saxi_arvalid     [i]),  // read address valid
   .axi_arready_i  (hp_saxi_arready     [i]),  // read address ready
+
    // axi read data channel
   .axi_rid_i      (hp_saxi_rid         [i]),  // read response ID
   .axi_rdata_i    (hp_saxi_rdata       [i]),  // read data
@@ -194,6 +209,7 @@ axi_master #(
   .axi_rlast_i    (hp_saxi_rlast       [i]),  // read last
   .axi_rvalid_i   (hp_saxi_rvalid      [i]),  // read response valid
   .axi_rready_o   (hp_saxi_rready      [i]),  // read response ready
+
    // system write channel
   .sys_waddr_i    (axi_waddr_i         [i]),  // system write address
   .sys_wdata_i    (axi_wdata_i         [i]),  // system write data
@@ -203,6 +219,7 @@ axi_master #(
   .sys_wfixed_i   (axi_wfixed_i        [i]),  // system write burst type (fixed / incremental)
   .sys_werr_o     (axi_werr_o          [i]),  // system write error
   .sys_wrdy_o     (axi_wrdy_o          [i]),  // system write ready
+
    // system read channel
   .sys_raddr_i    (32'h0                  ),  // system read address
   .sys_rvalid_i   ( 1'b0                  ),  // system read address valid
@@ -280,9 +297,11 @@ axi_slave #(
   .AXI_AW     (  32     ), // address width
   .AXI_IW     (  12     )  // ID width
 ) axi_slave_gp0 (
+
   // global signals
   .axi_clk_i        (  gp_maxi_aclk        [0] ),  // global clock
   .axi_rstn_i       (  gp_maxi_arstn       [0] ),  // global reset
+
   // axi write address channel
   .axi_awid_i       (  gp_maxi_awid        [0] ),  // write address ID
   .axi_awaddr_i     (  gp_maxi_awaddr      [0] ),  // write address
@@ -294,6 +313,7 @@ axi_slave #(
   .axi_awprot_i     (  gp_maxi_awprot      [0] ),  // write protection type
   .axi_awvalid_i    (  gp_maxi_awvalid     [0] ),  // write address valid
   .axi_awready_o    (  gp_maxi_awready     [0] ),  // write ready
+
   // axi write data channel
   .axi_wid_i        (  gp_maxi_wid         [0] ),  // write data ID
   .axi_wdata_i      (  gp_maxi_wdata       [0] ),  // write data
@@ -301,11 +321,13 @@ axi_slave #(
   .axi_wlast_i      (  gp_maxi_wlast       [0] ),  // write last
   .axi_wvalid_i     (  gp_maxi_wvalid      [0] ),  // write valid
   .axi_wready_o     (  gp_maxi_wready      [0] ),  // write ready
+
   // axi write response channel
   .axi_bid_o        (  gp_maxi_bid         [0] ),  // write response ID
   .axi_bresp_o      (  gp_maxi_bresp       [0] ),  // write response
   .axi_bvalid_o     (  gp_maxi_bvalid      [0] ),  // write response valid
   .axi_bready_i     (  gp_maxi_bready      [0] ),  // write response ready
+
   // axi read address channel
   .axi_arid_i       (  gp_maxi_arid        [0] ),  // read address ID
   .axi_araddr_i     (  gp_maxi_araddr      [0] ),  // read address
@@ -317,6 +339,7 @@ axi_slave #(
   .axi_arprot_i     (  gp_maxi_arprot      [0] ),  // read protection type
   .axi_arvalid_i    (  gp_maxi_arvalid     [0] ),  // read address valid
   .axi_arready_o    (  gp_maxi_arready     [0] ),  // read address ready
+
   // axi read data channel
   .axi_rid_o        (  gp_maxi_rid         [0] ),  // read response ID
   .axi_rdata_o      (  gp_maxi_rdata       [0] ),  // read data
@@ -324,6 +347,7 @@ axi_slave #(
   .axi_rlast_o      (  gp_maxi_rlast       [0] ),  // read last
   .axi_rvalid_o     (  gp_maxi_rvalid      [0] ),  // read response valid
   .axi_rready_i     (  gp_maxi_rready      [0] ),  // read response ready
+
   // system read/write channel
   .sys_addr_o       (  sys_addr_o              ),  // system read/write address
   .sys_wdata_o      (  sys_wdata_o             ),  // system write data
@@ -344,7 +368,6 @@ always @(posedge axi_clk_i[0])
    gp_maxi_arstn[0] <= fclk_rstn[0] ;
 
 
-
 //------------------------------------------------------------------------------
 // PS STUB
 
@@ -363,6 +386,7 @@ system_wrapper system_i (
   .FIXED_IO_ps_srstb (FIXED_IO_ps_srstb   ),
   .FIXED_IO_ddr_vrn  (FIXED_IO_ddr_vrn    ),
   .FIXED_IO_ddr_vrp  (FIXED_IO_ddr_vrp    ),
+
   // DDR
   .DDR_addr          (DDR_addr            ),
   .DDR_ba            (DDR_ba              ),
@@ -379,6 +403,7 @@ system_wrapper system_i (
   .DDR_ras_n         (DDR_ras_n           ),
   .DDR_reset_n       (DDR_reset_n         ),
   .DDR_we_n          (DDR_we_n            ),
+
   // FCLKs
   .FCLK_CLK0         (fclk_clk[0]         ),
   .FCLK_CLK1         (fclk_clk[1]         ),
@@ -388,12 +413,14 @@ system_wrapper system_i (
   .FCLK_RESET1_N     (fclk_rstn[1]        ),
   .FCLK_RESET2_N     (fclk_rstn[2]        ),
   .FCLK_RESET3_N     (fclk_rstn[3]        ),
+
   // XADC
   .Vaux0_v_n (vinn_i[1]),  .Vaux0_v_p (vinp_i[1]),
   .Vaux1_v_n (vinn_i[2]),  .Vaux1_v_p (vinp_i[2]),
   .Vaux8_v_n (vinn_i[0]),  .Vaux8_v_p (vinp_i[0]),
   .Vaux9_v_n (vinn_i[3]),  .Vaux9_v_p (vinp_i[3]),
   .Vp_Vn_v_n (vinn_i[4]),  .Vp_Vn_v_p (vinp_i[4]),
+
   // GP0
   .M_AXI_GP0_ACLK    (axi_clk_i       [0] ),
   .M_AXI_GP0_arvalid (gp_maxi_arvalid [0] ),  // out
@@ -434,6 +461,7 @@ system_wrapper system_i (
   .M_AXI_GP0_bresp   (gp_maxi_bresp   [0] ),  // in 2
   .M_AXI_GP0_rresp   (gp_maxi_rresp   [0] ),  // in 2
   .M_AXI_GP0_rdata   (gp_maxi_rdata   [0] ),  // in 32
+
   // HP0                                      // HP1
   .S_AXI_HP0_arready (hp_saxi_arready [0] ),  .S_AXI_HP1_arready (hp_saxi_arready [1] ),  // out
   .S_AXI_HP0_awready (hp_saxi_awready [0] ),  .S_AXI_HP1_awready (hp_saxi_awready [1] ),  // out
@@ -473,7 +501,14 @@ system_wrapper system_i (
   .S_AXI_HP0_awid    (hp_saxi_awid    [0] ),  .S_AXI_HP1_awid    (hp_saxi_awid    [1] ),  // in 6
   .S_AXI_HP0_wid     (hp_saxi_wid     [0] ),  .S_AXI_HP1_wid     (hp_saxi_wid     [1] ),  // in 6
   .S_AXI_HP0_wdata   (hp_saxi_wdata   [0] ),  .S_AXI_HP1_wdata   (hp_saxi_wdata   [1] ),  // in 64
-  .S_AXI_HP0_wstrb   (hp_saxi_wstrb   [0] ),  .S_AXI_HP1_wstrb   (hp_saxi_wstrb   [1] )   // in 8
+  .S_AXI_HP0_wstrb   (hp_saxi_wstrb   [0] ),  .S_AXI_HP1_wstrb   (hp_saxi_wstrb   [1] ),  // in 8
+
+  // AXIS MASTER from the XADC
+  .M_AXIS_XADC_aclk  (sys_clk_o           ),
+  .M_AXIS_XADC_tdata (M_AXIS_XADC_tdata   ),
+  .M_AXIS_XADC_tid   (M_AXIS_XADC_tid     ),
+  .M_AXIS_XADC_tready(M_AXIS_XADC_tready  ),
+  .M_AXIS_XADC_tvalid(M_AXIS_XADC_tvalid  )
 );
 
 endmodule

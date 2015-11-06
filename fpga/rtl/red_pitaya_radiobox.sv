@@ -32,7 +32,7 @@
 module red_pitaya_radiobox #(
   // parameter RSZ = 14  // RAM size 2^RSZ
 )(
-   // ADC
+   // ADC clock & reset
    input                 clk_adc_125mhz  ,      // ADC based clock, 125 MHz
    input                 adc_rstn_i      ,      // ADC reset - active low
 
@@ -40,10 +40,8 @@ module red_pitaya_radiobox #(
    output reg            rb_leds_en      ,      // RB does overwrite LEDs state
    output reg   [  7: 0] rb_leds_data    ,      // RB LEDs data
 
-   /*
-   input        [ 13: 0] adc_a_i         ,      // ADC data CHA
-   input        [ 13: 0] adc_b_i         ,      // ADC data CHB
-   */
+   // ADC data
+   input        [ 13: 0] adc_i[1:0]      ,      // ADC data { CHB, CHA }
 
    // DAC data
    output                rb_en           ,      // RadioBox is enabled
@@ -57,7 +55,14 @@ module red_pitaya_radiobox #(
    input                 sys_ren         ,      // bus read enable
    output reg   [ 31: 0] sys_rdata       ,      // bus read data
    output reg            sys_err         ,      // bus error indicator
-   output reg            sys_ack                // bus acknowledge signal
+   output reg            sys_ack         ,      // bus acknowledge signal
+
+   // AXI streaming master from XADC
+   input   [ 16-1: 0] M_AXIS_XADC_tdata  ,      // AXI-streaming from the XADC, data
+   input   [  5-1: 0] M_AXIS_XADC_tid    ,      // AXI-streaming from the XADC, analog data source channel for this data
+                                                // TID=0x10:VAUXp0_VAUXn0 & TID=0x18:VAUXp8_VAUXn8, TID=0x11:VAUXp1_VAUXn1 & TID=0x19:VAUXp9_VAUXn9, TID=0x03:Vp_Vn
+   output reg         M_AXIS_XADC_tready ,      // AXI-streaming from the XADC, slave indicating ready for data
+   input              M_AXIS_XADC_tvalid        // AXI-streaming from the XADC, data transfer valid
 );
 
 
@@ -93,6 +98,12 @@ enum {
     //REG_RD_RB_RSVD_H54,
     REG_RW_RB_OSC2_MIX_OFS_LO,                  // h58: RB OSC2 mixer offset: UNSIGNED 48 bit   LSB:        (Bit 31: 0)
     REG_RW_RB_OSC2_MIX_OFS_HI,                  // h5C: RB OSC2 mixer offset: UNSIGNED 48 bit   MSB: 16'b0, (Bit 47:32)
+
+    REG_RW_RB_MUXIN_SRC,                        // h60: RB analog MUX input selector:  d3=VpVn,
+                                                //      d16=EXT-CH0,  d24=EXT-CH8,
+                                                //      d17=EXT-CH1,  d25=EXT-CH9,
+                                                //      d32=adc_i[0], d33=adc_i[1]
+    REG_RW_RB_MUXIN_GAIN,                       // h64: RB analog MUX gain for input amplifier
 
     REG_RB_COUNT
 } REG_RB_ENUMS;
@@ -191,6 +202,16 @@ enum {
     //RB_LED_CTRL_NUM_ADCIN_MAG                 // Magnitude indicator @ ADC streaming input
 } RB_LED_CTRL_ENUM;
 
+enum {
+    RB_XADC_MAPPING_EXT_CH8             = 0,    // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[0]/vinn_i[0]
+    RB_XADC_MAPPING_EXT_CH0,                    // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[1]/vinn_i[1]
+    RB_XADC_MAPPING_EXT_CH1,                    // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[2]/vinn_i[2]
+    RB_XADC_MAPPING_EXT_CH9,                    // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[3]/vinn_i[3]
+    RB_XADC_MAPPING_VpVn,                       // The dedicated Vp/Vn input mapped to: vinp_i[4]/vinn_i[4]
+    RB_XADC_MAPPING__COUNT
+} RB_XADC_MAPPING_ENUM;
+
+
 wire rb_enable = regs[REG_RW_RB_CTRL][RB_CTRL_ENABLE];
 
 reg          rb_enable_last     = 1'b0;
@@ -235,6 +256,80 @@ end
 
 //---------------------------------------------------------------------------------
 //  Signal input matrix
+
+// AXI streaming master from XADC
+
+reg  [15:0] rb_xadc[RB_XADC_MAPPING__COUNT - 1: 0];
+
+wire [15:0] muxin_mix_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h20) ?  { adc_i[0], 2'b0 } :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h21) ?  { adc_i[1], 2'b0 } :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h10) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH0] :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h18) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH8] :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h11) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH1] :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h19) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH9] :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h03) ?  rb_xadc[RB_XADC_MAPPING_VpVn] :  16'b0;
+wire [32:0] muxin_mix_gain = { regs[REG_RW_RB_MUXIN_GAIN][31:0], 1'b0 };
+wire [47:0] muxin_mix_out;
+
+always @(posedge clk_adc_125mhz)
+begin
+   if (!adc_rstn_i) begin
+      rb_xadc[RB_XADC_MAPPING_EXT_CH8] <= 16'b0;
+      rb_xadc[RB_XADC_MAPPING_EXT_CH0] <= 16'b0;
+      rb_xadc[RB_XADC_MAPPING_EXT_CH1] <= 16'b0;
+      rb_xadc[RB_XADC_MAPPING_EXT_CH9] <= 16'b0;
+      rb_xadc[RB_XADC_MAPPING_VpVn]    <= 16'b0;
+      M_AXIS_XADC_tready <= 0;
+
+   end else begin
+      M_AXIS_XADC_tready <= 1;                                         // no reason for signaling not to be ready
+      if (M_AXIS_XADC_tvalid) begin
+         casez (M_AXIS_XADC_tid)                                       // @see ug480_7Series_XADC.pdf for XADC channel mapping
+         5'h10: begin                                                  // channel ID d16 for EXT-CH#0
+            rb_xadc[RB_XADC_MAPPING_EXT_CH0]  <= { sys_wdata[15:0] };  // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[1]/vinn_i[1]
+            end
+         5'h18: begin                                                  // channel ID d24 for EXT-CH#8
+            rb_xadc[RB_XADC_MAPPING_EXT_CH8]  <= { sys_wdata[15:0] };  // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[0]/vinn_i[0]
+            end
+
+         5'h11: begin                                                  // channel ID d17 for EXT-CH#1
+            rb_xadc[RB_XADC_MAPPING_EXT_CH1]  <= { sys_wdata[15:0] };  // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[2]/vinn_i[2]
+            end
+         5'h19: begin                                                  // channel ID d25 for EXT-CH#9
+            rb_xadc[RB_XADC_MAPPING_EXT_CH9]  <= { sys_wdata[15:0] };  // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[3]/vinn_i[3]
+            end
+
+         5'h03: begin                                                  // channel ID d3 for dedicated Vp/Vn input lines
+            rb_xadc[RB_XADC_MAPPING_VpVn]     <= { sys_wdata[15:0] };  // The dedicated Vp/Vn input mapped to: vinp_i[4]/vinn_i[4]
+            end
+
+         default:   begin
+            end
+         endcase
+      end
+   end
+
+   rb_enable_last <= rb_enable;
+end
+
+rb_multadd_16s_33s_48u_07lat i_rb_muxin_multadd (
+  // global signals
+  .CLK                  ( clk_adc_125mhz    ),  // global 125 MHz clock
+  .CE                   ( rb_clk_en         ),  // enable part 1 of RadioBox sub-module
+  .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
+
+  // multiplier input
+  .A                    ( muxin_mix_in      ),  // MUX in signal:    SIGNED 16 bit
+  .B                    ( muxin_mix_gain    ),  // gain setting:     SIGNED 33 bit
+  .C                    ( 48'b0             ),  // offset setting: UNSIGNED 48 bit
+
+  .SUBTRACT             ( 1'b0              ),  // not used due to signed data
+
+  // multiplier output
+  .P                    ( muxin_mix_out     ),  // PreAmp output   UNSIGNED 48 bit
+
+  .PCOUT                (                   )   // not used
+);
 
 
 //---------------------------------------------------------------------------------
@@ -320,8 +415,10 @@ wire         osc1_inc_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STREAM];
 wire         osc1_ofs_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_OFS_SRC_STREAM];
 wire         osc1_resync  = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_RESYNC];
 
-wire [ 47:0] osc1_inc = ( osc1_inc_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_INC_HI][15:0], regs[REG_RW_RB_OSC1_INC_LO][31:0] });
-wire [ 47:0] osc1_ofs = ( osc1_ofs_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_OFS_HI][15:0], regs[REG_RW_RB_OSC1_OFS_LO][31:0] });
+wire [ 47:0] osc1_stream_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 0) ?  osc2_mixed : muxin_mix_out;  // when ADC source ID is zero, default to OSC2
+
+wire [ 47:0] osc1_inc = ( osc1_inc_mux ?  osc1_stream_in : { regs[REG_RW_RB_OSC1_INC_HI][15:0], regs[REG_RW_RB_OSC1_INC_LO][31:0] });
+wire [ 47:0] osc1_ofs = ( osc1_ofs_mux ?  osc1_stream_in : { regs[REG_RW_RB_OSC1_OFS_HI][15:0], regs[REG_RW_RB_OSC1_OFS_LO][31:0] });
 
 wire         osc1_axis_s_vld   = rb_reset_n;  // TODO
 wire [103:0] osc1_axis_s_phase = { 7'b0, osc1_resync, osc1_ofs, osc1_inc };
@@ -522,6 +619,8 @@ if (!adc_rstn_i) begin
    regs[REG_RW_RB_OSC2_MIX_GAIN]    <= 32'h00000000;
    regs[REG_RW_RB_OSC2_MIX_OFS_LO]  <= 32'h00000000;
    regs[REG_RW_RB_OSC2_MIX_OFS_HI]  <= 32'h00000000;
+   regs[REG_RW_RB_MUXIN_SRC]        <= 32'h00000000;
+   regs[REG_RW_RB_MUXIN_GAIN]       <= 32'h00000000;
    end
 
 else begin
@@ -586,6 +685,15 @@ else begin
          end
       20'h0005C: begin
          regs[REG_RW_RB_OSC2_MIX_OFS_HI]    <= { 16'b0, sys_wdata[15:0] };
+         end
+
+      /* Input MUX */
+      20'h00060: begin
+         regs[REG_RW_RB_MUXIN_SRC]          <= sys_wdata[31:0];
+         end
+
+      20'h00064: begin
+         regs[REG_RW_RB_MUXIN_GAIN]         <= sys_wdata[31:0];
          end
 
       default:   begin
@@ -696,6 +804,17 @@ else begin
       20'h0005C: begin
          sys_ack   <= sys_en;
          sys_rdata <= regs[REG_RW_RB_OSC2_MIX_OFS_HI];
+         end
+
+      /* Input MUX */
+      20'h00060: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= { 26'b0, regs[REG_RW_RB_MUXIN_SRC][5:0] };
+         end
+
+      20'h00064: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RW_RB_MUXIN_GAIN];
          end
 
       default:   begin
