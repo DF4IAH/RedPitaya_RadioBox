@@ -198,8 +198,9 @@ enum {
     RB_LED_CTRL_NUM_MIX1_MAG,                   // Magnitude indicator @ OSC1 mixer output
     RB_LED_CTRL_NUM_OSC1_MAG,                   // Magnitude indicator @ OSC1 output
     RB_LED_CTRL_NUM_MIX2_MAG,                   // Magnitude indicator @ OSC2 mixer output
-    RB_LED_CTRL_NUM_OSC2_MAG                    // Magnitude indicator @ OSC2 output
-    //RB_LED_CTRL_NUM_ADCIN_MAG                 // Magnitude indicator @ ADC streaming input
+    RB_LED_CTRL_NUM_OSC2_MAG,                   // Magnitude indicator @ OSC2 output
+    RB_LED_CTRL_NUM_ADCIN_MAG,                  // Magnitude indicator @ ADC streaming input
+    RB_LED_CTRL_NUM_MICMIX_MAG                  // Magnitude indicator @ Mix mixer output
 } RB_LED_CTRL_ENUM;
 
 enum {
@@ -261,15 +262,19 @@ end
 
 reg  [15:0] rb_xadc[RB_XADC_MAPPING__COUNT - 1: 0];
 
-wire [15:0] muxin_mix_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h20) ?  { adc_i[0], 2'b0 } :
-                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h21) ?  { adc_i[1], 2'b0 } :
+wire [15:0] muxin_mix_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h20) ?  { ~adc_i[0], 2'b0 } :
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h21) ?  { ~adc_i[1], 2'b0 } :
                            (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h10) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH0] :
                            (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h18) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH8] :
                            (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h11) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH1] :
                            (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h19) ?  rb_xadc[RB_XADC_MAPPING_EXT_CH9] :
-                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h03) ?  rb_xadc[RB_XADC_MAPPING_VpVn] :  16'b0;
-wire [32:0] muxin_mix_gain = { regs[REG_RW_RB_MUXIN_GAIN][31:0], 1'b0 };
+                           (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h03) ?  rb_xadc[RB_XADC_MAPPING_VpVn]    :
+                           16'b0;
+wire [32:0] muxin_mix_gain = { 1'b0, regs[REG_RW_RB_MUXIN_GAIN][31:0] };
+wire [47:0] muxin_mix_p;
+
 wire [47:0] muxin_mix_out;
+assign muxin_mix_out = muxin_mix_p[47:0];                              // TODO to be replaced by a saturation variant
 
 always @(posedge clk_adc_125mhz)
 begin
@@ -326,7 +331,7 @@ rb_multadd_16s_33s_48u_07lat i_rb_muxin_multadd (
   .SUBTRACT             ( 1'b0              ),  // not used due to signed data
 
   // multiplier output
-  .P                    ( muxin_mix_out     ),  // PreAmp output   UNSIGNED 48 bit
+  .P                    ( muxin_mix_p       ),  // PreAmp output   UNSIGNED 48 bit
 
   .PCOUT                (                   )   // not used
 );
@@ -370,6 +375,7 @@ rb_dds_48_16_125 i_rb_osc2_dds (
 //---------------------------------------------------------------------------------
 //  OSC2 (modulation) - signal amplitude multiplications
 
+wire [47:0] osc2_stream_in  = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h00) ?  osc2_axis_m_data : muxin_mix_out;  // when ADC source ID is zero, default to OSC2
 wire [32:0] osc2_mix_gain   = { regs[REG_RW_RB_OSC2_MIX_GAIN][31:0], 1'b0 };
 wire [47:0] osc2_mix_ofs    = { regs[REG_RW_RB_OSC2_MIX_OFS_HI][15:0], regs[REG_RW_RB_OSC2_MIX_OFS_LO][31:0] };
 
@@ -384,7 +390,7 @@ rb_multadd_16s_33s_48u_07lat i_rb_osc2_multadd (
   .SCLR                 ( !rb_reset_n       ),  // enable part 2 of RadioBox sub-module
 
   // multiplier input
-  .A                    ( osc2_axis_m_data  ),  // OSC2 signal:           SIGNED 16 bit
+  .A                    ( osc2_stream_in    ),  // OSC2 signal, stream:   SIGNED 16 bit
   .B                    ( osc2_mix_gain     ),  // OSC2 gain setting:     SIGNED 33 bit
   .C                    ( osc2_mix_ofs      ),  // OSC2 offset setting: UNSIGNED 48 bit
 
@@ -415,10 +421,8 @@ wire         osc1_inc_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_INC_SRC_STREAM];
 wire         osc1_ofs_mux = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_OFS_SRC_STREAM];
 wire         osc1_resync  = regs[REG_RW_RB_CTRL][RB_CTRL_OSC1_RESYNC];
 
-wire [ 47:0] osc1_stream_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 0) ?  osc2_mixed : muxin_mix_out;  // when ADC source ID is zero, default to OSC2
-
-wire [ 47:0] osc1_inc = ( osc1_inc_mux ?  osc1_stream_in : { regs[REG_RW_RB_OSC1_INC_HI][15:0], regs[REG_RW_RB_OSC1_INC_LO][31:0] });
-wire [ 47:0] osc1_ofs = ( osc1_ofs_mux ?  osc1_stream_in : { regs[REG_RW_RB_OSC1_OFS_HI][15:0], regs[REG_RW_RB_OSC1_OFS_LO][31:0] });
+wire [ 47:0] osc1_inc = ( osc1_inc_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_INC_HI][15:0], regs[REG_RW_RB_OSC1_INC_LO][31:0] });
+wire [ 47:0] osc1_ofs = ( osc1_ofs_mux ?  osc2_mixed : { regs[REG_RW_RB_OSC1_OFS_HI][15:0], regs[REG_RW_RB_OSC1_OFS_LO][31:0] });
 
 wire         osc1_axis_s_vld   = rb_reset_n;  // TODO
 wire [103:0] osc1_axis_s_phase = { 7'b0, osc1_resync, osc1_ofs, osc1_inc };
@@ -572,8 +576,12 @@ begin
             RB_LED_CTRL_NUM_OSC2_MAG: begin
                rb_leds_data <= fct_mag(osc2_axis_m_data);
                end
-            //RB_LED_CTRL_NUM_ADCIN_MAG: begin
-            //   end
+            RB_LED_CTRL_NUM_ADCIN_MAG: begin
+               rb_leds_data <= fct_mag(muxin_mix_in);
+               end
+            RB_LED_CTRL_NUM_MICMIX_MAG: begin
+               rb_leds_data <= fct_mag(muxin_mix_out);
+               end
             endcase
          end
          led_ctr <= led_ctr + 1;
@@ -689,7 +697,7 @@ else begin
 
       /* Input MUX */
       20'h00060: begin
-         regs[REG_RW_RB_MUXIN_SRC]          <= sys_wdata[31:0];
+         regs[REG_RW_RB_MUXIN_SRC]          <= { regs[REG_RW_RB_MUXIN_SRC][31:6], sys_wdata[5:0] };
          end
 
       20'h00064: begin
