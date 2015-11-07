@@ -199,7 +199,11 @@ typedef struct fpga_rb_reg_mem_s {
      *
      *   value = h05  LEDs show magnitude function with selected input port OSC2 output.
      *
-     *   value = h06..h0F  n/a
+     *   value = h06  LEDs show magnitude function with selected input port ADC input.
+     *
+     *   value = h07  LEDs show magnitude function with selected input port Mic MIX output.
+     *
+     *   value = h08..h0F  n/a
      *
      * bit h1F..h04: n/a
      *
@@ -345,6 +349,37 @@ typedef struct fpga_rb_reg_mem_s {
      *
      */
     uint32_t osc2_mix_ofs_hi;
+
+
+    /** @brief  R/W RB_MUXIN_SRC - analog MUX input selector (addr: 0x40600060)
+     *
+     * bit h05..h00: source ID (extended from the XADC source ID)
+     *
+     *   value = h00  no external signal used, OSC2 used instead.
+     *
+     *   value = h03  Vp_Vn,     mapped to: vin[4].
+     *
+     *   value = h10  XADC CH#0, mapped to: AI1.
+     *
+     *   value = h11  XADC CH#1, mapped to: AI0.
+     *
+     *   value = h18  XADC CH#8, mapped to: AI2.
+     *
+     *   value = h19  XADC CH#9, mapped to: AI3.
+     *
+     *   value = h20  ADC0,      mapped to: RF Input 1.
+     *
+     *   value = h21  ADC1,      mapped to: RF Input 2.
+     *
+     */
+    uint32_t muxin_src;
+
+    /** @brief  R/W RB_MUXIN_GAIN - gain for analog MUX input amplifier (addr: 0x40600064)
+     *
+     * bit h1F..h00: gain for MUXIN output amplifier.
+     *
+     */
+    uint32_t muxin_gain;
 
 } fpga_rb_reg_mem_t;
 

@@ -96,7 +96,7 @@ const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
 /** @brief Describes app. parameters with some info/limitations in high definition */
 const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
     { /* Running mode */
-        "rb_run",           1.0,   1, 0, 0.0,       1.0  },
+        "rb_run",           0.0,   1, 0, 0.0,       1.0  },
 
     { /* Oscillator-1 modulation source selector
        * ( 0: none,
@@ -167,7 +167,7 @@ double cast_4xbf_to_1xdouble(float f_se, float f_hi, float f_mi, float f_lo)
     double*            dp  = (void*) &ull;
 
     if (!f_se && !f_hi && !f_mi && !f_lo) {
-        fprintf(stderr, "INFO cast_4xbf_to_1xdouble (zero) - out(d=%lf) <-- in(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f)\n", 0.0, f_se, f_hi, f_mi, f_lo);
+        //fprintf(stderr, "INFO cast_4xbf_to_1xdouble (zero) - out(d=%lf) <-- in(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f)\n", 0.0, f_se, f_hi, f_mi, f_lo);
         return 0.0;
     }
 
@@ -189,7 +189,7 @@ double cast_4xbf_to_1xdouble(float f_se, float f_hi, float f_mi, float f_lo)
     ull  |= (i_se & 0x0000fffULL) <<  IEEE754_DOUBLE_MNT_BITS;
 
     /* double interpretation */
-    fprintf(stderr, "INFO cast_4xbf_to_1xdouble (val)  - out(d=%lf) <-- in(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f)\n", *dp, f_se, f_hi, f_mi, f_lo);
+    //fprintf(stderr, "INFO cast_4xbf_to_1xdouble (val)  - out(d=%lf) <-- in(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f)\n", *dp, f_se, f_hi, f_mi, f_lo);
     return *dp;
 }
 
@@ -209,7 +209,7 @@ int cast_1xdouble_to_4xbf(float* f_se, float* f_hi, float* f_mi, float* f_lo, do
         *f_hi = 0.0f;
         *f_mi = 0.0f;
         *f_lo = 0.0f;
-        fprintf(stderr, "INFO cast_1xdouble_to_4xbf (zero) - out(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f) <-- in(d=%lf)\n", *f_se, *f_hi, *f_mi, *f_lo, d);
+        //fprintf(stderr, "INFO cast_1xdouble_to_4xbf (zero) - out(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f) <-- in(d=%lf)\n", *f_se, *f_hi, *f_mi, *f_lo, d);
         return 0;
     }
 
@@ -230,7 +230,7 @@ int cast_1xdouble_to_4xbf(float* f_se, float* f_hi, float* f_mi, float* f_lo, do
     ui    >>= RB_CELL_MNT_BITS;
     *f_se   = ui & 0x00000fffULL;  // 20 bits
 
-    fprintf(stderr, "INFO cast_1xdouble_to_4xbf (val)  - out(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f) <-- in(d=%lf)\n", *f_se, *f_hi, *f_mi, *f_lo, d);
+    //fprintf(stderr, "INFO cast_1xdouble_to_4xbf (val)  - out(f_se=%f, f_hi=%f, f_mi=%f, f_lo=%f) <-- in(d=%lf)\n", *f_se, *f_hi, *f_mi, *f_lo, d);
     return 0;
 }
 
@@ -393,16 +393,16 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
     /* check if destination buffer is allocated already */
     rp_app_params_t* p_dst = *dst;
     if (p_dst) {
-        //fprintf(stderr, "INFO rp_copy_params - dst exists - updating into dst vector.\n");
+        //fprintf(stderr, "DEBUG rp_copy_params - dst exists - updating into dst vector.\n");
         /* destination buffer exists */
         int i;
         for (i = 0; s[i].name; i++) {
             l_num_params++;
-            //fprintf(stderr, "INFO rp_copy_params - processing name = %s\n", s[i].name);
+            //fprintf(stderr, "DEBUG rp_copy_params - processing name = %s\n", s[i].name);
             /* process each parameter entry of the list */
 
             if (!strcmp(p_dst[i].name, s[i].name)) {  // direct mapping found - just copy the value
-                //fprintf(stderr, "INFO rp_copy_params - direct mapping used\n");
+                //fprintf(stderr, "DEBUG rp_copy_params - direct mapping used\n");
                 p_dst[i].value = s[i].value;
                 if (s[i].fpga_update & 0x80) {
                     p_dst[i].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
@@ -418,7 +418,7 @@ int rp_copy_params(rp_app_params_t** dst, const rp_app_params_t src[], int len, 
                 }
 
             } else {
-                //fprintf(stderr, "INFO rp_copy_params - iterative searching ...\n");
+                //fprintf(stderr, "DEBUG rp_copy_params - iterative searching ...\n");
                 int j;
                 for (j = 0; p_dst[j].name; j++) {  // scanning the complete list
                     if (j == i) {  // do a short-cut here
@@ -506,17 +506,17 @@ int rb_copy_params(rb_app_params_t** dst, const rb_app_params_t src[], int len, 
     /* check if destination buffer is allocated already */
     rb_app_params_t* p_dst = *dst;
     if (p_dst) {
-        fprintf(stderr, "INFO rb_copy_params - dst exists - updating into dst vector.\n");
+        //fprintf(stderr, "DEBUG rb_copy_params - dst exists - updating into dst vector.\n");
         /* destination buffer exists */
         int i, j;
         for (i = 0, j = 0; s[i].name; i++) {
             l_num_params++;
-            fprintf(stderr, "INFO rb_copy_params - processing name = %s\n", s[i].name);
+            //fprintf(stderr, "DEBUG rb_copy_params - processing name = %s\n", s[i].name);
             /* process each parameter entry of the list */
 
             j = rb_find_parms_index(p_dst, s[i].name);
             if (j >= 0) {
-                fprintf(stderr, "INFO rb_copy_params - fill in\n");
+                //fprintf(stderr, "DEBUG rb_copy_params - fill in\n");
                 p_dst[j].value = s[i].value;
                 if (s[i].fpga_update & 0x80) {
                     p_dst[j].fpga_update |=  0x80;  // transfer FPGA update marker in case it is present
@@ -603,7 +603,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
     /* check if destination buffer is allocated already */
     rp_app_params_t* p_dst = *dst;
     if (p_dst) {
-        fprintf(stderr, "INFO rp_copy_params_rb2rp: freeing ...\n");
+        //fprintf(stderr, "DEBUG rp_copy_params_rb2rp: freeing ...\n");
         rp_free_params(dst);
     }
 
@@ -613,7 +613,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
         {
             int i;
             for (i = 0; src[i].name; i++) {
-                fprintf(stderr, "DEBUG rp_copy_params_rb2rp - get_the_number_entries - name=%s\n", src[i].name);
+                //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - get_the_number_entries - name=%s\n", src[i].name);
                 char* ptr = strrchr(src[i].name, '_');
                 if (ptr && !strcmp("_f", ptr)) {
                     l_num_quad_params++;
@@ -621,7 +621,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                     l_num_single_params++;
                 }
             }
-            fprintf(stderr, "INFO rp_copy_params_rb2rp - num_single_params=%d, num_quad_params=%d\n", l_num_single_params, l_num_quad_params);
+            //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - num_single_params=%d, num_quad_params=%d\n", l_num_single_params, l_num_quad_params);
         }
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
@@ -644,7 +644,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                     !strcmp("osc1_amp_f", src[i].name) ||
                     !strcmp("osc2_mag_f", src[i].name)) {
                     l_num_quad_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (1) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (1) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 }
                 break;
@@ -654,12 +654,12 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                     !strcmp("osc1_modsrc_s", src[i].name) ||
                     !strcmp("osc1_modtyp_s", src[i].name)) {
                     l_num_single_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (2a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (2a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 } else if (!strcmp("osc1_amp_f", src[i].name) ||
                            !strcmp("osc2_mag_f", src[i].name)) {
                     l_num_quad_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (2b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (2b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 }
                 break;
@@ -669,12 +669,12 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                     !strcmp("osc1_modsrc_s", src[i].name) ||
                     !strcmp("osc1_modtyp_s", src[i].name)) {
                     l_num_single_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (3a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (3a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 } else if (!strcmp("osc1_qrg_f", src[i].name) ||
                            !strcmp("osc2_qrg_f", src[i].name)) {
                     l_num_quad_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rb2rp - Limit transfer (3b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (3b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 }
                 break;
@@ -770,7 +770,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
     {
         int i;
         for (i = 0; src[i].name; i++) {
-            fprintf(stderr, "DEBUG rp_copy_params_rp2rb - get_the_number_entries - name=%s\n", src[i].name);
+            //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - get_the_number_entries - name=%s\n", src[i].name);
             char* ptr = strrchr(src[i].name, '_');
             if (ptr && !strcmp("_f", ptr)) {
                 /* count LO_yyy entries */
@@ -781,13 +781,13 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                 l_num_single_params++;
             }
         }  // for ()
-        fprintf(stderr, "INFO rp_copy_params_rp2rb - num_single_params=%d, num_quad_params=%d\n", l_num_single_params, l_num_quad_params);
+        //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - num_single_params=%d, num_quad_params=%d\n", l_num_single_params, l_num_quad_params);
     }
 
     /* check if destination buffer is allocated already */
     rb_app_params_t* p_dst = *dst;
     if (p_dst) {
-        fprintf(stderr, "INFO rp_copy_params_rp2rb = dst vector is valid\n");
+        //fprintf(stderr, "DEBUG rp_copy_params_rp2rb = dst vector is valid\n");
 
         int i, j;
         for (i = 0, j = 0; src[i].name; i++) {
@@ -801,7 +801,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
 
             if (!strcmp(TRANSPORT_pktIdx, src[i].name)) {
                 l_num_single_params--;
-                fprintf(stderr, "INFO rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
+                //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
                 continue;
             }
 
@@ -862,7 +862,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
         }  // for ()
 
     } else {
-        fprintf(stderr, "INFO rp_copy_params_rp2rb = creating new dst vector\n");
+        //fprintf(stderr, "DEBUG rp_copy_params_rp2rb = creating new dst vector\n");
         /* destination buffer has to be allocated, create a new parameter list */
 
         /* allocate array of parameter entries, parameter names must be allocated separately */
@@ -878,7 +878,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
             if (!strncmp(CAST_NAME_EXT_SE, src[i].name, CAST_NAME_EXT_LEN) ||
                 !strncmp(CAST_NAME_EXT_HI, src[i].name, CAST_NAME_EXT_LEN) ||
                 !strncmp(CAST_NAME_EXT_MI, src[i].name, CAST_NAME_EXT_LEN)) {
-                fprintf(stderr, "INFO rp_copy_params_rp2rb - skip this name=%s\n", src[i].name);
+                //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - skip this name=%s\n", src[i].name);
                 continue;  // skip all SE_, HI_ and MI_ params
             }
 
@@ -888,7 +888,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
                 char name_hi[256];
                 char name_mi[256];
 
-                fprintf(stderr, "INFO rp_copy_params_rp2rb - QUAD - name=%s\n", src[i].name);
+                //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - QUAD - name=%s\n", src[i].name);
                 /* prepare name variants */
                 {
                     strncpy(name_se, CAST_NAME_EXT_SE, CAST_NAME_EXT_LEN);
@@ -931,11 +931,11 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
             } else {                                                                                    // SINGLE element
                 const int slen = strlen(src[i].name);
 
-                fprintf(stderr, "INFO rp_copy_params_rp2rb - SINGLE - name=%s\n", src[i].name);
+                //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - SINGLE - name=%s\n", src[i].name);
 
                 if (!strcmp(TRANSPORT_pktIdx, src[i].name)) {
                     l_num_single_params--;
-                    fprintf(stderr, "INFO rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
+                    //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - disregard this entry (1) - name = %s - num_single_params = %d, num_quad_params = %d\n", src[i].name, l_num_single_params, l_num_quad_params);
                     continue;
                 }
 
@@ -978,7 +978,7 @@ int print_rb_params(rb_app_params_t* params)
 
     int i;
     for (i = 0; params[i].name; i++) {
-        fprintf(stderr, "DEBUG print_rb_params: params[%d].name = %s - value = %lf\n", i, params[i].name, params[i].value);
+        fprintf(stderr, "INFO print_rb_params: params[%d].name = %s - value = %lf\n", i, params[i].name, params[i].value);
     }
 
     return 0;

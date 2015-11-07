@@ -168,22 +168,18 @@ void* worker_thread(void* args)
 
         } else if (g_rp_cb_in_params) {
             /* check if new parameters are available */
-            fprintf(stderr, "INFO worker_thread: g_rp_cb_in_params - new data, copying ...\n");
+            //fprintf(stderr, "DEBUG worker_thread: g_rp_cb_in_params - new data, copying ...\n");
             rp_copy_params_rp2rb(&l_cb_in_copy_params, g_rp_cb_in_params);
-#if 1
-            fprintf(stderr, "INFO worker_thread: g_rp_cb_in_params - freeing (2) ...\n");
+
+            //fprintf(stderr, "DEBUG worker_thread: g_rp_cb_in_params - freeing (2) ...\n");
             rp_free_params(&g_rp_cb_in_params);
-#else
-            fprintf(stderr, "INFO worker_thread: g_rp_cb_in_params - NULLing (2) ...\n");
-            g_rp_cb_in_params = NULL;
-#endif
 
             /* take FSM out of idle */
             l_do_normal_state = 1;
 
-            fprintf(stderr, "INFO worker_thread: rp_cb_in_params - printing ...\n");
-            print_rb_params(l_cb_in_copy_params);
-            fprintf(stderr, "INFO worker_thread: rp_cb_in_params - ... done\n");
+            //fprintf(stderr, "DEBUG worker_thread: rp_cb_in_params - printing ...\n");
+            //print_rb_params(l_cb_in_copy_params);
+            //fprintf(stderr, "DEBUG worker_thread: rp_cb_in_params - ... done\n");
         }
         pthread_mutex_unlock(&g_rp_cb_in_params_mutex);
 
@@ -196,13 +192,13 @@ void* worker_thread(void* args)
             /* update modified entries */
             rb_copy_params(&l_next_params, l_cb_in_copy_params, -1, 0);  // modify l_next_params data
 
-            fprintf(stderr, "DEBUG worker_thread: before print_rb_params(l_next_params)\n");
-            print_rb_params(l_next_params);
+            //fprintf(stderr, "DEBUG worker_thread: before print_rb_params(l_next_params)\n");
+            //print_rb_params(l_next_params);
 
             /* drop outdated data */
             pthread_mutex_lock(&g_rb_info_worker_params_mutex);
             {
-                fprintf(stderr, "INFO worker_thread: g_rb_info_worker_params - freeing (5) ...\n");
+                //fprintf(stderr, "INFO worker_thread: g_rb_info_worker_params - freeing (5) ...\n");
                 rb_free_params(&g_rb_info_worker_params);
             }
             pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
@@ -210,9 +206,9 @@ void* worker_thread(void* args)
 
         pthread_mutex_lock(&g_rb_info_worker_params_mutex);
         if (!g_rb_info_worker_params) {  // the outer context removed the list, a current new one has to be created here
-            fprintf(stderr, "INFO worker_thread: UPDATE for rb_info_worker_params\n");
+            //fprintf(stderr, "DEBUG worker_thread: UPDATE for rb_info_worker_params\n");
             rb_copy_params(&g_rb_info_worker_params, l_next_params, -1, 1);
-            print_rb_params(g_rb_info_worker_params);
+            //print_rb_params(g_rb_info_worker_params);
         }
         pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
 
@@ -231,7 +227,7 @@ void* worker_thread(void* args)
         if (l_state == worker_quit_state) {
             //fprintf(stderr, "worker_thread: worker_quit_state received\n");
             //fprintf(stderr, "worker_thread: before freeing curr_params\n");
-#if 0
+#if 1
             fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (9a) ...\n");
             rp_free_params(&g_rp_cb_in_params);
 #else
@@ -262,9 +258,9 @@ void* worker_thread(void* args)
             if (l_cb_in_copy_params) {
                 int fpga_update_count = mark_changed_fpga_update_entries(s_worker_params, l_cb_in_copy_params, !l_params_init_done);  // return count of modified FPGA update values
 
-                //fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data --> update_count = %d\n", fpga_update_count);
+                fprintf(stderr, "INFO worker_thread: worker_normal_state, processing new data --> update_count = %d\n", fpga_update_count);
                 if (fpga_update_count > 0) {
-                    fprintf(stderr, "INFO worker_thread: fpga_update: -->  delegate to fpga_rb_update_all_params()\n");
+                    //fprintf(stderr, "DEBUG worker_thread: fpga_update: -->  delegate to fpga_rb_update_all_params()\n");
                     if (fpga_rb_update_all_params(l_cb_in_copy_params)) {
                         fprintf(stderr, "ERROR worker - RadioBox: setting of FPGA registers failed\n");
                     }
@@ -275,7 +271,7 @@ void* worker_thread(void* args)
                 }
 
                 /* update worker_params */
-                fprintf(stderr, "INFO worker_thread: updating worker_params\n");
+                //fprintf(stderr, "DEBUG worker_thread: updating worker_params\n");
                 rb_copy_params(&s_worker_params, l_cb_in_copy_params, -1, 0);
 
                 //fprintf(stderr, "INFO worker_thread: rp_cb_in_params - freeing (1) ...\n");
@@ -284,11 +280,11 @@ void* worker_thread(void* args)
             /* drop working flag */
             g_transport_pktIdx &= 0x7f;
 
-            fprintf(stderr, "INFO worker_thread: mutex - before l_state change to idle\n");
+            //fprintf(stderr, "DEBUG worker_thread: mutex - before l_state change to idle\n");
             pthread_mutex_lock(&s_worker_ctrl_mutex);
             s_worker_ctrl_state = worker_idle_state;
             pthread_mutex_unlock(&s_worker_ctrl_mutex);
-            fprintf(stderr, "INFO worker_thread: mutex - after l_state change to idle\n");
+            //fprintf(stderr, "DEBUG worker_thread: mutex - after l_state change to idle\n");
 
         } else {  // any unknown states are mapped to QUIT
             pthread_mutex_lock(&s_worker_ctrl_mutex);

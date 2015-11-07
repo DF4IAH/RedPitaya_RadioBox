@@ -54,12 +54,12 @@
     init: {}
   };
   RB.params.init = {
-    rb_run:            0,  // application running
+    rb_run:            1,  // application running
     osc1_modsrc_s:     0,  // mod-source: (none)
     osc1_modtyp_s:     0,  // modulation: AM
-    osc1_qrg_f:  1000000,  //   1 MHz
+    osc1_qrg_f:    10000,  //  10 kHz
     osc2_qrg_f:     1000,  //   1 kHz
-    osc1_amp_f:  636.396,  // 636 mV Vpp @ 50R results to 0 dBm
+    osc1_amp_f:  63.6396,  //  63.6396 mV Vpp @ 50R results to -20 dBm
     osc2_mag_f:        0
   };
 

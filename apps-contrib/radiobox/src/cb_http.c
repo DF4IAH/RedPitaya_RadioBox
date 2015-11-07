@@ -126,7 +126,7 @@ int rp_set_params(rp_app_params_t* p, int len)
     do {
         p_copy = g_rp_cb_in_params;
         if (!p_copy) {
-            fprintf(stderr, "INFO rp_set_params: g_rp_cb_in_params - rp_copy_params(&g_rp_cb_in_params, p, ) ...\n");
+            //fprintf(stderr, "DEBUG rp_set_params: g_rp_cb_in_params - rp_copy_params(&g_rp_cb_in_params, p, ) ...\n");
             rp_copy_params(&g_rp_cb_in_params, p, len, !g_params_init_done);                            // piping to the worker thread
             break;
 
@@ -194,7 +194,7 @@ int rp_get_params(rp_app_params_t** p)
     fprintf(stderr, "?-> rp_get_params - having list with count = %d\n", count);
     *p = p_copy;
 
-    fprintf(stderr, "??? rp_get_params: END\n");
+    fprintf(stderr, "??? rp_get_params: END\n\n");
     return count;
 }
 

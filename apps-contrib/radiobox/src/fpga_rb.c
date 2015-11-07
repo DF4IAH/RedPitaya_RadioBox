@@ -126,18 +126,17 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         return -1;
     }
 
-    int idx = 0;
-    while (1) {
+    int idx;
+    for (idx = 0; p[idx].name; idx++) {
         if (!(p[idx].name)) {
             break;  // end of list
         }
 
         if (!(p[idx].fpga_update & 0x80)) {  // MARKer set?
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
-            idx++;
+            fprintf(stderr, "DEBUG - fpga_rb_update_all_params: skipped not modified parameter (name=%s)\n", p[idx].name);
             continue;  // this value is not marked to update the FPGA
         }
-        //fprintf(stderr, "INFO - fpga_rb_update_all_params: this parameter has to update the FPGA (name=%s)\n", p[idx].name);
+        fprintf(stderr, "DEBUG - fpga_rb_update_all_params: this parameter has to update the FPGA (name=%s)\n", p[idx].name);
 
         /* Remove the marker */
         p[idx].fpga_update &= ~0x80;
@@ -163,37 +162,36 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         /* Since here process on each known parameter accordingly */
 
         if (!strcmp("rb_run", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
             fpga_rb_enable((int) (p[idx].value));
             fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modsrc_s", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, (int) (p[idx].value), loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_modtyp_s", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_qrg_f", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc2_qrg_f", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag);
 
         } else if (!strcmp("osc1_amp_f", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag);
 
         } else if (!strcmp("osc2_mag_f", p[idx].name)) {
-            //fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
             fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value);
         }  // else if ()
 
-        idx++;
-    }  // while (1)
+    }  // for ()
 
     //fprintf(stderr, "fpga_rb_update_all_params: END\n");
     return 0;
@@ -211,52 +209,105 @@ void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, doubl
         fpga_rb_set_osc2_mod_am_fm_pm(osc2_qrg);                                                        // OSC2 frequency
         fpga_rb_set_osc1_mixer_mod_none_fm_pm(osc1_amp);                                                // OSC1 mixer
 
+
+        switch (modtyp) {
+
+        case RB_MODTYP_AM: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for AM\n");
+
+            g_fpga_rb_reg_mem->ctrl &= ~0x00000060;                                                     // control: turn off all other streams
+            g_fpga_rb_reg_mem->ctrl |=  0x00000080;                                                     // control: AM by OSC1 mixer amplitude streaming
+            fpga_rb_set_osc2_mixer_mod_am(osc1_amp, osc2_mag);                                          // AM by streaming in amplitude
+        }
+        break;
+
+        case RB_MODTYP_FM: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for FM\n");
+
+            g_fpga_rb_reg_mem->ctrl &= ~0x000000c0;                                                     // control: turn off all other streams
+            g_fpga_rb_reg_mem->ctrl |=  0x00000020;                                                     // control: FM by OSC1 increment streaming
+            fpga_rb_set_osc2_mixer_mod_fm(osc1_qrg, osc2_mag);                                          // FM by streaming in DDS increment
+        }
+        break;
+
+        case RB_MODTYP_PM: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for PM\n");
+
+            g_fpga_rb_reg_mem->ctrl &= ~0x000000a0;                                                     // control: turn off all other streams
+            g_fpga_rb_reg_mem->ctrl |=  0x00000040;                                                     // control: PM by OSC1 offset streaming
+            fpga_rb_set_osc2_mixer_mod_pm(osc1_qrg, osc2_mag);                                          // PM by streaming in DDS phase offset
+        }
+        break;
+
+        }
+
+
         switch (modsrc) {
 
         default:
         case RB_MODSRC_NONE: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to (none)\n");
+
             g_fpga_rb_reg_mem->ctrl &= ~0x000000e0;                                                     // control: turn off all streams into OSC1 and OSC1 mixer
+            g_fpga_rb_reg_mem->muxin_src = 0x00000000;
         }
         break;
 
         case RB_MODSRC_OSC2: {
-            switch (modtyp) {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to (none)\n");
 
-            case RB_MODTYP_AM: {
-                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for AM\n");
-
-                g_fpga_rb_reg_mem->ctrl &= ~0x00000060;                                                 // control: turn off all other streams
-                g_fpga_rb_reg_mem->ctrl |=  0x00000080;                                                 // control: AM by OSC1 mixer amplitude streaming
-                fpga_rb_set_osc2_mixer_mod_am(osc1_amp, osc2_mag);                                      // AM by streaming in amplitude
-            }
-            break;
-
-            case RB_MODTYP_FM: {
-                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for FM\n");
-
-                g_fpga_rb_reg_mem->ctrl &= ~0x000000c0;                                                 // control: turn off all other streams
-                g_fpga_rb_reg_mem->ctrl |=  0x00000020;                                                 // control: FM by OSC1 increment streaming
-                fpga_rb_set_osc2_mixer_mod_fm(osc1_qrg, osc2_mag);                                      // FM by streaming in DDS increment
-            }
-            break;
-
-            case RB_MODTYP_PM: {
-                fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for PM\n");
-
-                g_fpga_rb_reg_mem->ctrl &= ~0x000000a0;                                                 // control: turn off all other streams
-                g_fpga_rb_reg_mem->ctrl |=  0x00000040;                                                 // control: PM by OSC1 offset streaming
-                fpga_rb_set_osc2_mixer_mod_pm(osc1_qrg, osc2_mag);                                      // PM by streaming in DDS phase offset
-            }
-            break;
-
-            }
+            g_fpga_rb_reg_mem->muxin_src = 0x00000000;
         }
         break;
 
         case RB_MODSRC_RF_IN1: {
-            // TODO to be defined
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to RF_inp_1\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000020;                                                  // source ID: 32
         }
         break;
+
+        case RB_MODSRC_RF_IN2: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to RF_inp_2\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000021;                                                  // source ID: 33
+        }
+        break;
+
+        case RB_MODSRC_EXP_AI0: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to AI0\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000010;                                                  // source ID: 16
+        }
+        break;
+
+        case RB_MODSRC_EXP_AI1: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to AI1\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000018;                                                  // source ID: 24
+        }
+        break;
+
+        case RB_MODSRC_EXP_AI2: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to AI2\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000011;                                                  // source ID: 17
+        }
+        break;
+
+        case RB_MODSRC_EXP_AI3: {
+            fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA modsrc to AI3\n");
+
+            g_fpga_rb_reg_mem->muxin_src = 0x00000019;                                                  // source ID: 25
+        }
+        break;
+
+#if 0
+        case RB_MODSRC_VP_VN: {
+            g_fpga_rb_reg_mem->muxin_src = 0x00000003;                                                  // source ID: 3
+        }
+        break;
+#endif
 
         }  // switch ()
 
@@ -363,11 +414,16 @@ void fpga_rb_enable(int enable)
         // enable RadioBox
         g_fpga_rb_reg_mem->ctrl        = 0x00000001;    // enable RB sub-module
         fpga_rb_reset();
-#if 1
+
+#if 0
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000002;    // show OSC1 mixer output at RB LEDs
-#else
+#elif 0
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000003;    // show OSC1 output at RB LEDs
+#else
+        g_fpga_rb_reg_mem->led_ctrl    = 0x00000007;    // show Mic mixer output at RB LEDs
 #endif
+
+        g_fpga_rb_reg_mem->muxin_gain  = 0x00010000;    // open Mic gain 1:1 (FS = 2Vpp)
 
     } else {
         //fprintf(stderr, "fpga_rb_enable: turning off RB LEDs\n");
