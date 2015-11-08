@@ -427,12 +427,14 @@ int fpga_rb_update_all_params(rb_app_params_t* p);
  * @param[in]  rb_run     RadioBox application  0: disabled, else: enabled.
  * @param[in]  modsrc     0==(none), 1==RF Input 1, 2==RF Input 2, 4==EXP AI0, 5==EXP AI1, 6==EXP AI2, 7==EXP AI3, 15==OSC2
  * @param[in]  modtyp     when modsrc == OSC2: 0==AM, 1==FM, 2==PM - else ignored.
+ * @param[in]  led_ctrl   RB LED controller setting to be used.
  * @param[in]  osc1_qrg   Frequency for OSC1 in Hz.
  * @param[in]  osc2_qrg   Frequency for OSC2 in Hz.
  * @param[in]  osc1_amp   Vpp of OSC1 mixer output in mV.
  * @param[in]  osc2_mag   Magnitude of OSC2 mixer output. AM: 0-100%, FM: 0-1000000 Hz deviation, PM: 0-360°.
+ * @param[in]  muxin_gain Slider value between 0 and 100 for the MUXIN range slider. 50 means amplification of 1:1, 0 and 100 full scale, logarithmic.
  */
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag);
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int led_ctrl, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag, double muxin_gain);
 
 /**
  * @brief Calculates and programs the FPGA OSC1 for AM and PM
@@ -479,6 +481,14 @@ void fpga_rb_set_osc2_mixer_mod_fm(double osc1_qrg, double osc2_mag);
  * @param[in]  osc2_mag   Deviation in deg.
  */
 void fpga_rb_set_osc2_mixer_mod_pm(double osc1_qrg, double osc2_mag);
+
+/**
+ * @brief Calculates and programs the FPGA MUXIN gain setting
+ *
+ * @param[in]  muxin_gain Slider value between 0 and 100 for the MUXIN range slider. 50 means amplification of 1:1, 0 and 100 full scale, logarithmic.
+ */
+void fpga_rb_set_muxin_gain(double muxin_gain);
+
 
 /**
  * @brief Enables or disables RadioBox FPGA sub-module

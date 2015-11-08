@@ -86,10 +86,12 @@ enum rb_params_enum_t {
     RB_RUN                  =  0,
     RB_OSC1_MODSRC,
     RB_OSC1_MODTYP,
+    RB_LED_CTRL,
     RB_OSC1_QRG,
     RB_OSC2_QRG,
     RB_OSC1_AMP,
     RB_OSC2_MAG,
+    RB_MUXIN_GAIN,
 
     RB_PARAMS_NUM
 } RB_PARAMS_ENUM;
@@ -121,6 +123,16 @@ enum rb_modtyp_enum_t {
 #define TRACE_NUM   3
 /** @brief The number of points that a single trace holds */
 #define TRACE_LENGTH (1024) /* Must be 2^n! */
+
+
+/**
+ * @brief Test variable name for single or quad variable names
+ *
+ * @param[in]   name     C string name to be tested.
+ * @retval      1        Confirmative: name is a variable name for quad data transfer.
+ * @retval      0        Negative: name is a variable name for single data transfer.
+ */
+int is_quad(const char* name);
 
 
 /**

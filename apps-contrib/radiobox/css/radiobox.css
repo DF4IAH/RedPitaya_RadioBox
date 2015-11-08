@@ -66,6 +66,17 @@ input#osc2_mag_f[disabled] {
   background:#707070;
 }
 
+#muxin_gain {
+  position:relative;
+  z-index:1;
+}
+.form-bg-muxin-gain {
+  background:#805810;
+}
+input#muxin_gain_f[disabled] {
+  background:#707070;
+}
+
 
 .table-toolbox {
   border:1px solid;

@@ -53,14 +53,16 @@
     local: {},
     init: {}
   };
-  RB.params.init = {
+  RB.params.init = {       // XXX initital data
     rb_run:            1,  // application running
     osc1_modsrc_s:     0,  // mod-source: (none)
     osc1_modtyp_s:     0,  // modulation: AM
+    rbled_ctrl_s:      7,  // RB LEDs set to Mic mixer output
     osc1_qrg_f:    10000,  //  10 kHz
     osc2_qrg_f:     1000,  //   1 kHz
     osc1_amp_f:  63.6396,  //  63.6396 mV Vpp @ 50R results to -20 dBm
-    osc2_mag_f:        0
+    osc2_mag_f:        0,  // no modulation by default
+    muxin_gain_f:   50.0   // slider in the middle of 100%
   };
 
   // Other global variables
@@ -107,7 +109,7 @@
     RB.params.orig = $.extend(true, {}, RB.params.init);
 
     var pktIdx = 1;
-    while (pktIdx <= 3) {
+    while (pktIdx <= 4) {  // XXX initial pktIdx
       $.post(
         RB.config.post_url,
         JSON.stringify({ datasets: { params: cast_params2transport(RB.params.orig, pktIdx) } })
@@ -188,7 +190,7 @@
   */
 
 
-  /* Server to front-end communication */
+  /* Back-end (server) to front-end communication */
 
   // Parse returned data result from last POST transfer
   RB.parsePacket = function(dresult) {
@@ -209,7 +211,7 @@
     var old_params = $.extend(true, {}, RB.params.orig);
     var send_all_params = Object.keys(new_params).indexOf('send_all_params') != -1;
 
-    for (var param_name in new_params) {
+    for (var param_name in new_params) {  // XXX receiving data from the back-end
       // Save new parameter value
       RB.params.orig[param_name] = new_params[param_name];
       var intVal = parseInt(RB.params.orig[param_name]);
@@ -229,12 +231,6 @@
               $('#RB_STOP').show();
               $('#RB_STOP').css('display', 'block');
           }
-      }
-      else if (param_name == 'osc1_qrg_f') {
-        $('#'+param_name).val(dblVal);
-      }
-      else if (param_name == 'osc1_amp_f') {
-        $('#'+param_name).val(dblVal);
       }
       else if (param_name == 'osc1_modsrc_s') {
         $('#'+param_name).val(intVal);
@@ -257,10 +253,22 @@
         }
         checkKeyDoEnable(param_name, intVal);
       }
+      else if (param_name == 'rbled_ctrl_s') {
+          $('#'+param_name).val(intVal);
+        }
+      else if (param_name == 'osc1_qrg_f') {
+          $('#'+param_name).val(dblVal);
+        }
       else if (param_name == 'osc2_qrg_f') {
         $('#'+param_name).val(dblVal);
       }
+      else if (param_name == 'osc1_amp_f') {
+          $('#'+param_name).val(dblVal);
+        }
       else if (param_name == 'osc2_mag_f') {
+          $('#'+param_name).val(dblVal);
+        }
+      else if (param_name == 'muxin_gain_f') {
         $('#'+param_name).val(dblVal);
       }
 
@@ -355,7 +363,7 @@
   };
 
 
-  /* Front-end to server communication */
+  /* Front-end to back-end (server) communication */
 
   // Sends to server modified parameters
   RB.sendParams = function() {
@@ -373,7 +381,7 @@
     RB.state.sending = true;
 
     var pktIdx = 1;
-    while (pktIdx <= 3) {
+    while (pktIdx <= 4) {  // XXX main-loop pktIdx
       //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
       $.ajax({
         type: 'POST',
@@ -425,7 +433,7 @@
   // Exits from editing mode - create local parameters of changed values and send them away
   RB.exitEditing = function(noclose) {
     console.log('INFO *** RB.exitEditing: RB.params.orig = ', RB.params.orig);
-    for (var key in RB.params.orig) {
+    for (var key in RB.params.orig) {  // XXX controller to message handling
       var field = $('#' + key);
       var value = undefined;
 
@@ -433,7 +441,15 @@
         value = (field.is(':visible') ? 1 : 0);
       }
 
-      else if (field.is('select') || (field.is('input') && !field.is('input:radio')) || field.is('input:text')) {
+      else if (field.is('button')) {
+        value = (field.hasClass('active') ? 1 : 0);
+      }
+
+      else if (field.is('input:radio')) {
+          value = parseInt($('input[name="' + key + '"]:checked').val());
+      }
+
+      else if (field.is('select') || field.is('input')) {
         if (checkKeyIs_F(key)) {
           value = parseFloat(field.val());
         } else {
@@ -441,13 +457,6 @@
         }
       }
 
-      else if (field.is('button')) {
-        value = (field.hasClass('active') ? 1 : 0);
-      }
-
-      else if (field.is('input:radio')) {
-        value = parseInt($('input[name="' + key + '"]:checked').val());
-      }
       console.log('INFO RB.exitEditing: ' + key + ' WANT to change from ' + RB.params.orig[key] + ' to ' + value);
 
       // Check for specific values and enables/disables controllers
@@ -464,6 +473,7 @@
         console.log('INFO RB.exitEditing: ' + key + ' CHANGED from ' + RB.params.orig[key] + ' to ' + new_value);
         RB.params.local[key] = new_value;
         //RB.params.local[key] = { value: new_value };
+
         // } else {
         //   if (value === undefined) {
         //     console.log(key + ' value is undefined');
@@ -485,7 +495,7 @@
   };
 }(window.RB = window.RB || {}, jQuery));
 
-function checkKeyDoEnable(key, value) {
+function checkKeyDoEnable(key, value) {  // XXX checkKeyDoEnable controllers
   if (key == 'osc1_modsrc_s') {
     if (value == 15) {
       /* OSC2 */
@@ -498,6 +508,9 @@ function checkKeyDoEnable(key, value) {
       $('#osc2_mag_f').removeAttr("disabled");
       $('#apply_osc2_mag').removeAttr("style");
 
+      $('#muxin_gain_f').attr("disabled", "disabled");
+      $('#apply_muxin_gain').attr("style", "visibility:hidden");
+
     } else if (value) {
       /* External */
       $('#osc1_modtyp_s').removeAttr("disabled");
@@ -509,6 +522,9 @@ function checkKeyDoEnable(key, value) {
       $('#osc2_mag_f').removeAttr("disabled");
       $('#apply_osc2_mag').removeAttr("style");
 
+      $('#muxin_gain_f').removeAttr("disabled");
+      $('#apply_muxin_gain').removeAttr("style");
+
     } else {
       /* (none) */
       $('#osc1_modtyp_s').attr("disabled", "disabled");
@@ -519,6 +535,9 @@ function checkKeyDoEnable(key, value) {
 
       $('#osc2_mag_f').attr("disabled", "disabled");
       $('#apply_osc2_mag').attr("style", "visibility:hidden");
+
+      $('#muxin_gain_f').attr("disabled", "disabled");
+      $('#apply_muxin_gain').attr("style", "visibility:hidden");
     }
   }
 }
@@ -724,12 +743,12 @@ $('#RB_CH1_OFFSET_UNIT').bind("DOMSubtreeModified",function() {
 });
 */
 
-/*
 $( document ).ready(function() {
+  /*
   updateLimits();
   formatVals();
+  */
 });
-*/
 
 
 function cast_4xfloat_to_1xdouble(quad)
@@ -746,12 +765,6 @@ function cast_4xfloat_to_1xdouble(quad)
   var lo_i = quad.lo;
 
   if (quad.se || quad.hi || quad.mi || quad.lo) {
-    // avoid under-rounding to float
-//    quad.se = (int) (0.5 + quad.se);
-//    quad.hi = (int) (0.5 + quad.hi);
-//    quad.mi = (int) (0.5 + quad.mi);
-//    quad.lo = (int) (0.5 + quad.lo);
-
     /* normalized data */
     var mant_idx;
     for (mant_idx = 0; mant_idx < IEEE754_DOUBLE_MNT_BITS; ++mant_idx) {
@@ -795,7 +808,7 @@ function cast_4xfloat_to_1xdouble(quad)
     }
   }
 
-  console.log('INFO cast_4xfloat_to_1xdouble: out(d=', d, ') <-- in(quad.se=', se_i, ', quad.hi=', hi_i, ', quad.mi=', mi_i, ', quad.lo=', lo_i, ')\n');
+  //console.log('INFO cast_4xfloat_to_1xdouble: out(d=', d, ') <-- in(quad.se=', se_i, ', quad.hi=', hi_i, ', quad.mi=', mi_i, ', quad.lo=', lo_i, ')\n');
   return d;
 }
 
@@ -864,23 +877,18 @@ function cast_1xdouble_to_4xfloat(d)
     }
   }
 
-  // avoid under-rounding when float to int during transportation
-  //quad.se += 0.01;
-  //quad.hi += 0.01;
-  //quad.mi += 0.01;
-  //quad.lo += 0.01;
-
-  console.log('INFO cast_1xdouble_to_4xfloat: out(se=', quad.se, ', hi=', quad.hi, ', mi=', quad.mi, ', lo=', quad.lo, ') <-- in(d=', di, ')\n');
+  //console.log('INFO cast_1xdouble_to_4xfloat: out(se=', quad.se, ', hi=', quad.hi, ', mi=', quad.mi, ', lo=', quad.lo, ') <-- in(d=', di, ')\n');
   return quad;
 }
 
 function cast_params2transport(params, pktIdx)
-{
+{  // XXX params --> transport
   var transport = { };
 
   transport['pktIdx']  = pktIdx;
 
-  switch (pktIdx) {
+  // max. eight single variables or two quad variables with each packet
+  switch (pktIdx) {  // XXX pktIdx packaging
   case 1:
     if (params['rb_run'] !== undefined) {
       transport['rb_run'] = params['rb_run'];
@@ -892,6 +900,10 @@ function cast_params2transport(params, pktIdx)
 
     if (params['osc1_modtyp_s'] !== undefined) {
       transport['osc1_modtyp_s'] = params['osc1_modtyp_s'];
+    }
+
+    if (params['rbled_ctrl_s'] !== undefined) {
+      transport['rbled_ctrl_s'] = params['rbled_ctrl_s'];
     }
     break;
 
@@ -931,6 +943,16 @@ function cast_params2transport(params, pktIdx)
     }
     break;
 
+  case 4:
+    if (params['muxin_gain_f'] !== undefined) {
+      var quad = cast_1xdouble_to_4xfloat(params['muxin_gain_f']);
+      transport['SE_muxin_gain_f'] = quad.se;
+      transport['HI_muxin_gain_f'] = quad.hi;
+      transport['MI_muxin_gain_f'] = quad.mi;
+      transport['LO_muxin_gain_f'] = quad.lo;
+    }
+    break;
+
   default:
     // no limitation of output data
     break;
@@ -941,7 +963,7 @@ function cast_params2transport(params, pktIdx)
 }
 
 function cast_transport2params(transport)
-{
+{  // XXX transport --> params
   var params = { };
 
   if (transport['rb_run'] !== undefined) {
@@ -954,6 +976,10 @@ function cast_transport2params(transport)
 
   if (transport['osc1_modtyp_s'] !== undefined) {
     params['osc1_modtyp_s'] = transport['osc1_modtyp_s'];
+  }
+
+  if (transport['rbled_ctrl_s'] !== undefined) {
+    params['rbled_ctrl_s'] = transport['rbled_ctrl_s'];
   }
 
   if (transport['LO_osc1_qrg_f'] !== undefined) {
@@ -990,6 +1016,15 @@ function cast_transport2params(transport)
     quad.mi = transport['MI_osc2_mag_f'];
     quad.lo = transport['LO_osc2_mag_f'];
     params['osc2_mag_f'] = cast_4xfloat_to_1xdouble(quad);
+  }
+
+  if (transport['LO_muxin_gain_f'] !== undefined) {
+    var quad = { };
+    quad.se = transport['SE_muxin_gain_f'];
+    quad.hi = transport['HI_muxin_gain_f'];
+    quad.mi = transport['MI_muxin_gain_f'];
+    quad.lo = transport['LO_muxin_gain_f'];
+    params['muxin_gain_f'] = cast_4xfloat_to_1xdouble(quad);
   }
 
   console.log('INFO cast_transport2params: out(params=', params, ') <-- in(transport=', transport, ')\n');

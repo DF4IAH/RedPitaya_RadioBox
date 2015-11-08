@@ -54,45 +54,6 @@ int                             g_fpga_rb_mem_fd = -1;
 /** @brief RadioBox memory layout of the FPGA registers */
 fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
 
-#if 0
-/** @brief Describes app. parameters with some info/limitations */
-const rp_app_params_t rp_default_params[RB_PARAMS_NUM + 1] = {
-    { /* Running mode */
-        "rb_run",           0.0f,  1, 0, 0.0f,      1.0f },
-
-    { /* Oscillator-1 modulation source selector
-       * ( 0: none,
-       *   1: RF Input 1,
-       *   2: RF Input 2,
-       *   4: EXT AI0,
-       *   5: EXT AI1,
-       *   6: EXT AI2,
-       *   7: EXT AI3,
-       *  15: OSC2
-       * )
-       **/
-        "osc1_modsrc_s",    0.0f,  1,  0, 0.0f,    15.0f },
-
-    { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
-        "osc1_modtyp_s",    0.0f,  1,  0, 0.0f,     2.0f },
-
-    { /* Oscillator-1 frequency (Hz) */
-        "osc1_qrg_f",       0.0f,  1,  0, 0.0f, 62.5e+9f },
-
-    { /* Oscillator-2 frequency (Hz) */
-        "osc2_qrg_f",       0.0f,  1,  0, 0.0f, 62.5e+9f },
-
-    { /* Oscillator-1 amplitude (mV) */
-        "osc1_amp_f",       0.0f,  1,  0, 0.0f, 2047e+3f },
-
-    { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
-        "osc2_mag_f",       0.0f,  1,  0, 0.0f,    1e+9f },
-
-    { /* Must be last! */
-        NULL,               0.0f, -1, -1, 0.0f,     0.0f }
-};
-#endif
-
 /** @brief Describes app. parameters with some info/limitations in high definition */
 const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
     { /* Running mode */
@@ -114,6 +75,9 @@ const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
     { /* Oscillator-1 modulation type selector (0: AM, 1: FM, 2: PM) */
         "osc1_modtyp_s",    0.0,   1,  0, 0.0,      2.0  },
 
+    { /* RB LED control */
+        "rbled_ctrl_s",     0.0,   1,  0, 0.0,     15.0  },
+
     { /* Oscillator-1 frequency (Hz) */
         "osc1_qrg_f",       0.0,   1,  0, 0.0,  62.5e+6  },
 
@@ -125,6 +89,9 @@ const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
 
     { /* Oscillator-2 magnitude (AM:%, FM:Hz, PM:°) */
         "osc2_mag_f",       0.0,   1,  0, 0.0,     1e+6  },
+
+    { /* MUX in (Mic in) slider ranges from 0% to 100% */
+        "muxin_gain_f",     0.0,   1,  0, 0.0,    100.0  },
 
     { /* Must be last! */
         NULL,               0.0,  -1, -1, 0.0,      0.0  }
@@ -158,6 +125,17 @@ const char CAST_NAME_EXT_HI[]      = "HI_";
 const char CAST_NAME_EXT_MI[]      = "MI_";
 const char CAST_NAME_EXT_LO[]      = "LO_";
 const int  CAST_NAME_EXT_LEN       = 3;
+
+
+/*----------------------------------------------------------------------------------*/
+int is_quad(const char* name)
+{
+    char* ptr = strrchr(name, '_');
+    if (ptr && !strcmp("_f", ptr)) {
+        return 1;
+    }
+    return 0;
+}
 
 
 /*----------------------------------------------------------------------------------*/
@@ -614,8 +592,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
             int i;
             for (i = 0; src[i].name; i++) {
                 //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - get_the_number_entries - name=%s\n", src[i].name);
-                char* ptr = strrchr(src[i].name, '_');
-                if (ptr && !strcmp("_f", ptr)) {
+                if (is_quad(src[i].name)) {
                     l_num_quad_params++;
                 } else {
                     l_num_single_params++;
@@ -635,57 +612,56 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
         int i, j;
         for (i = 0, j = 0; src[i].name; i++) {
             const int slen = strlen(src[i].name);
+            char found = 0;
 
             /* limit transfer volume to a part of all param entries, @see cb_http.crp_set_params() */
             switch (g_transport_pktIdx & 0x7f) {
             case 1:
-                if (!strcmp("osc1_qrg_f", src[i].name) ||
-                    !strcmp("osc2_qrg_f", src[i].name) ||
-                    !strcmp("osc1_amp_f", src[i].name) ||
-                    !strcmp("osc2_mag_f", src[i].name)) {
-                    l_num_quad_params--;
-                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (1) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
-                    continue;
+                if (!strcmp("rb_run",        src[i].name) ||
+                    !strcmp("osc1_modsrc_s", src[i].name) ||
+                    !strcmp("osc1_modtyp_s", src[i].name) ||
+                    !strcmp("rbled_ctrl_s",  src[i].name)) {
+                    found = 1;
                 }
                 break;
 
             case 2:
-                if (!strcmp("rb_run",        src[i].name) ||
-                    !strcmp("osc1_modsrc_s", src[i].name) ||
-                    !strcmp("osc1_modtyp_s", src[i].name)) {
-                    l_num_single_params--;
-                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (2a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
-                    continue;
-                } else if (!strcmp("osc1_amp_f", src[i].name) ||
-                           !strcmp("osc2_mag_f", src[i].name)) {
-                    l_num_quad_params--;
-                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (2b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
-                    continue;
+                if (!strcmp("osc1_qrg_f",    src[i].name) ||
+                    !strcmp("osc2_qrg_f",    src[i].name)) {
+                    found = 1;
                 }
                 break;
 
             case 3:
-                if (!strcmp("rb_run",        src[i].name) ||
-                    !strcmp("osc1_modsrc_s", src[i].name) ||
-                    !strcmp("osc1_modtyp_s", src[i].name)) {
-                    l_num_single_params--;
-                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (3a) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
-                    continue;
-                } else if (!strcmp("osc1_qrg_f", src[i].name) ||
-                           !strcmp("osc2_qrg_f", src[i].name)) {
-                    l_num_quad_params--;
-                    //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer (3b) - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
-                    continue;
+                if (!strcmp("osc1_amp_f",    src[i].name) ||
+                    !strcmp("osc2_mag_f",    src[i].name)) {
+                    found = 1;
+                }
+                break;
+
+            case 4:
+                if (!strcmp("muxin_gain_f",  src[i].name)) {
+                    found = 1;
                 }
                 break;
 
             default:
                 /* no limitation of output data */
+                   found = 1;
                 break;
             }
 
-            char* ptr = strrchr(src[i].name, '_');
-            if (ptr && !strcmp("_f", ptr)) {                                                            // float parameter --> QUAD encoder
+            if (!found) {
+                if (is_quad(src[i].name)) {
+                    l_num_quad_params--;
+                } else {
+                    l_num_single_params--;
+                }
+                //fprintf(stderr, "DEBUG rp_copy_params_rb2rp - Limit transfer - for pktIdx = %d  no  name = %s - num_single_params = %d, num_quad_params = %d - continue\n", g_transport_pktIdx, src[i].name, l_num_single_params, l_num_quad_params);
+                continue;
+            }
+
+            if (is_quad(src[i].name)) {                                                                 // float parameter --> QUAD encoder
                 int j_se = j++;
                 int j_hi = j++;
                 int j_mi = j++;
@@ -771,8 +747,7 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
         int i;
         for (i = 0; src[i].name; i++) {
             //fprintf(stderr, "DEBUG rp_copy_params_rp2rb - get_the_number_entries - name=%s\n", src[i].name);
-            char* ptr = strrchr(src[i].name, '_');
-            if (ptr && !strcmp("_f", ptr)) {
+            if (is_quad(src[i].name)) {
                 /* count LO_yyy entries */
                 if (!strncmp(CAST_NAME_EXT_LO, src[i].name, CAST_NAME_EXT_LEN)) {
                     l_num_quad_params++;

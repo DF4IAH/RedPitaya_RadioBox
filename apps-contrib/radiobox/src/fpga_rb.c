@@ -111,13 +111,15 @@ int fpga_rb_exit(void)
 /*----------------------------------------------------------------------------*/
 int fpga_rb_update_all_params(rb_app_params_t* p)
 {
-    int    loc_rb_run   = 0;
-    int    loc_modsrc   = 0;
-    int    loc_modtyp   = 0;
-    double loc_osc1_qrg = 0.0;
-    double loc_osc2_qrg = 0.0;
-    double loc_osc1_amp = 0.0;
-    double loc_osc2_mag = 0.0;
+    int    loc_rb_run     = 0;
+    int    loc_modsrc     = 0;
+    int    loc_modtyp     = 0;
+    int    loc_led_ctrl   = 0;
+    double loc_osc1_qrg   = 0.0;
+    double loc_osc2_qrg   = 0.0;
+    double loc_osc1_amp   = 0.0;
+    double loc_osc2_mag   = 0.0;
+    double loc_muxin_gain = 0.0;
 
     //fprintf(stderr, "fpga_rb_update_all_params: BEGIN\n");
 
@@ -147,13 +149,15 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
             pthread_mutex_lock(&g_rb_info_worker_params_mutex);
             if (g_rb_info_worker_params) {
                 //print_rb_params(rb_info_worker_params);
-                loc_rb_run   = (int) g_rb_info_worker_params[RB_RUN].value;
-                loc_modsrc   = (int) g_rb_info_worker_params[RB_OSC1_MODSRC].value;
-                loc_modtyp   = (int) g_rb_info_worker_params[RB_OSC1_MODTYP].value;
-                loc_osc1_qrg = g_rb_info_worker_params[RB_OSC1_QRG].value;
-                loc_osc2_qrg = g_rb_info_worker_params[RB_OSC2_QRG].value;
-                loc_osc1_amp = g_rb_info_worker_params[RB_OSC1_AMP].value;
-                loc_osc2_mag = g_rb_info_worker_params[RB_OSC2_MAG].value;
+                loc_rb_run     = (int) g_rb_info_worker_params[RB_RUN].value;
+                loc_modsrc     = (int) g_rb_info_worker_params[RB_OSC1_MODSRC].value;
+                loc_modtyp     = (int) g_rb_info_worker_params[RB_OSC1_MODTYP].value;
+                loc_led_ctrl   = (int) g_rb_info_worker_params[RB_LED_CTRL].value;
+                loc_osc1_qrg   = g_rb_info_worker_params[RB_OSC1_QRG].value;
+                loc_osc2_qrg   = g_rb_info_worker_params[RB_OSC2_QRG].value;
+                loc_osc1_amp   = g_rb_info_worker_params[RB_OSC1_AMP].value;
+                loc_osc2_mag   = g_rb_info_worker_params[RB_OSC2_MAG].value;
+                loc_muxin_gain = g_rb_info_worker_params[RB_MUXIN_GAIN].value;
             }
             pthread_mutex_unlock(&g_rb_info_worker_params_mutex);
             //fprintf(stderr, "INFO - fpga_rb_update_all_params: ... done\n");
@@ -164,31 +168,39 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         if (!strcmp("rb_run", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rb_run = %d\n", (int) (p[idx].value));
             fpga_rb_enable((int) (p[idx].value));
-            fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl((int) p[idx].value, loc_modsrc, loc_modtyp, loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc1_modsrc_s", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modsrc_s = %d\n", (int) (p[idx].value));
-            fpga_rb_set_ctrl(loc_rb_run, (int) (p[idx].value), loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl(loc_rb_run, (int) (p[idx].value), loc_modtyp, loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc1_modtyp_s", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_modtyp_s = %d\n", (int) (p[idx].value));
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, (int) (p[idx].value), loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
+
+        } else if (!strcmp("loc_led_ctrl_s", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got led_ctrl_s = %d\n", (int) (p[idx].value));
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, (int) (p[idx].value), loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc1_qrg_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_qrg_f = %lf\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_led_ctrl, p[idx].value, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc2_qrg_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_qrg_f = %lf\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_led_ctrl, loc_osc1_qrg, p[idx].value, loc_osc1_amp, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc1_amp_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc1_amp_f = %lf\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, p[idx].value, loc_osc2_mag, loc_muxin_gain);
 
         } else if (!strcmp("osc2_mag_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got osc2_mag_f = %lf\n", p[idx].value);
-            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, p[idx].value, loc_muxin_gain);
+
+        } else if (!strcmp("muxin_gain_f", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got muxin_gain_f = %lf\n", p[idx].value);
+            fpga_rb_set_ctrl(loc_rb_run, loc_modsrc, loc_modtyp, loc_led_ctrl, loc_osc1_qrg, loc_osc2_qrg, loc_osc1_amp, loc_osc2_mag, p[idx].value);
         }  // else if ()
 
     }  // for ()
@@ -199,16 +211,18 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
 
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag)
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int led_ctrl, double osc1_qrg, double osc2_qrg, double osc1_amp, double osc2_mag, double muxin_gain)
 {
     //fprintf(stderr, "INFO - fpga_rb_set_ctrl: rb_run=%d, modsrc=%d, modtyp=%d, osc1_qrg=%lf, osc2_qrg=%lf, osc1_amp=%lf, osc2_mag=%lf\n",
     //        rb_run, modsrc, modtyp, osc1_qrg, osc2_qrg, osc1_amp, osc2_mag);
+
+    g_fpga_rb_reg_mem->led_ctrl = led_ctrl;
 
     if (rb_run) {
         fpga_rb_set_osc1_mod_none_am_pm(osc1_qrg);                                                      // OSC1 frequency
         fpga_rb_set_osc2_mod_am_fm_pm(osc2_qrg);                                                        // OSC2 frequency
         fpga_rb_set_osc1_mixer_mod_none_fm_pm(osc1_amp);                                                // OSC1 mixer
-
+        fpga_rb_set_muxin_gain(muxin_gain);                                                             // MUXIN gain setting
 
         switch (modtyp) {
 
@@ -400,6 +414,38 @@ void fpga_rb_set_osc2_mixer_mod_pm(double osc1_qrg, double osc2_mag)
     g_fpga_rb_reg_mem->osc2_mix_ofs_hi = (uint32_t) 0;
 }
 
+/*----------------------------------------------------------------------------*/
+void fpga_rb_set_muxin_gain(double muxin_gain)
+{
+    double p;
+
+    if (muxin_gain > 100.0) {
+        muxin_gain = 100.0;
+    }
+
+    if (!muxin_gain) {
+        p = 0.0;
+    } else {
+        p  = (muxin_gain / 50.0) - 1.0;  // now the value is in the range [-1 (=off) .. 0 (=neutral) .. 1 (=max)]
+#if 1
+        p  = pow(2 << 16, p);            // range: 1 .. 2^(+16) .. 2^(+32)
+#else
+        const double k = log10(2 << 16);
+        p  = pow(2 << 16, p * k);        // range: 2^(-16) .. 1 .. 2^(+16)
+#endif
+        p *= (2 << 16);                  // range: 1 .. 2^(+16) .. 2^(+32)
+
+        if (p < 0.0) {
+            p = 0.0;
+        } else if (p >= 0xffffffff) {
+            p = 0xffffffff;
+        }
+    }
+    g_fpga_rb_reg_mem->muxin_gain = (uint32_t) (((uint64_t) p) & 0xffffffff);
+
+    fprintf(stderr, "DEBUG - fpga_rb_set_muxin_gain: muxin_gain=%lf, program_value=%016llx\n", muxin_gain, (uint64_t) p);
+}
+
 
 /*----------------------------------------------------------------------------*/
 void fpga_rb_enable(int enable)
@@ -415,11 +461,13 @@ void fpga_rb_enable(int enable)
         g_fpga_rb_reg_mem->ctrl        = 0x00000001;    // enable RB sub-module
         fpga_rb_reset();
 
-#if 0
+#if 1
+        g_fpga_rb_reg_mem->led_ctrl    = 0x00000000;    // disable RB LEDs
+#elif 0
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000002;    // show OSC1 mixer output at RB LEDs
 #elif 0
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000003;    // show OSC1 output at RB LEDs
-#else
+#elif 0
         g_fpga_rb_reg_mem->led_ctrl    = 0x00000007;    // show Mic mixer output at RB LEDs
 #endif
 
