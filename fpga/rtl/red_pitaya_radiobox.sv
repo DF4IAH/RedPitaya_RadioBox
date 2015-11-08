@@ -273,8 +273,8 @@ wire [15:0] muxin_mix_in = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h20) ?  { ~adc_i
 wire [32:0] muxin_mix_gain = { 1'b0, regs[REG_RW_RB_MUXIN_GAIN][31:0] };
 wire [47:0] muxin_mix_p;
 
-wire [47:0] muxin_mix_out;
-assign muxin_mix_out = muxin_mix_p[47:0];                              // TODO to be replaced by a saturation variant
+wire [15:0] muxin_mix_out;
+assign muxin_mix_out[15:0] = { muxin_mix_p[47], muxin_mix_p[32:17]};   // TODO to be replaced by a saturation variant
 
 always @(posedge clk_adc_125mhz)
 begin
@@ -375,7 +375,7 @@ rb_dds_48_16_125 i_rb_osc2_dds (
 //---------------------------------------------------------------------------------
 //  OSC2 (modulation) - signal amplitude multiplications
 
-wire [47:0] osc2_stream_in  = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h00) ?  osc2_axis_m_data : muxin_mix_out;  // when ADC source ID is zero, default to OSC2
+wire [15:0] osc2_stream_in  = (regs[REG_RW_RB_MUXIN_SRC][5:0] == 6'h00) ?  osc2_axis_m_data : muxin_mix_out;  // when ADC source ID is zero, default to OSC2
 wire [32:0] osc2_mix_gain   = { regs[REG_RW_RB_OSC2_MIX_GAIN][31:0], 1'b0 };
 wire [47:0] osc2_mix_ofs    = { regs[REG_RW_RB_OSC2_MIX_OFS_HI][15:0], regs[REG_RW_RB_OSC2_MIX_OFS_LO][31:0] };
 
