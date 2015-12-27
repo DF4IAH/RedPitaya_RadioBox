@@ -96,15 +96,15 @@ void fpga_rb_enable(int enable)
         g_fpga_rb_reg_mem->ctrl        = 0x00000001;    // enable RB sub-module
         fpga_rb_reset();
 
-        g_fpga_rb_reg_mem->led_ctrl    = 0x00000000;    // disable RB LEDs
-        g_fpga_rb_reg_mem->muxin_gain  = 0x00001111;    // open Mic gain 1:1 (FS = 2Vpp)
+        g_fpga_rb_reg_mem->src_con_pnt = 0x001C0000;    // disable RB LEDs, set RFOUT1 to AMP_RF output and RFOUT2 to silence
+        g_fpga_rb_reg_mem->muxin_gain  = 0x00007FFF;    // open Mic gain 1:1 (FS = 2Vpp) = 80 % Mic gain setting
 
-        g_fpga_rb_reg_mem->amp_rf_gain = 0;             // no output
+        g_fpga_rb_reg_mem->amp_rf_gain = 0x00000C80;    // open RF output at -10 dBm (= 200 mVpp @ 50 Ohm)
         g_fpga_rb_reg_mem->amp_rf_ofs  = 0;             // no corrections done
 
     } else {
         //fprintf(stderr, "fpga_rb_enable: turning off RB LEDs\n");
-        g_fpga_rb_reg_mem->led_ctrl    = 0x00000000;    // disable RB LEDs
+        g_fpga_rb_reg_mem->src_con_pnt = 0x00000000;    // disable RB LEDs, RFOUT1 and RFOUT2
         g_fpga_rb_reg_mem->muxin_gain  = 0x00000000;    // shut Mic input
 
         g_fpga_rb_reg_mem->amp_rf_gain = 0;             // no output
@@ -160,7 +160,9 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
     int    loc_rb_run      = 0;
     int    loc_modsrc      = 0;
     int    loc_modtyp      = 0;
-    int    loc_rbled_ctrl  = 0;
+    int    loc_led_csp     = 0;
+    int    loc_rfout1_csp  = 0;
+    int    loc_rfout2_csp  = 0;
     double loc_car_osc_qrg = 0.0;
     double loc_mod_osc_qrg = 0.0;
     double loc_amp_rf_gain = 0.0;
@@ -181,9 +183,11 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         if (g_rb_info_worker_params) {
             //print_rb_params(rb_info_worker_params);
             loc_rb_run      = (int) g_rb_info_worker_params[RB_RUN].value;
-            loc_modsrc      = (int) g_rb_info_worker_params[RB_CAR_MOD_OSCSRC].value;
-            loc_modtyp      = (int) g_rb_info_worker_params[RB_CAR_MOD_OSCTYP].value;
-            loc_rbled_ctrl  = (int) g_rb_info_worker_params[RB_LED_CTRL].value;
+            loc_modsrc      = (int) g_rb_info_worker_params[RB_CAR_OSC_MODSRC].value;
+            loc_modtyp      = (int) g_rb_info_worker_params[RB_CAR_OSC_MODTYP].value;
+            loc_led_csp     = (int) g_rb_info_worker_params[RB_LED_CON_SRC_PNT].value;
+            loc_rfout1_csp  = (int) g_rb_info_worker_params[RB_RFOUT1_CON_SRC_PNT].value;
+            loc_rfout2_csp  = (int) g_rb_info_worker_params[RB_RFOUT2_CON_SRC_PNT].value;
             loc_car_osc_qrg = g_rb_info_worker_params[RB_CAR_OSC_QRG].value;
             loc_mod_osc_qrg = g_rb_info_worker_params[RB_MOD_OSC_QRG].value;
             loc_amp_rf_gain = g_rb_info_worker_params[RB_AMP_RF_GAIN].value;
@@ -222,9 +226,19 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got car_osc_modtyp_s = %d\n", (int) (p[idx].value));
             loc_modtyp = ((int) (p[idx].value));
 
-        } else if (!strcmp("rbled_ctrl_s", p[idx].name)) {
-            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rbled_ctrl_s = %d\n", (int) (p[idx].value));
-            loc_rbled_ctrl = ((int) (p[idx].value));
+
+        } else if (!strcmp("rbled_csp_s", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rbled_csp_s = %d\n", (int) (p[idx].value));
+            loc_led_csp = ((int) (p[idx].value));
+
+        } else if (!strcmp("rfout1_csp_s", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rfout1_csp_s = %d\n", (int) (p[idx].value));
+            loc_rfout1_csp = ((int) (p[idx].value));
+
+        } else if (!strcmp("rfout2_csp_s", p[idx].name)) {
+            fprintf(stderr, "INFO - fpga_rb_update_all_params: #got rfout2_csp_s = %d\n", (int) (p[idx].value));
+            loc_rfout2_csp = ((int) (p[idx].value));
+
 
         } else if (!strcmp("car_osc_qrg_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got car_osc_qrg_f = %lf\n", p[idx].value);
@@ -234,6 +248,7 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got mod_osc_qrg_f = %lf\n", p[idx].value);
             loc_mod_osc_qrg = p[idx].value;
 
+
         } else if (!strcmp("amp_rf_gain_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got amp_rf_gain_f = %lf\n", p[idx].value);
             loc_amp_rf_gain = p[idx].value;
@@ -241,6 +256,7 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
         } else if (!strcmp("mod_osc_mag_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got mod_osc_mag_f = %lf\n", p[idx].value);
             loc_mod_osc_mag = p[idx].value;
+
 
         } else if (!strcmp("muxin_gain_f", p[idx].name)) {
             fprintf(stderr, "INFO - fpga_rb_update_all_params: #got muxin_gain_f = %lf\n", p[idx].value);
@@ -256,7 +272,7 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
                     loc_rb_run,
                     loc_modsrc,
                     loc_modtyp,
-                    loc_rbled_ctrl,
+                    ((loc_rfout2_csp << 0x18) & 0x3f000000) | ((loc_rfout1_csp << 0x10) & 0x003f0000) | (loc_led_csp & 0x0000003f),
                     loc_car_osc_qrg,
                     loc_mod_osc_qrg,
                     loc_amp_rf_gain,
@@ -271,16 +287,16 @@ int fpga_rb_update_all_params(rb_app_params_t* p)
 
 
 /*----------------------------------------------------------------------------*/
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int led_ctrl, double car_osc_qrg, double mod_osc_qrg, double amp_rf_gain, double mod_osc_mag, double muxin_gain)
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int src_con_pnt, double car_osc_qrg, double mod_osc_qrg, double amp_rf_gain, double mod_osc_mag, double muxin_gain)
 {
     const int ssb_weaver_osc_qrg = 1700.0;
 
-    //fprintf(stderr, "INFO - fpga_rb_set_ctrl: rb_run=%d, modsrc=%d, modtyp=%d, car_osc_qrg=%lf, mod_osc_qrg=%lf, amp_rf_gain=%lf, mod_osc_mag=%lf\n",
-    //        rb_run, modsrc, modtyp, car_osc_qrg, mod_osc_qrg, amp_rf_gain, mod_osc_mag);
+    //fprintf(stderr, "INFO - fpga_rb_set_ctrl: rb_run=%d, modsrc=%d, modtyp=%d, src_con_pnt=%d, car_osc_qrg=%lf, mod_osc_qrg=%lf, amp_rf_gain=%lf, mod_osc_mag=%lf, muxin_gain=%lf\n",
+    //        rb_run, modsrc, modtyp, src_con_pnt, car_osc_qrg, mod_osc_qrg, amp_rf_gain, mod_osc_mag, muxin_gain);
 
-    if (((g_fpga_rb_reg_mem->led_ctrl) & 0xf) != led_ctrl) {
-        fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting led_ctrl to new value = %d\n", led_ctrl);
-        g_fpga_rb_reg_mem->led_ctrl = led_ctrl;
+    if ((g_fpga_rb_reg_mem->src_con_pnt) != src_con_pnt) {
+        fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting src_con_pnt to new value = %d\n", src_con_pnt);
+        g_fpga_rb_reg_mem->src_con_pnt = src_con_pnt;
     }
 
     if (rb_run) {
@@ -451,12 +467,12 @@ void fpga_rb_set_muxin_gain(double muxin_gain)
         g_fpga_rb_reg_mem->muxin_gain = 0;
         //fprintf(stderr, "INFO - fpga_rb_set_muxin_gain: ZERO   muxin_gain=%lf --> bitfield=0x%08x\n", muxin_gain, g_fpga_rb_reg_mem->muxin_gain);
 
-    } else if (muxin_gain <= 80.0) {  // 0% .. 80%
+    } else if (muxin_gain < 80.0) {  // 0% .. 80%-
         uint32_t bitfield = (uint32_t) (0.5 + (muxin_gain * ((double) 0x7fff) / 80.0));
         g_fpga_rb_reg_mem->muxin_gain = (0x7fff & bitfield);  // 16 bit gain value and no booster shift bits
         //fprintf(stderr, "INFO - fpga_rb_set_muxin_gain: NORMAL muxin_gain=%lf --> bitfield=0x%08x\n", muxin_gain, g_fpga_rb_reg_mem->muxin_gain);
 
-    } else {  // 80%+ .. 100%: set the logarithmic amplifier
+    } else {  // 80% .. 100%: set the logarithmic amplifier
         p  = (muxin_gain - 80.0) * (7.0 / 20.0);
         uint32_t bitfield = (uint32_t) (0.5 + p);
         g_fpga_rb_reg_mem->muxin_gain = ((bitfield << 16) | 0x7fff);  // open mixer completely and activate booster
@@ -616,7 +632,7 @@ int fpga_rb_write_register(unsigned int rb_reg_ofs, uint32_t value)
         return -1;
     }
 
-    //fprintf(stderr, "INFO fpga_rb_write_register: Compare LED access: %p, calced=%p\n", &(g_fpga_rb_reg_mem->led_ctrl), ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs);
+    //fprintf(stderr, "INFO fpga_rb_write_register: Compare LED access: %p, calced=%p\n", &(g_fpga_rb_reg_mem->src_con_pnt), ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs);
 
     fprintf(stderr, "fpga_rb_write_register: ofs=0x%06x <-- write=0x%08x\n", rb_reg_ofs, value);
     *((uint32_t*) ((void*) g_fpga_rb_reg_mem) + rb_reg_ofs) = value;

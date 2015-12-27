@@ -47,7 +47,7 @@ module red_pitaya_radiobox #(
    input        [ 13: 0] adc_i[1:0]      ,      // ADC data { CHB, CHA }
 
    // DAC data
-   output       [ 15: 0] rb_out_ch [1:0] ,      // RadioBox output signals
+   output reg   [ 15: 0] rb_out_ch [1:0] ,      // RadioBox output signals
 
    // System bus - slave
    input        [ 31: 0] sys_addr        ,      // bus saddress
@@ -73,14 +73,14 @@ module red_pitaya_radiobox #(
 //  Registers accessed by the system bus
 
 enum {
-    REG_RW_RB_CTRL                      = 0,    // h00: RB control register
+    REG_RW_RB_CTRL                        =  0, // h00: RB control register
     REG_RD_RB_STATUS,                           // h04: EB status register
     REG_RW_RB_ICR,                              // h08: RB interrupt control register
     REG_RD_RB_ISR,                              // h0C: RB interrupt status register
     REG_RW_RB_DMA_CTRL,                         // h10: RB DMA control register
     //REG_RD_RB_RSVD_H14,
     //REG_RD_RB_RSVD_H18,
-    REG_RW_RB_LED_CTRL,                         // h1C: RB LED magnitude indicator
+    REG_RW_RB_RFOUTx_LED_SRC_CON_PNT,           // h1C: RB_LED, RB_RFOUT1 and RB_RFOUT2 connection matrix
 
     REG_RW_RB_CAR_OSC_INC_LO,                   // h20: RB CAR_OSC increment register              LSB:        (Bit 31: 0)
     REG_RW_RB_CAR_OSC_INC_HI,                   // h24: RB CAR_OSC increment register              MSB: 16'b0, (Bit 47:32)
@@ -114,7 +114,7 @@ enum {
 reg  [31: 0]    regs    [REG_RB_COUNT];         // registers to be accessed by the system bus
 
 enum {
-    RB_CTRL_ENABLE                      = 0,    // enabling the RadioBox sub-module
+    RB_CTRL_ENABLE                        =  0, // enabling the RadioBox sub-module
     RB_CTRL_RESET_CAR_OSC,                      // reset CAR_OSC, does not touch clock enable
     RB_CTRL_RESET_MOD_OSC,                      // reset MOD_OSC, does not touch clock enable
     RB_CTRL_RSVD_D03,
@@ -156,7 +156,7 @@ enum {
 } RB_CTRL_BITS_ENUM;
 
 enum {
-    RB_STAT_CLK_EN                      = 0,    // RB clock enable
+    RB_STAT_CLK_EN                        =  0, // RB clock enable
     RB_STAT_RESET,                              // RB reset
     RB_STAT_LEDS_EN,                            // RB LEDs enabled
     RB_STAT_RSVD_D03,
@@ -196,37 +196,37 @@ enum {
 } RB_STAT_BITS_ENUM;
 
 enum {
-    RB_LED_CTRL_NUM_DISABLED            =  0,   // LEDs not touched
-    RB_LED_CTRL_NUM_OFF,                        // all LEDs off (ro be used before switching to DISABLED)
+    RB_SRC_CON_PNT_NUM_DISABLED           =  0, // LEDs not driven by RB,   RFOUTx silence
+    RB_SRC_CON_PNT_NUM_OFF,                     // all LEDs driven but off, RFOUTx silence
 
-    RB_LED_CTRL_NUM_MUXIN_MIX_IN        =  4,   // Magnitude indicator @ ADC selector input
-    RB_LED_CTRL_NUM_MOD_ADC_IN,                 // Magnitude indicator @ modulation amplifier input
-    RB_LED_CTRL_NUM_MOD_ADC_OUT,                // Magnitude indicator @ modulation amplifier output
+    RB_SRC_CON_PNT_NUM_MUXIN_MIX_IN       =  4, // ADC selector input
+    RB_SRC_CON_PNT_NUM_MOD_ADC_IN,              // modulation amplifier input
+    RB_SRC_CON_PNT_NUM_MOD_ADC_OUT,             // modulation amplifier output
 
-    RB_LED_CTRL_NUM_MOD_QMIX_I_S1_OUT   =  8,   // Magnitude indicator @ MOD_QMIX I output at stage 1
-    RB_LED_CTRL_NUM_MOD_QMIX_Q_S1_OUT,          // Magnitude indicator @ MOD_QMIX Q output at stage 1
-    RB_LED_CTRL_NUM_MOD_QMIX_I_S2_OUT,          // Magnitude indicator @ MOD_QMIX I output at stage 2
-    RB_LED_CTRL_NUM_MOD_QMIX_Q_S2_OUT,          // Magnitude indicator @ MOD_QMIX Q output at stage 2
-    RB_LED_CTRL_NUM_MOD_QMIX_I_S3_OUT,          // Magnitude indicator @ MOD_QMIX I output at stage 3
-    RB_LED_CTRL_NUM_MOD_QMIX_Q_S3_OUT,          // Magnitude indicator @ MOD_QMIX Q output at stage 3
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S1_OUT  =  8, // MOD_QMIX I output at stage 1
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S1_OUT,       // MOD_QMIX Q output at stage 1
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S2_OUT,       // MOD_QMIX I output at stage 2
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S2_OUT,       // MOD_QMIX Q output at stage 2
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S3_OUT,       // MOD_QMIX I output at stage 3
+    RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S3_OUT,       // MOD_QMIX Q output at stage 3
 
-    RB_LED_CTRL_NUM_MOD_CIC_I_OUT       = 16,   // Magnitude indicator @ MOD_CIC I output
-    RB_LED_CTRL_NUM_MOD_CIC_Q_OUT,              // Magnitude indicator @ MOD_CIC Q output
-    RB_LED_CTRL_NUM_MOD_FIR_I_OUT,              // Magnitude indicator @ MOD_FIR I output
-    RB_LED_CTRL_NUM_MOD_FIR_Q_OUT,              // Magnitude indicator @ MOD_FIR Q output
-    RB_LED_CTRL_NUM_CAR_CIC_41M664_I_OUT,       // Magnitude indicator @ CAR_CIC I stage 1 -   41.664 MHz output
-    RB_LED_CTRL_NUM_CAR_CIC_41M664_Q_OUT,       // Magnitude indicator @ CAR_CIC Q stage 1 -   41.664 MHz output
+    RB_SRC_CON_PNT_NUM_MOD_CIC_I_OUT      = 16, // MOD_CIC I output
+    RB_SRC_CON_PNT_NUM_MOD_CIC_Q_OUT,           // MOD_CIC Q output
+    RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT,           // MOD_FIR I output
+    RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT,           // MOD_FIR Q output
+    RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT,    // CAR_CIC I stage 1 - 41.664 MHz output
+    RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_Q_OUT,    // CAR_CIC Q stage 1 - 41.664 MHz output
 
-    RB_LED_CTRL_NUM_CAR_QMIX_I_OUT      = 24,   // Magnitude indicator @ CAR_QMIX I output
-    RB_LED_CTRL_NUM_CAR_QMIX_Q_OUT,             // Magnitude indicator @ CAR_QMIX Q output
+    RB_SRC_CON_PNT_NUM_CAR_QMIX_I_OUT     = 24, // CAR_QMIX I output
+    RB_SRC_CON_PNT_NUM_CAR_QMIX_Q_OUT,          // CAR_QMIX Q output
 
-    RB_LED_CTRL_NUM_AMP_RF_OUT          = 28,   // Magnitude indicator @ AMP_RF output
+    RB_SRC_CON_PNT_NUM_AMP_RF_OUT         = 28, // AMP_RF output
 
-    RB_LED_CTRL_NUM_TEST_VECTOR_OUT     = 31    // Current test vector, look at assignments within this file
-} RB_LED_CTRL_ENUM;
+    RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT    = 63  // Current test vector, look at assignments within this file
+} RB_SRC_CON_PNT_ENUM;                          // 64 entries = 2^6 --> 6 bit field
 
 enum {
-    RB_XADC_MAPPING_EXT_CH0             = 0,    // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[0]/vinn_i[0]
+    RB_XADC_MAPPING_EXT_CH0               =  0, // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[0]/vinn_i[0]
     RB_XADC_MAPPING_EXT_CH8,                    // CH0 and CH8 are sampled simultaneously, mapped to: vinp_i[1]/vinn_i[1]
     RB_XADC_MAPPING_EXT_CH1,                    // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[2]/vinn_i[2]
     RB_XADC_MAPPING_EXT_CH9,                    // CH1 and CH9 are sampled simultaneously, mapped to: vinp_i[3]/vinn_i[3]
@@ -242,8 +242,8 @@ reg          rb_clk_en          = 1'b0;
 reg          rb_reset_n         = 1'b0;
 reg  [ 1: 0] rb_enable_ctr      = 2'b0;
 
-wire         rb_reset_car_osc_n    = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_CAR_OSC];
-wire         rb_reset_mod_osc_n    = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_MOD_OSC];
+wire         rb_reset_car_osc_n = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_CAR_OSC];
+wire         rb_reset_mod_osc_n = rb_reset_n & !regs[REG_RW_RB_CTRL][RB_CTRL_RESET_MOD_OSC];
 
 
 //---------------------------------------------------------------------------------
@@ -810,9 +810,8 @@ rb_dsp48_AaDmBaC_A17_D17_B17_C35_P36 i_rb_amp_rf_dsp48 (
 //  LEDs Magnitude indicator
 
 reg  [19: 0] led_ctr  = 20'b0;
-reg  [15: 0] monitor  = 16'b0;
 
-wire [ 4: 0] led_ctrl = regs[REG_RW_RB_LED_CTRL][4:0];
+wire [ 5: 0] led_src_con_pnt = regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT][ 5: 0];
 
 function bit [7:0] fct_mag (input bit [15:0] val);
    automatic bit [7:0] leds = 8'b0;             // exact zero indicator
@@ -847,130 +846,296 @@ if (!adc_rstn_i || !rb_reset_n) begin
    rb_leds_en    <=  1'b0;
    rb_leds_data  <=  8'b0;
    led_ctr       <= 20'b0;
-   monitor       <= 16'b0;
    end
 
 else begin
-   if (led_ctrl && rb_activated) begin
+   if (led_src_con_pnt && rb_activated) begin
       rb_leds_en <=  1'b1;                      // LEDs magnitude indicator active
+       case (led_src_con_pnt)
 
-       case (led_ctrl)
-
-       RB_LED_CTRL_NUM_DISABLED: begin
+       RB_SRC_CON_PNT_NUM_DISABLED: begin
           rb_leds_data <=  8'b0;
-          monitor      <= 16'b0;
           end
-       RB_LED_CTRL_NUM_OFF: begin
+       RB_SRC_CON_PNT_NUM_OFF: begin
           rb_leds_data <=  8'b0;                // turn all LEDs off
-          monitor      <= 16'b0;
           end
 
-       RB_LED_CTRL_NUM_MUXIN_MIX_IN: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(muxin_mix_in[15:0]);  // updating about 120 Hz for reducing EMI
-          monitor <= muxin_mix_in[15:0];
+       RB_SRC_CON_PNT_NUM_MUXIN_MIX_IN: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(muxin_mix_in[15:0]);  // updating about 120 Hz for reducing EMI
           end
-       RB_LED_CTRL_NUM_MOD_ADC_IN: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_adc_in[15:0]);
-          monitor <= mod_adc_in[15:0];
+       RB_SRC_CON_PNT_NUM_MOD_ADC_IN: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_adc_in[15:0]);
           end
-       RB_LED_CTRL_NUM_MOD_ADC_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_adc_out[30:15]);
-          monitor <= mod_adc_out[30:15];
-          end
-
-       RB_LED_CTRL_NUM_MOD_QMIX_I_S1_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_i_s1_out[30:15]);
-          monitor <= mod_qmix_i_s1_out[30:15];
-          end
-       RB_LED_CTRL_NUM_MOD_QMIX_Q_S1_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_q_s1_out[30:15]);
-          monitor <= mod_qmix_q_s1_out[30:15];
-          end
-       RB_LED_CTRL_NUM_MOD_QMIX_I_S2_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_i_s2_out[30:15]);
-          monitor <= mod_qmix_i_s2_out[30:15];
-          end
-       RB_LED_CTRL_NUM_MOD_QMIX_Q_S2_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_q_s2_out[30:15]);
-          monitor <= mod_qmix_q_s2_out[30:15];
-          end
-       RB_LED_CTRL_NUM_MOD_QMIX_I_S3_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_i_s3_out[47:32]);
-          monitor <= mod_qmix_i_s3_out[47:32];
-          end
-       RB_LED_CTRL_NUM_MOD_QMIX_Q_S3_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_qmix_q_s3_out[47:32]);
-          monitor <= mod_qmix_q_s3_out[47:32];
+       RB_SRC_CON_PNT_NUM_MOD_ADC_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_adc_out[30:15]);
           end
 
-       RB_LED_CTRL_NUM_MOD_CIC_I_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_cic_i_out[30:15]);
-          monitor <= mod_cic_i_out[30:15];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S1_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_i_s1_out[30:15]);
           end
-       RB_LED_CTRL_NUM_MOD_CIC_Q_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_cic_q_out[30:15]);
-          monitor <= mod_cic_q_out[30:15];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S1_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_q_s1_out[30:15]);
           end
-       RB_LED_CTRL_NUM_MOD_FIR_I_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_fir_i_out[33:18]);
-          monitor <= mod_fir_i_out[33:18];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S2_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_i_s2_out[30:15]);
           end
-       RB_LED_CTRL_NUM_MOD_FIR_Q_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(mod_fir_q_out[33:18]);
-          monitor <= mod_fir_q_out[33:18];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S2_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_q_s2_out[30:15]);
           end
-
-       RB_LED_CTRL_NUM_CAR_CIC_41M664_I_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(car_cic_41M664_i_out[30:15]);
-          monitor <= car_cic_41M664_i_out[30:15];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S3_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_i_s3_out[47:32]);
           end
-       RB_LED_CTRL_NUM_CAR_CIC_41M664_Q_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(car_cic_41M664_q_out[30:15]);
-          monitor <= car_cic_41M664_q_out[30:15];
-          end
-
-       RB_LED_CTRL_NUM_CAR_QMIX_I_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(car_qmix_i_out[30:15]);
-          monitor <= car_qmix_i_out[30:15];
-          end
-       RB_LED_CTRL_NUM_CAR_QMIX_Q_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(car_qmix_q_out[30:15]);
-          monitor <= car_qmix_q_out[30:15];
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S3_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_qmix_q_s3_out[47:32]);
           end
 
-       RB_LED_CTRL_NUM_AMP_RF_OUT: begin
-          if (!led_ctr) rb_leds_data <= fct_mag(amp_rf_out[31:16]);
-          monitor <= amp_rf_out[31:16];
+       RB_SRC_CON_PNT_NUM_MOD_CIC_I_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_cic_i_out[30:15]);
+          end
+       RB_SRC_CON_PNT_NUM_MOD_CIC_Q_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_cic_q_out[30:15]);
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_fir_i_out[33:18]);
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(mod_fir_q_out[33:18]);
           end
 
-       RB_LED_CTRL_NUM_TEST_VECTOR_OUT: begin
-          if (!led_ctr) rb_leds_data <= { mod_cic_s_vld_i, mod_cic_i_vld, mod_fir_i_vld, car_cic_41M664_i_vld,  mod_cic_s_vld_q, mod_cic_q_vld, mod_fir_q_vld, car_cic_41M664_q_vld };
-          monitor <= { 1'b0, mod_fir_i_vld, 14'b0};
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(car_cic_41M664_i_out[30:15]);
+          end
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_Q_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(car_cic_41M664_q_out[30:15]);
+          end
+
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_I_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(car_qmix_i_out[30:15]);
+          end
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_Q_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(car_qmix_q_out[30:15]);
+          end
+
+       RB_SRC_CON_PNT_NUM_AMP_RF_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= fct_mag(amp_rf_out[31:16]);
+          end
+
+       RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
+          if (!led_ctr)
+             rb_leds_data <= { mod_cic_s_vld_i, mod_cic_i_vld, mod_fir_i_vld, car_cic_41M664_i_vld,  mod_cic_s_vld_q, mod_cic_q_vld, mod_fir_q_vld, car_cic_41M664_q_vld };
           end
 
        default: begin
           rb_leds_data <=  8'b0;
-          monitor      <= 16'b0;
           end
 
        endcase
       led_ctr <= led_ctr + 1;
       end
-   else begin                                   // RB_LED_CTRL_NUM_DISABLED
+   else begin                                   // RB_SRC_CON_PNT_NUM_DISABLED
       rb_leds_en   <=  1'b0;
       rb_leds_data <=  8'b0;
       led_ctr      <= 20'b0;
-      monitor      <= 16'b0;
       end
    end
 
 
 //---------------------------------------------------------------------------------
-//  RB output signal assignments
+//  RB RFOUT1 signal assignment
 
-   assign rb_out_ch[0] = amp_rf_out[31:16];
-   assign rb_out_ch[1] = monitor;
+wire [ 5: 0] rfout1_con_src_pnt = regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT][21:16];
 
+always @(posedge clk_adc_125mhz)
+if (!adc_rstn_i || !rb_reset_n) begin
+   rb_out_ch[0] <= 16'b0;
+   end
+
+else begin
+   if (rfout1_con_src_pnt && rb_activated) begin
+       case (rfout1_con_src_pnt)
+
+       RB_SRC_CON_PNT_NUM_MUXIN_MIX_IN: begin
+          rb_out_ch[0] <= muxin_mix_in[15:0];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_ADC_IN: begin
+          rb_out_ch[0] <= mod_adc_in[15:0];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_ADC_OUT: begin
+          rb_out_ch[0] <= mod_adc_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S1_OUT: begin
+          rb_out_ch[0] <= mod_qmix_i_s1_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S1_OUT: begin
+          rb_out_ch[0] <= mod_qmix_q_s1_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S2_OUT: begin
+          rb_out_ch[0] <= mod_qmix_i_s2_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S2_OUT: begin
+          rb_out_ch[0] <= mod_qmix_q_s2_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S3_OUT: begin
+          rb_out_ch[0] <= mod_qmix_i_s3_out[47:32];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S3_OUT: begin
+          rb_out_ch[0] <= mod_qmix_q_s3_out[47:32];
+          end
+
+       RB_SRC_CON_PNT_NUM_MOD_CIC_I_OUT: begin
+          rb_out_ch[0] <= mod_cic_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_CIC_Q_OUT: begin
+          rb_out_ch[0] <= mod_cic_q_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
+          rb_out_ch[0] <= mod_fir_i_out[33:18];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
+          rb_out_ch[0] <= mod_fir_q_out[33:18];
+          end
+
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
+          rb_out_ch[0] <= car_cic_41M664_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_Q_OUT: begin
+          rb_out_ch[0] <= car_cic_41M664_q_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_I_OUT: begin
+          rb_out_ch[0] <= car_qmix_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_Q_OUT: begin
+          rb_out_ch[0] <= car_qmix_q_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_AMP_RF_OUT: begin
+          rb_out_ch[0] <= amp_rf_out[31:16];
+          end
+
+       RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
+          rb_out_ch[0] <= { 1'b0, mod_fir_i_vld, 14'b0};
+          end
+
+       default: begin
+          rb_out_ch[0] <= 16'b0;                // silence
+          end
+
+       endcase
+      end
+   else begin                                   // RB_SRC_CON_PNT_NUM_DISABLED
+      rb_out_ch[0]     <= 16'b0;                // silence
+      end
+   end
+
+
+//---------------------------------------------------------------------------------
+//  RB RFOUT2 signal assignment
+
+wire [ 5: 0] rfout2_con_src_pnt = regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT][29:24];
+
+always @(posedge clk_adc_125mhz)
+if (!adc_rstn_i || !rb_reset_n) begin
+   rb_out_ch[1] <= 16'b0;
+   end
+
+else begin
+   if (rfout2_con_src_pnt && rb_activated) begin
+       case (rfout2_con_src_pnt)
+
+       RB_SRC_CON_PNT_NUM_MUXIN_MIX_IN: begin
+          rb_out_ch[1] <= muxin_mix_in[15:0];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_ADC_IN: begin
+          rb_out_ch[1] <= mod_adc_in[15:0];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_ADC_OUT: begin
+          rb_out_ch[1] <= mod_adc_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S1_OUT: begin
+          rb_out_ch[1] <= mod_qmix_i_s1_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S1_OUT: begin
+          rb_out_ch[1] <= mod_qmix_q_s1_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S2_OUT: begin
+          rb_out_ch[1] <= mod_qmix_i_s2_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S2_OUT: begin
+          rb_out_ch[1] <= mod_qmix_q_s2_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_I_S3_OUT: begin
+          rb_out_ch[1] <= mod_qmix_i_s3_out[47:32];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_QMIX_Q_S3_OUT: begin
+          rb_out_ch[1] <= mod_qmix_q_s3_out[47:32];
+          end
+
+       RB_SRC_CON_PNT_NUM_MOD_CIC_I_OUT: begin
+          rb_out_ch[1] <= mod_cic_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_CIC_Q_OUT: begin
+          rb_out_ch[1] <= mod_cic_q_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
+          rb_out_ch[1] <= mod_fir_i_out[33:18];
+          end
+       RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
+          rb_out_ch[1] <= mod_fir_q_out[33:18];
+          end
+
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
+          rb_out_ch[1] <= car_cic_41M664_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_Q_OUT: begin
+          rb_out_ch[1] <= car_cic_41M664_q_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_I_OUT: begin
+          rb_out_ch[1] <= car_qmix_i_out[30:15];
+          end
+       RB_SRC_CON_PNT_NUM_CAR_QMIX_Q_OUT: begin
+          rb_out_ch[1] <= car_qmix_q_out[30:15];
+          end
+
+       RB_SRC_CON_PNT_NUM_AMP_RF_OUT: begin
+          rb_out_ch[1] <= amp_rf_out[31:16];
+          end
+
+       RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
+          rb_out_ch[1] <= { 1'b0, mod_fir_i_vld, 14'b0};
+          end
+
+       default: begin
+          rb_out_ch[1] <= 16'b0;                // silence
+          end
+
+       endcase
+      end
+   else begin                                   // RB_SRC_CON_PNT_NUM_DISABLED
+      rb_out_ch[1]     <= 16'b0;                // silence
+      end
+   end
 
 
 // Bus handling
@@ -1004,26 +1169,26 @@ else begin
 // write access to the registers
 always @(posedge clk_adc_125mhz)
 if (!adc_rstn_i) begin
-   regs[REG_RW_RB_CTRL]                <= 32'h00000000;
-   regs[REG_RW_RB_ICR]                 <= 32'h00000000;
-   regs[REG_RD_RB_ISR]                 <= 32'h00000000;
-   regs[REG_RW_RB_DMA_CTRL]            <= 32'h00000000;
-   regs[REG_RW_RB_LED_CTRL]            <= 32'h00000000;
-   regs[REG_RW_RB_CAR_OSC_INC_LO]      <= 32'h00000000;
-   regs[REG_RW_RB_CAR_OSC_INC_HI]      <= 32'h00000000;
-   regs[REG_RW_RB_CAR_OSC_OFS_LO]      <= 32'h00000000;
-   regs[REG_RW_RB_CAR_OSC_OFS_HI]      <= 32'h00000000;
-   regs[REG_RW_RB_AMP_RF_GAIN]         <= 32'h00000000;
-   regs[REG_RW_RB_AMP_RF_OFS]          <= 32'h00000000;
-   regs[REG_RW_RB_MOD_OSC_INC_LO]      <= 32'h00000000;
-   regs[REG_RW_RB_MOD_OSC_INC_HI]      <= 32'h00000000;
-   regs[REG_RW_RB_MOD_OSC_OFS_LO]      <= 32'h00000000;
-   regs[REG_RW_RB_MOD_OSC_OFS_HI]      <= 32'h00000000;
-   regs[REG_RW_RB_MOD_QMIX_GAIN]    <= 32'h00000000;
-   regs[REG_RW_RB_MOD_QMIX_OFS_LO]  <= 32'h00000000;
-   regs[REG_RW_RB_MOD_QMIX_OFS_HI]  <= 32'h00000000;
-   regs[REG_RW_RB_MUXIN_SRC]           <= 32'h00000000;
-   regs[REG_RW_RB_MUXIN_GAIN]          <= 32'h00000000;
+   regs[REG_RW_RB_CTRL]                   <= 32'h00000000;
+   regs[REG_RW_RB_ICR]                    <= 32'h00000000;
+   regs[REG_RD_RB_ISR]                    <= 32'h00000000;
+   regs[REG_RW_RB_DMA_CTRL]               <= 32'h00000000;
+   regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT] <= 32'h00000000;
+   regs[REG_RW_RB_CAR_OSC_INC_LO]         <= 32'h00000000;
+   regs[REG_RW_RB_CAR_OSC_INC_HI]         <= 32'h00000000;
+   regs[REG_RW_RB_CAR_OSC_OFS_LO]         <= 32'h00000000;
+   regs[REG_RW_RB_CAR_OSC_OFS_HI]         <= 32'h00000000;
+   regs[REG_RW_RB_AMP_RF_GAIN]            <= 32'h00000000;
+   regs[REG_RW_RB_AMP_RF_OFS]             <= 32'h00000000;
+   regs[REG_RW_RB_MOD_OSC_INC_LO]         <= 32'h00000000;
+   regs[REG_RW_RB_MOD_OSC_INC_HI]         <= 32'h00000000;
+   regs[REG_RW_RB_MOD_OSC_OFS_LO]         <= 32'h00000000;
+   regs[REG_RW_RB_MOD_OSC_OFS_HI]         <= 32'h00000000;
+   regs[REG_RW_RB_MOD_QMIX_GAIN]          <= 32'h00000000;
+   regs[REG_RW_RB_MOD_QMIX_OFS_LO]        <= 32'h00000000;
+   regs[REG_RW_RB_MOD_QMIX_OFS_HI]        <= 32'h00000000;
+   regs[REG_RW_RB_MUXIN_SRC]              <= 32'h00000000;
+   regs[REG_RW_RB_MUXIN_GAIN]             <= 32'h00000000;
    end
 
 else begin
@@ -1041,7 +1206,7 @@ else begin
          regs[REG_RW_RB_DMA_CTRL]              <= sys_wdata[31:0];
          end
       20'h0001C: begin
-         regs[REG_RW_RB_LED_CTRL]              <= sys_wdata[31:0];
+         regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT]<= sys_wdata[31:0] & 32'h3F3F003F;
          end
 
       /* CAR_OSC */
@@ -1143,7 +1308,7 @@ else begin
          end
       20'h0001C: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RW_RB_LED_CTRL];
+         sys_rdata <= regs[REG_RW_RB_RFOUTx_LED_SRC_CON_PNT];
          end
 
       /* CAR_OSC */

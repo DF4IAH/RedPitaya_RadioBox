@@ -57,18 +57,20 @@
     rb_run:              1,  // application running
     car_osc_modsrc_s:    0,  // mod-source: (none)
     car_osc_modtyp_s:    2,  // modulation: AM
-    rbled_ctrl_s:       18,  // RB LEDs set to: 0=disabled, 1=off,
+    rbled_csp_s:         6,  // RB LEDs set to: 0=disabled, 1=off,
                              //  4=MUXIN_MIX in,       5=MOD_ADC in,         6=MOD_ADC out,
                              //  8=MOD_QMIX_I_S1 out,  9=MOD_QMIX_Q_S1 out, 10=MOD_QMIX_I_S2, 11=MOD_QMIX_Q_S2, 12=MOD_QMIX_I_S3, 13=MOD_QMIX_Q_S3,
                              // 16=MOD_CIC_I out,     17=MOD_CIC_Q out,     18=MOD_FIR_I out, 19=MOD_FIR_Q out, 20=CAR_CIC_41M664_I out, 21=CAR_CIC_41M664_Q out,
                              // 24=CAR_QMIX_I out, 25=CAR_QMIX_Q out,
                              // 28=AMP_RF out,
-                             // 31=current test vector
+                             // 63=current test vector
+    rfout1_csp_s:       28,  // connect to AMP_RF out       (see list above)
+    rfout2_csp_s:       20,  // connect to CAR_CIC_41M664_I (see list above)
     car_osc_qrg_f:   10000,  // 10 kHz
     mod_osc_qrg_f:    1000,  //  1 kHz
-    amp_rf_gain_f: 63.6396,  // 63.6396 mV Vpp @ 50R results to -20 dBm
-    mod_osc_mag_f:       0,  // no modulation by default
-    muxin_gain_f:     80.0   // slider position in % of 100%
+    amp_rf_gain_f:   200.0,  // 200 mV Vpp @ 50R results to -10 dBm
+    mod_osc_mag_f:     100,  // 100 % modulation by default
+    muxin_gain_f:     80.0   // slider position in % of 100% (80% = FS input with booster 1:1)
   };
 
   // Other global variables
@@ -115,7 +117,7 @@
     RB.params.orig = $.extend(true, {}, RB.params.init);
 
     var pktIdx = 1;
-    while (pktIdx <= 4) {  // XXX initial pktIdx
+    while (pktIdx <= 5) {  // XXX initial pktIdx
       $.post(
         RB.config.post_url,
         JSON.stringify({ datasets: { params: cast_params2transport(RB.params.orig, pktIdx) } })
@@ -261,7 +263,13 @@
         }
         checkKeyDoEnable(param_name, intVal);
       }
-      else if (param_name == 'rbled_ctrl_s') {
+      else if (param_name == 'rbled_csp_s') {
+          $('#'+param_name).val(intVal);
+        }
+      else if (param_name == 'rfout1_csp_s') {
+          $('#'+param_name).val(intVal);
+        }
+      else if (param_name == 'rfout2_csp_s') {
           $('#'+param_name).val(intVal);
         }
       else if (param_name == 'car_osc_qrg_f') {
@@ -389,7 +397,7 @@
     RB.state.sending = true;
 
     var pktIdx = 1;
-    while (pktIdx <= 4) {  // XXX main-loop pktIdx
+    while (pktIdx <= 5) {  // XXX main-loop pktIdx
       //RB.ws.send(JSON.stringify({ parameters: RB.params.local }));
       $.ajax({
         type: 'POST',
@@ -909,13 +917,23 @@ function cast_params2transport(params, pktIdx)
     if (params['car_osc_modtyp_s'] !== undefined) {
       transport['car_osc_modtyp_s'] = params['car_osc_modtyp_s'];
     }
-
-    if (params['rbled_ctrl_s'] !== undefined) {
-      transport['rbled_ctrl_s'] = params['rbled_ctrl_s'];
-    }
     break;
 
   case 2:
+    if (params['rbled_csp_s'] !== undefined) {
+      transport['rbled_csp_s'] = params['rbled_csp_s'];
+    }
+
+    if (params['rfout1_csp_s'] !== undefined) {
+      transport['rfout1_csp_s'] = params['rfout1_csp_s'];
+    }
+
+    if (params['rfout2_csp_s'] !== undefined) {
+      transport['rfout2_csp_s'] = params['rfout2_csp_s'];
+    }
+    break;
+
+  case 3:
     if (params['car_osc_qrg_f'] !== undefined) {
       var quad = cast_1xdouble_to_4xfloat(params['car_osc_qrg_f']);
       transport['SE_car_osc_qrg_f'] = quad.se;
@@ -933,7 +951,7 @@ function cast_params2transport(params, pktIdx)
     }
     break;
 
-  case 3:
+  case 4:
     if (params['amp_rf_gain_f'] !== undefined) {
       var quad = cast_1xdouble_to_4xfloat(params['amp_rf_gain_f']);
       transport['SE_amp_rf_gain_f'] = quad.se;
@@ -951,7 +969,7 @@ function cast_params2transport(params, pktIdx)
     }
     break;
 
-  case 4:
+  case 5:
     if (params['muxin_gain_f'] !== undefined) {
       var quad = cast_1xdouble_to_4xfloat(params['muxin_gain_f']);
       transport['SE_muxin_gain_f'] = quad.se;
@@ -984,6 +1002,14 @@ function cast_transport2params(transport)
 
   if (transport['car_osc_modtyp_s'] !== undefined) {
     params['car_osc_modtyp_s'] = transport['car_osc_modtyp_s'];
+  }
+
+  if (transport['rbled_csp_s'] !== undefined) {
+    params['rbled_csp_s'] = transport['rbled_csp_s'];
+  }
+
+  if (transport['rfout2_csp_s'] !== undefined) {
+    params['rfout2_csp_s'] = transport['rfout2_csp_s'];
   }
 
   if (transport['rbled_ctrl_s'] !== undefined) {

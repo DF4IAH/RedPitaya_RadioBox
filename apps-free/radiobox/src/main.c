@@ -66,13 +66,13 @@ int                             g_fpga_rb_mem_fd = -1;
 /** @brief RadioBox memory layout of the FPGA registers */
 fpga_rb_reg_mem_t*              g_fpga_rb_reg_mem = NULL;
 
-/** @brief Describes app. parameters with some info/limitations in high definition */
+/** @brief Describes app. parameters with some info/limitations in high definition - compare initial values with: fpga_rb.fpga_rb_enable() */
 const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
-    { /* Running mode */
+    { /* Running mode - transport_pktIdx 1 */
         "rb_run",              0.0,   1, 0, 0.0,       1.0  },
 
-    { /* CAR_OSC modulation source selector
-       * ( 0: none,
+    { /* CAR_OSC modulation source selector - transport_pktIdx 1
+       * ( 0: none (CW mode),
        *   1: RF Input 1,
        *   2: RF Input 2,
        *   4: EXT AI0,
@@ -84,28 +84,39 @@ const rb_app_params_t g_rb_default_params[RB_PARAMS_NUM + 1] = {
        **/
         "car_osc_modsrc_s",    0.0,   1,  0, 0.0,     15.0  },
 
-    { /* CAR_OSC modulation type selector (0: AM, 1: FM, 2: PM) */
+    { /* CAR_OSC modulation type selector (0: AM, 1: FM, 2: PM) - transport_pktIdx 1 */
         "car_osc_modtyp_s",    0.0,   1,  0, 0.0,      2.0  },
 
-    { /* RB LED control */
-        "rbled_ctrl_s",        0.0,   1,  0, 0.0,     15.0  },
 
-    { /* CAR_OSC frequency (Hz) */
+    { /* RBLED CON_SRC_PNT - transport_pktIdx 2 */
+        "rbled_csp_s",         0.0,   1,  0, 0.0,     63.0  },
+
+    { /* RFOUT1 CON_SRC_PNT - transport_pktIdx 2 */
+        "rfout1_csp_s",        0.0,   1,  0, 0.0,     63.0  },
+
+    { /* RFOUT2 CON_SRC_PNT - transport_pktIdx 2 */
+        "rfout2_csp_s",        0.0,   1,  0, 0.0,     63.0  },
+
+
+    { /* CAR_OSC frequency (Hz) - transport_pktIdx 3 */
         "car_osc_qrg_f",       0.0,   1,  0, 0.0,  62.5e+6  },
 
-    { /* MOD_OSC frequency (Hz) */
+    { /* MOD_OSC frequency (Hz) - transport_pktIdx 3 */
         "mod_osc_qrg_f",       0.0,   1,  0, 0.0,  62.5e+6  },
 
-    { /* AMP_RF amplitude (mV) */
+
+    { /* AMP_RF amplitude (mV) - transport_pktIdx 4 */
         "amp_rf_gain_f",       0.0,   1,  0, 0.0,   2047.0  },
 
-    { /* MOD_OSC magnitude (AM:%, FM:Hz, PM:°) */
+    { /* MOD_OSC magnitude (AM:%, FM:Hz, PM:°) - transport_pktIdx 4 */
         "mod_osc_mag_f",       0.0,   1,  0, 0.0,     1e+6  },
 
-    { /* MUX in (Mic in) slider ranges from 0% to 100% */
+
+    { /* MUX in (Mic in) slider ranges from 0% to 100% - transport_pktIdx 5 */
         "muxin_gain_f",        0.0,   1,  0, 0.0,    100.0  },
 
-    { /* Must be last! */
+
+    { /* has to be last entry */
         NULL,                  0.0,  -1, -1, 0.0,      0.0  }
 };
 
@@ -626,32 +637,39 @@ int rp_copy_params_rb2rp(rp_app_params_t** dst, const rb_app_params_t src[])
             const int slen = strlen(src[i].name);
             char found = 0;
 
-            /* limit transfer volume to a part of all param entries, @see cb_http.crp_set_params() */
+            /* limit transfer volume to a part of all param entries, @see main.g_rb_default_params (abt. line 70) for a full list */
             switch (g_transport_pktIdx & 0x7f) {
             case 1:
                 if (!strcmp("rb_run",           src[i].name) ||
                     !strcmp("car_osc_modsrc_s", src[i].name) ||
-                    !strcmp("car_osc_modtyp_s", src[i].name) ||
-                    !strcmp("rbled_ctrl_s",     src[i].name)) {
+                    !strcmp("car_osc_modtyp_s", src[i].name)) {
                     found = 1;
                 }
                 break;
 
             case 2:
+                if (!strcmp("rbled_csp_s",      src[i].name) ||
+                    !strcmp("rfout1_csp_s",     src[i].name) ||
+                    !strcmp("rfout2_csp_s",     src[i].name)) {
+                    found = 1;
+                }
+                break;
+
+            case 3:
                 if (!strcmp("car_osc_qrg_f",    src[i].name) ||
                     !strcmp("mod_osc_qrg_f",    src[i].name)) {
                     found = 1;
                 }
                 break;
 
-            case 3:
+            case 4:
                 if (!strcmp("amp_rf_gain_f",    src[i].name) ||
                     !strcmp("mod_osc_mag_f",    src[i].name)) {
                     found = 1;
                 }
                 break;
 
-            case 4:
+            case 5:
                 if (!strcmp("muxin_gain_f",     src[i].name)) {
                     found = 1;
                 }

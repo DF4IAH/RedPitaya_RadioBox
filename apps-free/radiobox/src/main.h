@@ -84,9 +84,11 @@ typedef struct rb_app_params_s {
 /** @brief RadioBox parameters */
 enum rb_params_enum_t {
     RB_RUN                  =  0,
-    RB_CAR_MOD_OSCSRC,
-    RB_CAR_MOD_OSCTYP,
-    RB_LED_CTRL,
+    RB_CAR_OSC_MODSRC,
+    RB_CAR_OSC_MODTYP,
+    RB_LED_CON_SRC_PNT,
+    RB_RFOUT1_CON_SRC_PNT,
+    RB_RFOUT2_CON_SRC_PNT,
     RB_CAR_OSC_QRG,
     RB_MOD_OSC_QRG,
     RB_AMP_RF_GAIN,

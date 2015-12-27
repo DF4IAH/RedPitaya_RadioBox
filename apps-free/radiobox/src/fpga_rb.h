@@ -36,7 +36,7 @@ enum {
     FPGA_RB_ICR                 = 0x00008,
     FPGA_RB_ISR                 = 0x0000C,
     FPGA_RB_DMA_CTRL            = 0x00010,
-    FPGA_RB_LED_CTRL            = 0x0001C,
+    FPGA_RB_CON_SRC_PNT         = 0x0001C,
     FPGA_RB_CAR_OSC_INC_LO      = 0x00020,
     FPGA_RB_CAR_OSC_INC_HI      = 0x00024,
     FPGA_RB_CAR_OSC_OFS_LO      = 0x00028,
@@ -184,56 +184,86 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t reserved_18;
 
 
-    /** @brief  R/W RB_LED_CTRL - Interrupt status register (addr: 0x4060001C)
+    /** @brief  R/W RB_CON_SRC_PNT - output connection matrix for
+                                     RB_LEDs, RFOUT1 and RFOUT2 (addr: 0x4060001C)
      *
-     * bit h05..h00: LED magnitude input selector
-     *
+     * bit h05..h00: LEDs magnitude scope (logarithmic)  source position
      *   value = h00  RadioBox does not touch LED state of other sub-module(s).
-     *
      *   value = h01  All LEDs are driven off.
+     *   value = h04  MUXIN_MIX in.
+     *   value = h05  MOD_ADC in.
+     *   value = h06  MOD_ADC out.
+     *   value = h08  MOD_QMIX_I output at stage 1.
+     *   value = h09  MOD_QMIX_Q output at stage 1.
+     *   value = h0A  MOD_QMIX_I output at stage 2.
+     *   value = h0B  MOD_QMIX_Q output at stage 2.
+     *   value = h0C  MOD_QMIX_I output at stage 3.
+     *   value = h0D  MOD_QMIX_Q output at stage 3.
+     *   value = h10  low pass MOD_CIC I output.
+     *   value = h11  low pass MOD_CIC Q output.
+     *   value = h12  signal forming MOD_FIR I output.
+     *   value = h13  signal forming MOD_FIR Q output.
+     *   value = h14  interpolator CAR_CIC I output 41.664 MHz output.
+     *   value = h15  interpolator CAR_CIC Q output 41.664 MHz output.
+     *   value = h18  CAR_QMIX_I output.
+     *   value = h19  CAR_QMIX_Q output.
+     *   value = h1C  AMP_RF output.
+     *   value = h3F  LEDs show current test vector @see red_pitaya_radiobox.sv for details.
      *
-     *   value = h04  LEDs show magnitude function with selected input port MUXIN_MIX in.
+     * bit h0F..h06: n/a
      *
-     *   value = h05  LEDs show magnitude function with selected input port MOD_ADC in.
+     * bit h15..h10: RFOUT1 source connection point
+     *   value = h00  silence.
+     *   value = h01  silence.
+     *   value = h04  MUXIN_MIX in.
+     *   value = h05  MOD_ADC in.
+     *   value = h06  MOD_ADC out.
+     *   value = h08  MOD_QMIX_I output at stage 1.
+     *   value = h09  MOD_QMIX_Q output at stage 1.
+     *   value = h0A  MOD_QMIX_I output at stage 2.
+     *   value = h0B  MOD_QMIX_Q output at stage 2.
+     *   value = h0C  MOD_QMIX_I output at stage 3.
+     *   value = h0D  MOD_QMIX_Q output at stage 3.
+     *   value = h10  low pass MOD_CIC I output.
+     *   value = h11  low pass MOD_CIC Q output.
+     *   value = h12  signal forming MOD_FIR I output.
+     *   value = h13  signal forming MOD_FIR Q output.
+     *   value = h14  interpolator CAR_CIC I output 41.664 MHz output.
+     *   value = h15  interpolator CAR_CIC Q output 41.664 MHz output.
+     *   value = h18  CAR_QMIX_I output.
+     *   value = h19  CAR_QMIX_Q output.
+     *   value = h1C  AMP_RF output.
+     *   value = h3F  test vector as signal @see red_pitaya_radiobox.sv for details.
      *
-     *   value = h06  LEDs show magnitude function with selected input port MOD_ADC out.
+     * bit h17..h16: n/a
      *
-     *   value = h08  LEDs show magnitude function with selected input port MOD_QMIX_I output at stage 1.
+     * bit h1D..h18: RFOUT2 source connection point
+     *   value = h00  silence.
+     *   value = h01  silence.
+     *   value = h04  MUXIN_MIX in.
+     *   value = h05  MOD_ADC in.
+     *   value = h06  MOD_ADC out.
+     *   value = h08  MOD_QMIX_I output at stage 1.
+     *   value = h09  MOD_QMIX_Q output at stage 1.
+     *   value = h0A  MOD_QMIX_I output at stage 2.
+     *   value = h0B  MOD_QMIX_Q output at stage 2.
+     *   value = h0C  MOD_QMIX_I output at stage 3.
+     *   value = h0D  MOD_QMIX_Q output at stage 3.
+     *   value = h10  low pass MOD_CIC I output.
+     *   value = h11  low pass MOD_CIC Q output.
+     *   value = h12  signal forming MOD_FIR I output.
+     *   value = h13  signal forming MOD_FIR Q output.
+     *   value = h14  interpolator CAR_CIC I output 41.664 MHz output.
+     *   value = h15  interpolator CAR_CIC Q output 41.664 MHz output.
+     *   value = h18  CAR_QMIX_I output.
+     *   value = h19  CAR_QMIX_Q output.
+     *   value = h1C  AMP_RF output.
+     *   value = h3F  test vector as signal @see red_pitaya_radiobox.sv for details.
      *
-     *   value = h09  LEDs show magnitude function with selected input port MOD_QMIX_Q output at stage 1.
-     *
-     *   value = h0A  LEDs show magnitude function with selected input port MOD_QMIX_I output at stage 2.
-     *
-     *   value = h0B  LEDs show magnitude function with selected input port MOD_QMIX_Q output at stage 2.
-     *
-     *   value = h0C  LEDs show magnitude function with selected input port MOD_QMIX_I output at stage 3.
-     *
-     *   value = h0D  LEDs show magnitude function with selected input port MOD_QMIX_Q output at stage 3.
-     *
-     *   value = h10  LEDs show magnitude function with selected input port LowPass MOD_CIC I output.
-     *
-     *   value = h11  LEDs show magnitude function with selected input port LowPass MOD_CIC Q output.
-     *
-     *   value = h12  LEDs show magnitude function with selected input port signal forming MOD_FIR I output.
-     *
-     *   value = h13  LEDs show magnitude function with selected input port signal forming MOD_FIR Q output.
-     *
-     *   value = h14  LEDs show magnitude function with selected input port Interpolator CAR_CIC I output  41.664 MHz output.
-     *
-     *   value = h15  LEDs show magnitude function with selected input port Interpolator CAR_CIC Q output  41.664 MHz output.
-     *
-     *   value = h18  LEDs show magnitude function with selected input port CAR_QMIX_I output.
-     *
-     *   value = h19  LEDs show magnitude function with selected input port CAR_QMIX_Q output.
-     *
-     *   value = h1C  LEDs show magnitude function with selected input port AMP_RF output.
-     *
-     *   value = h1F  LEDs show current test vector @see red_pitaya_radiobox.sv for details.
-     *
-     * bit h1F..h06: n/a
+     * bit h1F..h1E: n/a
      *
      */
-    uint32_t led_ctrl;
+    uint32_t src_con_pnt;
 
 
     /** @brief  R/W RB_CAR_OSC_INC_LO - CAR_OSC phase increment register, bits 31..0 (addr: 0x40600020)
@@ -372,21 +402,13 @@ typedef struct fpga_rb_reg_mem_s {
     /** @brief  R/W RB_MUXIN_SRC - analog MUX input selector (addr: 0x40600060)
      *
      * bit h05..h00: source ID (extended from the XADC source ID)
-     *
      *   value = h00  no external signal used, MOD_OSC used instead.
-     *
      *   value = h03  Vp_Vn,     mapped to: vin[4].
-     *
      *   value = h10  XADC CH#0, mapped to: AI1.
-     *
      *   value = h11  XADC CH#1, mapped to: AI0.
-     *
      *   value = h18  XADC CH#8, mapped to: AI2.
-     *
      *   value = h19  XADC CH#9, mapped to: AI3.
-     *
      *   value = h20  ADC0,      mapped to: RF Input 1.
-     *
      *   value = h21  ADC1,      mapped to: RF Input 2.
      *
      */
@@ -462,14 +484,14 @@ int fpga_rb_update_all_params(rb_app_params_t* p);
  * @param[in]  rb_run        RadioBox application  0: disabled, else: enabled.
  * @param[in]  modsrc        0==(none), 1==RF Input 1, 2==RF Input 2, 4==EXP AI0, 5==EXP AI1, 6==EXP AI2, 7==EXP AI3, 15==MOD_OSC
  * @param[in]  modtyp        when modsrc == MOD_OSC: 0==USB, 1==LSB, 2==AM, 3==FM, 4==PM - else ignored.
- * @param[in]  led_ctrl      RB LED controller setting to be used.
+ * @param[in]  src_con_pnt   RB LED controller setting to be used.
  * @param[in]  car_osc_qrg   Frequency for CAR_OSC in Hz.
  * @param[in]  mod_osc_qrg   Frequency for MOD_OSC in Hz.
  * @param[in]  amp_rf_gain   Vpp of AMP_RF output in mV.
  * @param[in]  mod_osc_mag   Magnitude of MOD_OSC mixer output. AM: 0-100%, FM: 0-1000000 Hz deviation, PM: 0-360°.
  * @param[in]  muxin_gain    Slider value between 0 and 100 for the MUXIN range slider. 50 means amplification of 1:1, 0 and 100 full scale, logarithmic.
  */
-void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int led_ctrl, double car_osc_qrg, double mod_osc_qrg, double amp_rf_gain, double mod_osc_mag, double muxin_gain);
+void fpga_rb_set_ctrl(int rb_run, int modsrc, int modtyp, int src_con_pnt, double car_osc_qrg, double mod_osc_qrg, double amp_rf_gain, double mod_osc_mag, double muxin_gain);
 
 /**
  * @brief Calculates and programs the FPGA CAR_OSC for AM and PM
