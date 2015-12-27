@@ -65,7 +65,7 @@
                              // 28=AMP_RF out,
                              // 63=current test vector
     rfout1_csp_s:       28,  // connect to AMP_RF out       (see list above)
-    rfout2_csp_s:       20,  // connect to CAR_CIC_41M664_I (see list above)
+    rfout2_csp_s:        8,  // connect to CAR_CIC_41M664_I (see list above)
     car_osc_qrg_f:   10000,  // 10 kHz
     mod_osc_qrg_f:    1000,  //  1 kHz
     amp_rf_gain_f:   200.0,  // 200 mV Vpp @ 50R results to -10 dBm
