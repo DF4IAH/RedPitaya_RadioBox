@@ -69,7 +69,7 @@
     car_osc_qrg_f:   10000,  // 10 kHz
     mod_osc_qrg_f:    1000,  //  1 kHz
     amp_rf_gain_f:   200.0,  // 200 mV Vpp @ 50R results to -10 dBm
-    mod_osc_mag_f:     100,  // 100 % modulation by default
+    mod_osc_mag_f:   100.0,  // 100 % modulation by default
     muxin_gain_f:     80.0   // slider position in % of 100% (80% = FS input with booster 1:1)
   };
 
@@ -1008,12 +1008,12 @@ function cast_transport2params(transport)
     params['rbled_csp_s'] = transport['rbled_csp_s'];
   }
 
-  if (transport['rfout2_csp_s'] !== undefined) {
-    params['rfout2_csp_s'] = transport['rfout2_csp_s'];
+  if (transport['rfout1_csp_s'] !== undefined) {
+    params['rfout1_csp_s'] = transport['rfout1_csp_s'];
   }
 
-  if (transport['rbled_ctrl_s'] !== undefined) {
-    params['rbled_ctrl_s'] = transport['rbled_ctrl_s'];
+  if (transport['rfout2_csp_s'] !== undefined) {
+    params['rfout2_csp_s'] = transport['rfout2_csp_s'];
   }
 
   if (transport['LO_car_osc_qrg_f'] !== undefined) {

@@ -677,7 +677,7 @@ rb_cic_8k_to_41M664_32T32_lat14 i_rb_car_cic_I (
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
 
-  .s_axis_data_tdata    ( mod_fir_i_out[33:2]),  // MOD_FIR I - 8 kHz
+  .s_axis_data_tdata    ( mod_fir_i_out[32:1]),  // MOD_FIR I - 8 kHz
   .s_axis_data_tvalid   ( mod_fir_i_vld     ),
   .s_axis_data_tready   ( mod_fir_i_rdy     ),
 
@@ -690,7 +690,7 @@ rb_cic_8k_to_41M664_32T32_lat14 i_rb_car_cic_Q (
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
 
-  .s_axis_data_tdata    ( mod_fir_q_out[33:2]),  // MOD_FIR Q - 8 kHz
+  .s_axis_data_tdata    ( mod_fir_q_out[32:1]),  // MOD_FIR Q - 8 kHz
   .s_axis_data_tvalid   ( mod_fir_q_vld     ),
   .s_axis_data_tready   ( mod_fir_q_rdy     ),
 
@@ -908,11 +908,11 @@ else begin
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
           if (!led_ctr)
-             rb_leds_data <= fct_mag(mod_fir_i_out[33:18]);
+             rb_leds_data <= fct_mag(mod_fir_i_out[32:17]);
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
           if (!led_ctr)
-             rb_leds_data <= fct_mag(mod_fir_q_out[33:18]);
+             rb_leds_data <= fct_mag(mod_fir_q_out[32:17]);
           end
 
        RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
@@ -1008,10 +1008,10 @@ else begin
           rb_out_ch[0] <= mod_cic_q_out[30:15];
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
-          rb_out_ch[0] <= mod_fir_i_out[33:18];
+          rb_out_ch[0] <= mod_fir_i_out[32:17];
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
-          rb_out_ch[0] <= mod_fir_q_out[33:18];
+          rb_out_ch[0] <= mod_fir_q_out[32:17];
           end
 
        RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
@@ -1098,10 +1098,10 @@ else begin
           rb_out_ch[1] <= mod_cic_q_out[30:15];
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_I_OUT: begin
-          rb_out_ch[1] <= mod_fir_i_out[33:18];
+          rb_out_ch[1] <= mod_fir_i_out[32:17];
           end
        RB_SRC_CON_PNT_NUM_MOD_FIR_Q_OUT: begin
-          rb_out_ch[1] <= mod_fir_q_out[33:18];
+          rb_out_ch[1] <= mod_fir_q_out[32:17];
           end
 
        RB_SRC_CON_PNT_NUM_CAR_CIC_41M664_I_OUT: begin
@@ -1123,7 +1123,7 @@ else begin
           end
 
        RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
-          rb_out_ch[1] <= { 1'b0, mod_fir_i_vld, 14'b0};
+          rb_out_ch[1] <= { 1'b0, mod_fir_q_vld, 14'b0};
           end
 
        default: begin

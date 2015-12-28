@@ -9,12 +9,45 @@
 }
 
 
+#rfout1_csp {
+  position:relative;
+  z-index:1;
+}
+.form-bg-rfout1-csp {
+  background:#508050;
+}
+select#rfout1_csp_s[disabled] {
+  background:#707070;
+}
+
+#rfout2_csp {
+  position:relative;
+  z-index:1;
+}
+.form-bg-rfout2-csp {
+  background:#508050;
+}
+select#rfout2_csp_s[disabled] {
+  background:#707070;
+}
+
+#rbled_csp {
+  position:relative;
+  z-index:1;
+}
+.form-bg-rbled-csp {
+  background:#508050;
+}
+select#rbled_csp_s[disabled] {
+  background:#707070;
+}
+
 #car_osc_qrg {
   position:relative;
   z-index:1;
 }
 .form-bg-car-osc-qrg {
-  background:#002050;
+  background:#0040c0;
 }
 
 #amp_rf_gain {
@@ -30,7 +63,7 @@
   z-index:1;
 }
 .form-bg-car-osc-modsrc {
-  background:#404020;
+  background:#707040;
 }
 
 #car_osc_modtyp {
@@ -38,7 +71,7 @@
   z-index:1;
 }
 .form-bg-car-osc-modtyp {
-  background:#404020;
+  background:#707040;
 }
 select#car_osc_modtyp_s[disabled] {
   background:#707070;
@@ -49,7 +82,7 @@ select#car_osc_modtyp_s[disabled] {
   z-index:1;
 }
 .form-bg-mod-osc-qrg {
-  background:#002050;
+  background:#0040c0;
 }
 input#mod_osc_qrg_f[disabled] {
   background:#707070;
