@@ -92,7 +92,7 @@ read_ip                           $path_ip/rb_dsp48_AaDmB_A16_D16_B16_P32.xcix
 read_ip                           $path_ip/rb_dsp48_AaDmBaC_A17_D17_B17_C35_P36.xcix
 read_ip                           $path_ip/rb_dsp48_AmB_A16_B16_P32.xcix
 read_ip                           $path_ip/rb_dsp48_CONaC_CON48_C48_P48.xcix
-read_ip                           $path_ip/rb_fir_8k_to_8k_17T16_35T31_lat41.xcix
+read_ip                           $path_ip/rb_fir_8k_8k_25c23_17i16_35o33_lat42.xcix
 
 read_xdc                          $path_sdc/red_pitaya.xdc
 

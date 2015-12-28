@@ -595,6 +595,7 @@ rb_cic_48k_to_8k_32T32_lat13 i_rb_mod_cic_I (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_qmix_i_s2_out ),  // QMIX I stage 2
   .s_axis_data_tvalid   ( mod_cic_s_vld_i   ),
@@ -609,6 +610,7 @@ rb_cic_48k_to_8k_32T32_lat13 i_rb_mod_cic_Q (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_qmix_q_s2_out ),  // QMIX Q stage 2
   .s_axis_data_tvalid   ( mod_cic_s_vld_q   ),
@@ -624,7 +626,7 @@ rb_cic_48k_to_8k_32T32_lat13 i_rb_mod_cic_Q (
 //  MOD_FIR high pass filter for CIC compensation in the voice band
 //
 //  FIR coefficients built with Octave:
-//  hn = fir2(62, [0 0.15 0.26 0.35 0.38 0.40 0.41 1], [1 1.5 3.5 10 0.1 0.001 0.0001 0.0001], 512, kaiser(63,6));
+//  hn = fir2(62, [0 0.38 0.39 1], [1 1 0.000001 0.000001], 512, kaiser(63,4));
 
 wire [ 34:0] mod_fir_i_out;
 wire         mod_fir_i_vld;
@@ -634,10 +636,11 @@ wire [ 34:0] mod_fir_q_out;
 wire         mod_fir_q_vld;
 wire         mod_fir_q_rdy;
 
-rb_fir_8k_to_8k_17T16_35T31_lat41 i_rb_mod_fir_I (
+rb_fir_8k_8k_25c23_17i16_35o33_lat42 i_rb_mod_fir_I (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_cic_i_out[30:14] ),  // MOD_CIC output I - 8 kHz (17.16 bit width)
   .s_axis_data_tvalid   ( mod_cic_i_vld     ),
@@ -648,10 +651,11 @@ rb_fir_8k_to_8k_17T16_35T31_lat41 i_rb_mod_fir_I (
   .m_axis_data_tready   ( mod_fir_i_rdy     )
 );
 
-rb_fir_8k_to_8k_17T16_35T31_lat41 i_rb_mod_fir_Q (
+rb_fir_8k_8k_25c23_17i16_35o33_lat42 i_rb_mod_fir_Q (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_cic_q_out[30:14] ),  // MOD_CIC output Q - 8 kHz (17.16 bit width)
   .s_axis_data_tvalid   ( mod_cic_q_vld     ),
@@ -676,6 +680,7 @@ rb_cic_8k_to_41M664_32T32_lat14 i_rb_car_cic_I (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_fir_i_out[32:1]),  // MOD_FIR I - 8 kHz
   .s_axis_data_tvalid   ( mod_fir_i_vld     ),
@@ -689,6 +694,7 @@ rb_cic_8k_to_41M664_32T32_lat14 i_rb_car_cic_Q (
   // global signals
   .aclk                 ( clk_adc_125mhz    ),  // global 125 MHz clock
   .aclken               ( rb_clk_en         ),  // enable RadioBox sub-module
+  .aresetn              ( rb_reset_n        ),
 
   .s_axis_data_tdata    ( mod_fir_q_out[32:1]),  // MOD_FIR Q - 8 kHz
   .s_axis_data_tvalid   ( mod_fir_q_vld     ),
