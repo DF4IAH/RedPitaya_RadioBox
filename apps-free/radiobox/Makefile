@@ -7,7 +7,6 @@
 APP=$(notdir $(CURDIR:%/=%))
 SHARED_OBJS = 
 
-FPGA=fpga_rb-*.bit
 FPGACFG=fpga.conf
 PDF=doc/RedPitaya_RadioBox_Development_Manual.pdf
 
@@ -63,7 +62,7 @@ $(PDF):
 zip: $(CONTROLLERHF) $(PDF)
 	mkdir -p target/$(APP)/bin
 	mkdir -p target/$(APP)/doc
-	#cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGA) $(FPGACFG) bin info index.html target/$(APP)
+	#cp -r $(CONTROLLERHF) $(CONTROLLER) $(FPGACFG) bin info index.html target/$(APP)
 	cp -r $(CONTROLLERHF) $(FPGA) $(FPGACFG) bin css fonts img info index.html js target/$(APP)
 	cp -r doc/*.pdf doc/html target/$(APP)/doc
 	sed -i target/$(APP)/info/info.json -e 's/REVISION/$(REVISION)/'
