@@ -90,7 +90,6 @@ read_verilog   -sv                $path_rtl/red_pitaya_rst_clken.sv
 read_verilog                      $path_rtl/red_pitaya_scope.v
 read_verilog                      $path_rtl/red_pitaya_top.v
 
-read_ip                           $path_ip/rb_broadcaster_axis_m2.xcix
 read_ip                           $path_ip/rb_cic_125M_to_5M_32T32_lat18.xcix
 read_ip                           $path_ip/rb_cic_48k_to_8k_32T32.xcix
 read_ip                           $path_ip/rb_cic_5M_to_8k_32T32.xcix
