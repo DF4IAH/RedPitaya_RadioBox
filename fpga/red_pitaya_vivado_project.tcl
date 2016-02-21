@@ -35,10 +35,9 @@ source                            $path_ip/system_bd.tcl
 # generate SDK files
 generate_target all               [get_files system.bd]
 
-# copy fresh system_wrapper.v file to the target directory
-#file copy -force                  project/redpitaya.srcs/sources_1/bd/system/hdl/system_wrapper.v $path_bd/system/hdl/system_wrapper.v
-make_wrapper -files [get_files .srcs/sources_1/bd/system/system.bd] -top
-add_files -norecurse .srcs/sources_1/bd/system/hdl/system_wrapper.v
+# generate system_wrapper.v file to the target directory
+make_wrapper -files [get_files project/redpitaya.srcs/sources_1/bd/system/system.bd] -top
+add_files -norecurse project/redpitaya.srcs/sources_1/bd/system/hdl/system_wrapper.v
 
 
 ################################################################################
@@ -49,8 +48,7 @@ add_files -norecurse .srcs/sources_1/bd/system/hdl/system_wrapper.v
 ################################################################################
 
 #read_bd                          [get_files system.bd]
-
-add_files                         $path_bd/system/hdl/system_wrapper.v
+#add_files                         $path_bd/system/hdl/system_wrapper.v
 
 add_files                         $path_rtl/axi_master.v
 add_files                         $path_rtl/axi_pc2leds.v
