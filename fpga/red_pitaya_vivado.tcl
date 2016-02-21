@@ -51,7 +51,9 @@ generate_target all               [get_files system.bd]
 write_hwdef    -force -file       $path_sdk/red_pitaya.hwdef
 
 # copy fresh system_wrapper.v file to the target directory
-file copy -force                  .srcs/sources_1/bd/system/hdl/system_wrapper.v $path_bd/system/hdl/system_wrapper.v
+#file copy -force                  .srcs/sources_1/bd/system/hdl/system_wrapper.v $path_bd/system/hdl/system_wrapper.v
+make_wrapper -files [get_files .srcs/sources_1/bd/system/system.bd] -top
+add_files -norecurse .srcs/sources_1/bd/system/hdl/system_wrapper.v
 
 
 ################################################################################
