@@ -50,8 +50,9 @@ source                            $path_ip/system_bd.tcl
 generate_target all               [get_files system.bd]
 write_hwdef    -force -file       $path_sdk/red_pitaya.hwdef
 
-# copy fresh system_wrapper.v file to the target directory
-file copy -force                  .srcs/sources_1/bd/system/hdl/system_wrapper.v $path_bd/system/hdl/system_wrapper.v
+# generate system_wrapper.v file to the target directory
+make_wrapper -files [get_files project/.srcs/sources_1/bd/system/system.bd] -top
+read_verilog .srcs/sources_1/bd/system/hdl/system_wrapper.v
 
 
 ################################################################################
@@ -63,10 +64,8 @@ file copy -force                  .srcs/sources_1/bd/system/hdl/system_wrapper.v
 
 # template
 #read_verilog                     $path_rtl/...
-
 #read_bd                          [get_files system.bd]
-
-read_verilog                      $path_bd/system/hdl/system_wrapper.v
+#read_verilog                      $path_bd/system/hdl/system_wrapper.v
 
 read_verilog                      $path_rtl/axi_master.v
 read_verilog                      $path_rtl/axi_pc2leds.v
@@ -90,7 +89,6 @@ read_verilog   -sv                $path_rtl/red_pitaya_rst_clken.sv
 read_verilog                      $path_rtl/red_pitaya_scope.v
 read_verilog                      $path_rtl/red_pitaya_top.v
 
-read_ip                           $path_ip/rb_broadcaster_axis_m2.xcix
 read_ip                           $path_ip/rb_cic_125M_to_5M_32T32_lat18.xcix
 read_ip                           $path_ip/rb_cic_48k_to_8k_32T32.xcix
 read_ip                           $path_ip/rb_cic_5M_to_8k_32T32.xcix
