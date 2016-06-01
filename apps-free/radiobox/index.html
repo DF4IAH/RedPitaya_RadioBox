@@ -615,11 +615,16 @@
         </td>
         <td>
           <label class="col-xs-5 control-label">streaming player:</label>
-          <div class="col-xs-6">
-            <audio controls preload="none">
-              <source src="http://lab-red:8000/redpitaya.raw" type="application/ogg" />
+          <div class="col-xs-6"><div class="audioplayer">
+            <audio controls="controls" preload="none">
+              <script type="text/javascript">
+                var url_arr = window.location.href.split("/");
+                var url = url_arr[0] + '//' + url_arr[2] + '/';
+                var stream_url = url_arr[0] + '//' + url_arr[2] + ':8000/redpitaya.raw';
+                document.write('<source src="' + stream_url + '" type="application/ogg" />');
+              </script>
             </audio>
-          </div>
+          </div></div>
         </td>
         </tr>
 
