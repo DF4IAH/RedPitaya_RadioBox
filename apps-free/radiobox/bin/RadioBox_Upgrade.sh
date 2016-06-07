@@ -1,7 +1,7 @@
 #!/bin/sh
 
 DIR=https://dl.dropboxusercontent.com/u/13881457/RedPitaya_RadioBox/Releases/RB_v0.95.01
-ECO=ecosystem-0.95-4591-2e5e615.zip
+ECO=ecosystem-0.95-4600-a765b14.zip
 
 echo
 echo "========================================================================="
