@@ -84,7 +84,7 @@
     tx_modtyp_s:            1,  // TX modulation: off
     rx_modtyp_s:            4,  // RX modulation: AM-Env
 //  rbled_csp_s:          240,  // AC97 diagnostic LEDs
-    rbled_csp_s:          248,  // overdrive signals
+    rbled_csp_s:           33,  // RF input mixer output (for overdrive detection)
     rfout1_csp_s:          28,  // connect to TX_AMP_RF out (TX: RF signal)
     rfout2_csp_s:          80,  // connect to RX_AUDIO_OUT (RX: audio signal)
     rx_muxin_src_s:         2,  // receiver RF input set to RF Input 2
@@ -94,7 +94,7 @@
 
     tx_mod_osc_qrg_f:    1000,  //   1 kHz
     tx_muxin_gain_s:       80,  // slider position in % of 100% (80% = FS input with booster 1:1)
-    rx_muxin_gain_s:       30,  // slider position in % of 100% (80% = FS input with booster 1:1)
+    rx_muxin_gain_s:       80,  // slider position in % of 100% (80% = FS input with booster 1:1)
     tx_qrg_sel_s:           0,  // QRG controller influence TX frequency
     rx_qrg_sel_s:           1,  // QRG controller influence RX frequency
 
