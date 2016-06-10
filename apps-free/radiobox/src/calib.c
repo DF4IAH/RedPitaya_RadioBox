@@ -133,7 +133,8 @@ int rp_default_calib_params(rp_calib_params_t *calib_params)
     calib_params->be_ch2_dc_offs        =      -895;    /* -0.013657 DAC[V] @ 16 bit */                /* treated as unsigned mid-range value for 16 bit DAC value - assumption: Ref-Voltage = 1.000 V */
 
     // internals
-    calib_params->base_osc125mhz_realhz = 125000022.0;  /* 125 000 000 [Hz] of the DAC clock */
+//  calib_params->base_osc125mhz_realhz = 125000000.0;  /* 125 000 000 [Hz] of the DAC clock -30.9 Hz */
+    calib_params->base_osc125mhz_realhz = 124999613.8;  /* 125 000 000 [Hz] of the DAC clock   0.0 Hz */
 
     return 0;
 }
