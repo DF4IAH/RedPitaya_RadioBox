@@ -800,7 +800,6 @@ end
 
 // ADC AUTO OFS correction
 
-wire signed   [ 15: 0] xadc_in = xadc_axis_tdata;
 reg  signed   [ 15: 0] adc_enhanced[RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
 reg  signed   [ 15: 0] adc_offset[  RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
 reg  signed   [ 29: 0] adc_sumreg[  RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
