@@ -194,7 +194,9 @@ typedef struct fpga_rb_reg_mem_s {
      *
      * bit h18: ADC_AUTO_OFS - '1' enables automatic A/D-Converter offset compensation.  '0' disables that automatic compensation.
      *
-     * bit h1B..h19: n/a
+     * bit h19: AGC_AUTO_ON  - '1' enables the automatic gain control for the receiver.  '0' disables that automatic control.
+     *
+     * bit h1B..h1A: n/a
      *
      * bit h1C: RX_MOD_OSC RESYNC - '1' stops incrementing the accumulating phase register. That holds the oscillator just there, where it is. With '0' the RX_MOD_OSC resumes operation.
      *

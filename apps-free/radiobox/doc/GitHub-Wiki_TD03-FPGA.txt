@@ -82,7 +82,8 @@
                                 "RX_CAR_OSC OFS HI" and "RX_CAR_OSC OFS LO".
                      - bit h17: n/a
                      - bit h18: ADC_AUTO_OFS enabling automatic A/D-Converter offset compensation
-                     - bit h1B..h19: n/a
+                     - bit h19: AGC_AUTO_ON  enables the automatic gain control for the receiver
+                     - bit h1B..h1A: n/a
                      - bit h1C: RX_MOD_OSC RESYNC - '1' stops incrementing the
                                 accumulating phase register. That holds the
                                 oscillator just there, where it is. With '0' the

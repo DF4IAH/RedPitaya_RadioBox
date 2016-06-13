@@ -910,6 +910,8 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
 
       // -- 8< --
 
+      g_fpga_rb_reg_mem->ctrl |=  0x02000000;                                                              // control: AGC_AUTO_ON
+
       switch (rx_muxin_src) {
 
       default:
