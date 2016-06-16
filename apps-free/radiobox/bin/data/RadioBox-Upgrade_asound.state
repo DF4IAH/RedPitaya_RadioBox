@@ -1091,8 +1091,8 @@ state.RedPitayaAC97 {
 	control.26 {
 		iface MIXER
 		name 'Capture Volume'
-		value.0 15
-		value.1 15
+		value.0 14
+		value.1 14
 		comment {
 			access 'read write'
 			type INTEGER
@@ -1100,8 +1100,8 @@ state.RedPitayaAC97 {
 			range '0 - 15'
 			dbmin 0
 			dbmax 2250
-			dbvalue.0 2250
-			dbvalue.1 2250
+			dbvalue.0 2100
+			dbvalue.1 2100
 		}
 	}
 	control.27 {

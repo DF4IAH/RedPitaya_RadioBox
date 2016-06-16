@@ -290,13 +290,13 @@ set_max_delay -rise_from [get_pins {i_ps/axi_slave_gp0/wr_wdata_reg[*]/C}] -rise
 ############################################################################
 
 set_false_path -from [get_clocks clk_fpga_0]   -to [get_clocks adc_clk]
-set_false_path -from [get_clocks clk_fpga_1]   -to [get_clocks adc_clk]
-set_false_path -from [get_clocks clk_fpga_2]   -to [get_clocks adc_clk]
-set_false_path -from [get_clocks clk_fpga_3]   -to [get_clocks adc_clk]
+#set_false_path -from [get_clocks clk_fpga_1]   -to [get_clocks adc_clk]
+#set_false_path -from [get_clocks clk_fpga_2]   -to [get_clocks adc_clk]
+#set_false_path -from [get_clocks clk_fpga_3]   -to [get_clocks adc_clk]
 set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_0]
-set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_1]
-set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_2]
-set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_3]
+#set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_1]
+#set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_2]
+#set_false_path -from [get_clocks adc_clk]      -to [get_clocks clk_fpga_3]
 
 set_false_path -from [get_clocks rx_clk]       -to [get_clocks adc_clk]
 set_false_path -from [get_clocks adc_clk]      -to [get_clocks rx_clk]

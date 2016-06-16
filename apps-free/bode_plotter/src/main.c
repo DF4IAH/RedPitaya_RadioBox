@@ -356,7 +356,7 @@ float forced_delay = 0;
 
 const char *rp_app_desc(void)
 {
-    return (const char *)"Red Pitaya osciloscope application.\n";
+    return (const char *)"Red Pitaya oscilloscope application.\n";
 }
 
 int rp_app_init(void)

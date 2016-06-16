@@ -31,7 +31,7 @@
 #define FPGA_RB_BASE_SIZE       0x10000
 
 /** @brief RadioBox minimum FPGA version needed for this driver to work. */
-#define FPGA_VERSION_MIN        0x16052001
+#define FPGA_VERSION_MIN        0x16052002
 
 
 /** @brief FPGA register offset addresses of the RadioBox sub-system base address.
@@ -194,7 +194,9 @@ typedef struct fpga_rb_reg_mem_s {
      *
      * bit h18: ADC_AUTO_OFS - '1' enables automatic A/D-Converter offset compensation.  '0' disables that automatic compensation.
      *
-     * bit h1B..h19: n/a
+     * bit h19: AGC_AUTO_ON  - '1' enables the automatic gain control for the receiver.  '0' disables that automatic control.
+     *
+     * bit h1B..h1A: n/a
      *
      * bit h1C: RX_MOD_OSC RESYNC - '1' stops incrementing the accumulating phase register. That holds the oscillator just there, where it is. With '0' the RX_MOD_OSC resumes operation.
      *
@@ -410,6 +412,7 @@ typedef struct fpga_rb_reg_mem_s {
      *   value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
      *
      *   value = hF0  AC97 diagnostic LEDs.
+     *   value = hF1  RX AGC_MUXIN gain value
      *
      *   value = hF8  current status of the overdrive signals.
      *
@@ -1025,12 +1028,14 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t rx_mod_osc_ofs_hi;
 
 
-    /** @brief  Placeholder for addr: 0x40600150
+    /** @brief  R/O RB_RX_AGC_MUXIN_GAIN - RX_AGC_MUXIN gain value, bits 15..0 (addr: 0x40600150)
      *
-     * n/a
+     * bit h0F..h00: RX_AGC_MUXIN current value.
+     *
+     * bit h1F..h10: n/a
      *
      */
-    uint32_t reserved_150;
+    uint32_t rx_agc_muxin_gain;
 
     /** @brief  Placeholder for addr: 0x40600154
      *

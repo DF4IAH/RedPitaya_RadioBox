@@ -179,7 +179,7 @@ enum {
     REG_RW_RB_RX_MOD_OSC_OFS_LO,                // h148: RB RX_MOD_OSC offset register                 LSB:        (Bit 31: 0)
     REG_RW_RB_RX_MOD_OSC_OFS_HI,                // h14C: RB RX_MOD_OSC offset register                 MSB: 16'b0, (Bit 47:32)
 
-    //REG_RD_RB_RX_RSVD_H150,
+    REG_RD_RB_RX_AGC_MUXIN_GAIN,                // h150: RB_RX_AGC_MUXIN_GAIN current MUXIN AGC gain       UNSIGNED 16 bit
     //REG_RD_RB_RX_RSVD_H154,
     //REG_RD_RB_RX_RSVD_H158,
     REG_RW_RB_RX_EMENV_FILT_VARIANT,            // h15C: RB_RX_EMENV_FILT_VARIANT  wide, middle, narrow            (Bit  1: 0)
@@ -251,7 +251,7 @@ enum {
     RB_CTRL_RSVD_D23,
 
     RB_CTRL_ADC_AUTO_OFS,                       // ADC_AUTO_OFS enabling automatic A/D-Converter offset compensation
-    RB_CTRL_RSVD_D25,
+    RB_CTRL_AGC_AUTO_ON,                        // AGC_AUTO_ON  enables the automatic gain control for the receiver
     RB_CTRL_RSVD_D26,
     RB_CTRL_RSVD_D27,
 
@@ -410,6 +410,7 @@ enum {
     RB_SRC_CON_PNT_NUM_TEST_AC97                    = 240,// AC97 diagnostic LEDs
 
     RB_SRC_CON_PNT_NUM_TEST_OVERDRIVE               = 248,// overdrive signals
+    RB_SRC_CON_PNT_NUM_AGC_MUXIN,                         // RX AGC_MUXIN gain value
 
     RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT              = 255 // Test vector, look at assignments within this file
 
@@ -459,6 +460,7 @@ wire                   rx_mod_osc_reset       = regs[REG_RW_RB_CTRL][RB_CTRL_RX_
 wire                   rx_mod_osc_resync      = regs[REG_RW_RB_CTRL][RB_CTRL_RX_MOD_OSC_RESYNC];
 
 wire                   adc_auto_ofs           = regs[REG_RW_RB_CTRL][RB_CTRL_ADC_AUTO_OFS];
+wire                   agc_auto_on            = regs[REG_RW_RB_CTRL][RB_CTRL_AGC_AUTO_ON];
 
 wire unsigned [  7: 0] rb_pwr_rx_modvar       = regs[REG_RW_RB_PWR_CTRL][ 7:0];
 wire unsigned [  7: 0] rb_pwr_tx_modvar       = regs[REG_RW_RB_PWR_CTRL][15:8];
@@ -498,6 +500,7 @@ wire unsigned [ 47: 0] rx_car_osc_inc         = { regs[REG_RW_RB_RX_CAR_OSC_INC_
 wire   signed [ 47: 0] rx_car_osc_ofs         = { regs[REG_RW_RB_RX_CAR_OSC_OFS_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_OFS_LO][31:0] };
 wire unsigned [ 47: 0] rx_car_osc_inc_scanner = { regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_LO][31:0] };
 
+wire unsigned [ 15: 0] rx_agc_muxin_gain      = regs[REG_RD_RB_RX_AGC_MUXIN_GAIN][15:0];
 wire unsigned [  1: 0] rx_afc_amenv_filtvar   = regs[REG_RW_RB_RX_EMENV_FILT_VARIANT][1:0];
 
 wire   signed [ 31: 0] rx_afc_cordic_phs      = regs[REG_RD_RB_RX_AFC_CORDIC_PHS];
@@ -800,7 +803,6 @@ end
 
 // ADC AUTO OFS correction
 
-wire signed   [ 15: 0] xadc_in = xadc_axis_tdata;
 reg  signed   [ 15: 0] adc_enhanced[RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
 reg  signed   [ 15: 0] adc_offset[  RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
 reg  signed   [ 29: 0] adc_sumreg[  RB_ADC_AUTO_OFS__COUNT - 1 : 0] = '{RB_ADC_AUTO_OFS__COUNT{0}};
@@ -1568,10 +1570,38 @@ rb_addsub_48M48 i_rb_rx_muxin_offset_bias_addsub (
   .S                       ( rx_muxin_biased_out         )   // biased output           SIGNED 48 bit
 );
 
-wire   signed [ 17: 0] rx_muxin_mix_in = (rx_muxin_biased_out[47:30] << rx_muxin_mix_log2);                 // unsigned value: input booster for
+wire   signed [ 17: 0] rx_muxin_mix_in = agc_auto_on ?   rx_muxin_biased_out[47:30]                      :
+                                                        (rx_muxin_biased_out[47:30] << rx_muxin_mix_log2);  // unsigned value: input booster for
                                                                                                             // factor: 1x .. 2^3=7 shift postions=128x (16 mV --> full-scale)
-wire   signed [ 17: 0] rx_muxin_mix_gain_in = { 2'b0, rx_muxin_mix_gain[15:0] };
+reg           [ 15: 0] agc_muxin_gain  = 16'h07FF;
+reg                    agc_muxin_to_lo = 1'b1;
+reg                    agc_muxin_to_hi = 1'b0;
+wire   signed [ 17: 0] rx_muxin_mix_gain_in = agc_auto_on ?  { 2'b0, agc_muxin_gain,          1'b1 } :
+                                                             { 2'b0, rx_muxin_mix_gain[15:0]       } ;
 wire   signed [ 36: 0] rx_muxin_mix_out;
+
+always @(posedge clk_adc_125mhz)
+if (!rb_pwr_rx_CAR_clken) begin
+   agc_muxin_gain  <= 16'h07FF;
+   agc_muxin_to_lo <= 1'b1;
+   agc_muxin_to_hi <= 1'b0;
+   end
+else if (clk_200khz) begin
+   regs[REG_RD_RB_RX_AGC_MUXIN_GAIN] <= { 16'b0, agc_muxin_gain };
+   if (agc_muxin_to_hi && (|agc_muxin_gain))                                                                // agc_muxin_gain > d0
+      agc_muxin_gain = agc_muxin_gain - 1;                                                                  // turn down gain
+   else if (agc_muxin_to_lo && !(&agc_muxin_gain))                                                          // gain < MAX
+      agc_muxin_gain = agc_muxin_gain + 1;                                                                  // turn up gain
+   agc_muxin_to_lo <= 1'b1;
+   agc_muxin_to_hi <= 1'b0;
+   end
+else
+   if (!rx_muxin_mix_out[36]) begin                                                                         // positive lobe
+      if (|rx_muxin_mix_out[35:23])
+         agc_muxin_to_lo <= 1'b0;                                                                           // more than LO limit
+      if (|rx_muxin_mix_out[35:24])
+         agc_muxin_to_hi <= 1'b1;                                                                           // more than HI limit
+      end
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_amplifier_dsp48 (
   // global signals
@@ -1586,7 +1616,8 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_amplifier_dsp48 (
   .P                       ( rx_muxin_mix_out            )   // RX level adj. input       SIGSIG 37 bit
 );
 
-wire          [ 17: 0] rx_muxin_out = rx_muxin_mix_out[30:13];
+wire          [ 17: 0] rx_muxin_out = agc_auto_on ?  rx_muxin_mix_out[25: 8]:
+                                                     rx_muxin_mix_out[30:13];
 
 assign rb_overdrive_rx_muxin = (!rx_muxin_mix_out[36] && (| rx_muxin_mix_out[35:28])) || (rx_muxin_mix_out[36] && !(& rx_muxin_mix_out[35:28]));
 
@@ -3194,7 +3225,11 @@ else if (led_src_con_pnt && rb_reset_n) begin
    RB_SRC_CON_PNT_NUM_TEST_OVERDRIVE: begin
       if (!led_ctr)
          //                LED7                    LED6                    LED5                    LED4                       LED3                    LED2                       LED1                    LED0
-         rb_leds_data <= { ac97_irq_rec_i,         ac97_irq_play_i,        rb_overdrive_rx_muxin,  rb_overdrive_rx_muxin_mon, rb_overdrive_tx_muxin,  rb_overdrive_tx_muxin_mon, 1'b0,                   adc_auto_ofs };
+         rb_leds_data <= { agc_muxin_to_hi,        agc_muxin_to_lo,        rb_overdrive_rx_muxin,  rb_overdrive_rx_muxin_mon, rb_overdrive_tx_muxin,  rb_overdrive_tx_muxin_mon, agc_auto_on,            adc_auto_ofs };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC_MUXIN: begin
+      rb_leds_data <= agc_muxin_gain[15:8];
       end
 
    RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
@@ -4714,6 +4749,12 @@ else begin
       20'h0014C: begin
          sys_ack   <= sys_en;
          sys_rdata <= regs[REG_RW_RB_RX_MOD_OSC_OFS_HI];
+         end
+
+      /* RX AGC MUXIN current gain */
+      20'h00150: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RD_RB_RX_AGC_MUXIN_GAIN];
          end
 
       /* RX filter variants */

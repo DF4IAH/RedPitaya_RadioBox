@@ -73,6 +73,8 @@ int fpga_rb_init(void)
     // Check for valid FPGA
     uint32_t ver = fpga_get_version();
     if ((ver < FPGA_VERSION_MIN) || (ver & 0x80000000)) {  // RadioBox to old or contains no RadioBox sub-module at all
+        fprintf(stderr, "INFO - fpga_rb_init: central fpga.bit file outdated - FPGA found: %08x, requested: %08x\n", ver, FPGA_VERSION_MIN);
+
         // do a fresh set-up
         fpga_rb_exit();
 
@@ -583,9 +585,13 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
     int             tx_car_osc_qrg_inc = 50;
     int             rx_car_osc_qrg_inc = 50;
     uint32_t        adc_auto_ofs = 0x00000000;
+    uint32_t        agc_auto_on  = 0x00000000;
 
 #if 1
     adc_auto_ofs = 0x01000000;                                                                             // enable ADC automatic offset compensation
+#endif
+#if 1
+    agc_auto_on  = 0x02000000;                                                                             // enable AGC automatic gain correction(s)
 #endif
 
     //fprintf(stderr, "DEBUG - fpga_rb_set_ctrl: checking tx_qrg_sel = %d, rx_qrg_sel = %d, qrg_inc = %d\n", tx_qrg_sel, rx_qrg_sel, qrg_inc);
@@ -657,8 +663,8 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       //        term_rfout1, rfout_frequency[0], rfout1_amp_gain,
       //        term_rfout2, rfout_frequency[1], rfout2_amp_gain);
 
-      fpga_rb_set_rfout1_gain_ofs(rfout1_amp_gain, 0.0);                                                   // RFOUT1_AMP    gain correction setting of the RF Output 1 line, DAC offset value
-      fpga_rb_set_rfout2_gain_ofs(rfout2_amp_gain, 0.0);                                                   // RFOUT2_AMP    gain correction setting of the RF Output 2 line, DAC offset value
+      fpga_rb_set_rfout1_gain_ofs(rfout1_amp_gain, calib_get_DAC_offset(&g_rp_main_calib_params, 0x20));   // RFOUT1_AMP    gain correction setting of the RF Output 1 line, DAC offset value
+      fpga_rb_set_rfout2_gain_ofs(rfout2_amp_gain, calib_get_DAC_offset(&g_rp_main_calib_params, 0x21));   // RFOUT2_AMP    gain correction setting of the RF Output 2 line, DAC offset value
 
       g_fpga_rb_reg_mem->src_con_pnt  = src_con_pnt;
       g_fpga_rb_reg_mem->src_con_pnt2 = src_con_pnt2;
@@ -673,22 +679,11 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       switch (tx_modsrc) {
 
       default:
-      case RB_MODSRC_NONE: {
+      case RB_MODSRC_NONE: {  // == CW operation
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA tx_modsrc to (none)\n");
 
         fpga_rb_set_tx_muxin_gain(0, 0x0000);                                                              // TX MUXIN gain setting
         g_fpga_rb_reg_mem->tx_muxin_src = 0x00000000;
-        if (tx_car_osc_qrg_inc == 50) {
-          fpga_rb_set_tx_car_osc_qrg__4mod_cw_ssb_am_pm(tx_car_osc_qrg);                                   // TX_CAR_OSC frequency
-        }
-        fpga_rb_set_tx_car_osc_qrg_inc__4mod_cw_ssb_am_pm(tx_car_osc_qrg_inc);                             // TX_CAR_OSC frequency sweep increment
-        fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_cw_ssbweaver_am(0.0, 1);                                    // CW operation
-        if (!(g_fpga_rb_reg_mem->status & 0x00000100)) {
-          // TX_MOD_OSC phase not zero: reset phase oscillator
-          g_fpga_rb_reg_mem->ctrl &= ~0x00001000;                                                          // TX_MOD RESYNC activate
-          g_fpga_rb_reg_mem->ctrl |=  0x00001000;                                                          // TX_MOD RESYNC deactivate
-          g_fpga_rb_reg_mem->ctrl |= adc_auto_ofs;                                                         // ADC automatic offset compensation
-        }
       }
       break;
 
@@ -781,14 +776,24 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       }  // switch (tx_modsrc)
 
 
-      if (tx_modsrc != RB_MODSRC_NONE) {
-        fpga_rb_set_tx_modtyp(tx_modtyp);                                                                  // power savings control: set TX modulation variant
-
+      {
         switch (tx_modtyp) {
+
+        default:
+        case RB_TX_MODTYP_OFF: { // == OFF no TX
+          //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: off\n");
+
+          fpga_rb_set_tx_modtyp(RB_TX_MODTYP_AM);                                                          // enable power if it was absent
+          g_fpga_rb_reg_mem->ctrl &= ~0x00007076;                                                          // TX: turn off all STREAMING, RESET and RESYNC signals
+          fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(0.0, 0.0);                                              // TX_AMP_RF  turn off output
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
+        }
+        break;
 
         case RB_TX_MODTYP_USB: {
           //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: USB\n");
 
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
           g_fpga_rb_reg_mem->ctrl &= ~0x00007076;                                                          // TX: turn off all STREAMING, RESET and RESYNC signals
           fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain * 1.5, 0.0);                             // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
           if (tx_car_osc_qrg_inc == 50) {
@@ -804,6 +809,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
         case RB_TX_MODTYP_LSB: {
           //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: LSB\n");
 
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
           g_fpga_rb_reg_mem->ctrl &= ~0x00007076;                                                          // TX: turn off all STREAMING, RESET and RESYNC signals
           fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain * 1.5, 0.0);                             // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
           if (tx_car_osc_qrg_inc == 50) {
@@ -819,6 +825,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
         case RB_TX_MODTYP_AM: {
           //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: AM\n");
 
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
           g_fpga_rb_reg_mem->ctrl &= ~0x00007076;                                                          // TX: turn off all STREAMING, RESET and RESYNC signals
           fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain, 0.0);                                   // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
           if (tx_car_osc_qrg_inc == 50) {
@@ -837,13 +844,18 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
             }
           }
 
-          fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_cw_ssbweaver_am(tx_mod_osc_mag, 1);                       // AM by streaming in amplitude
+          if (tx_modsrc == RB_MODSRC_NONE) {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_cw_ssbweaver_am(0, 1);                                  // CW operation
+          } else {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_cw_ssbweaver_am(tx_mod_osc_mag, 1);                     // AM by streaming in amplitude
+          }
         }
         break;
 
         case RB_TX_MODTYP_FM: {
           //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: FM\n");
 
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
           g_fpga_rb_reg_mem->ctrl &= ~0x00007056;                                                          // TX: turn off offset STREAMING, RESET and RESYNC signals
           fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain, 0.0);                                   // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
           if (tx_modsrc == RB_MODSRC_MOD_OSC) {  // TODO scanner does not work for TX_MOD_FM
@@ -856,7 +868,12 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
               g_fpga_rb_reg_mem->ctrl |=  0x00001000;                                                      // TX_MOD RESYNC deactivate
             }
           }
-          fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_fm(tx_car_osc_qrg, tx_mod_osc_mag);                       // FM by streaming in DDS increment
+
+          if (tx_modsrc == RB_MODSRC_NONE) {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_fm(tx_car_osc_qrg, 0);                                  // CW operation
+          } else {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_fm(tx_car_osc_qrg, tx_mod_osc_mag);                     // FM by streaming in DDS increment
+          }
           g_fpga_rb_reg_mem->ctrl |=  0x00000020;                                                          // control: FM by TX_CAR_OSC increment streaming
         }
         break;
@@ -864,6 +881,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
         case RB_TX_MODTYP_PM: {
           //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for TX: PM\n");
 
+          fpga_rb_set_tx_modtyp(tx_modtyp);                                                                // power savings control: set TX modulation variant
           g_fpga_rb_reg_mem->ctrl &= ~0x00007036;                                                          // TX: turn off increment STREAMING, RESET and RESYNC signals
           fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain, 0.0);                                   // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
           if (tx_car_osc_qrg_inc == 50) {
@@ -882,29 +900,21 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
             }
           }
 
-          fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_pm(tx_car_osc_qrg, tx_mod_osc_mag);                       // PM by streaming in DDS phase offset
+          if (tx_modsrc == RB_MODSRC_NONE) {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_pm(tx_car_osc_qrg, 0);                                  // CW operation
+          } else {
+            fpga_rb_set_tx_mod_qmix_gain_ofs__4mod_pm(tx_car_osc_qrg, tx_mod_osc_mag);                     // PM by streaming in DDS phase offset
+          }
           g_fpga_rb_reg_mem->ctrl |=  0x00000040;                                                          // control: PM by TX_CAR_OSC offset streaming
         }
         break;
 
-        default:
-          fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(tx_amp_rf_gain, 0.0);                                   // TX_AMP_RF  gain setting [mV] is global and not modulation dependent
-          if (tx_car_osc_qrg_inc == 50) {
-            fpga_rb_set_tx_car_osc_qrg__4mod_cw_ssb_am_pm(tx_car_osc_qrg);                                 // CW mode keeps oscillator on QRG frequency
-          }
-          fpga_rb_set_tx_car_osc_qrg_inc__4mod_cw_ssb_am_pm(tx_car_osc_qrg_inc);                           // CW mode keeps scanner active
-
-          fpga_rb_set_tx_mod_osc_qrg__4mod_ssbweaver_am_fm_pm(0.0);                                        // TX_MOD_OSC turning off
-          if (!(g_fpga_rb_reg_mem->status & 0x00000100)) {
-            // TX_MOD_OSC phase not zero: reset phase oscillator
-            g_fpga_rb_reg_mem->ctrl &= ~0x00001000;                                                        // TX_MOD RESYNC activate
-            g_fpga_rb_reg_mem->ctrl |=  0x00001000;                                                        // TX_MOD RESYNC deactivate
-          }
-
         }  // switch (tx_modtyp)
-      }  // if (tx_modsrc != RB_MODSRC_NONE)
+      }  // (always)
 
       // -- 8< --
+
+      g_fpga_rb_reg_mem->ctrl |= agc_auto_on;                                                              // control: AGC_AUTO_ON
 
       switch (rx_muxin_src) {
 
@@ -998,13 +1008,12 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       }  // switch (rx_modsrc)
 
 
-      fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                             // power savings control: set RX modulation variant, main part of modulation-type
-
       switch (rx_modtyp & 0x0f) {
 
       case RB_RX_MODTYP_USB: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: USB\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10760000;                                                            // RX: turn off RX RESET, RESYNC, INCREMENT- and PHASE-STREAMING signals
         if (rx_car_osc_qrg_inc == 50) {
           fpga_rb_set_rx_car_osc_qrg__4mod_ssb_am_fm_pm(rx_car_osc_qrg + ssb_weaver_osc_qrg);              // RX_CAR_OSC frequency with ssb_weaver_osc_qrg correction
@@ -1017,6 +1026,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_LSB: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: LSB\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10760000;                                                            // RX: turn off RX RESET, RESYNC, INCREMENT- and PHASE-STREAMING signals
         if (rx_car_osc_qrg_inc == 50) {
           fpga_rb_set_rx_car_osc_qrg__4mod_ssb_am_fm_pm(rx_car_osc_qrg - ssb_weaver_osc_qrg);              // RX_CAR_OSC frequency with ssb_weaver_osc_qrg correction
@@ -1029,6 +1039,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_AMSYNC_USB: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: AM-SYNC (USB)\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10560000;                                                            // RX: turn off RX RESET, RESYNC and PHASE-STREAMING signals
         g_fpga_rb_reg_mem->ctrl |=  0x00200000;                                                            // RX: AM-SYNC detection by AFC increment streaming
         if (rx_car_osc_qrg_inc == 50) {
@@ -1043,6 +1054,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_AMSYNC_LSB: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: AM-SYNC (LSB)\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10560000;                                                            // RX: turn off RX RESET, RESYNC and PHASE-STREAMING signals
         g_fpga_rb_reg_mem->ctrl |=  0x00200000;                                                            // RX: AM-SYNC detection by AFC increment streaming
         if (rx_car_osc_qrg_inc == 50) {
@@ -1057,6 +1069,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_FM: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: FM\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10560000;                                                            // RX: turn off RX RESET, RESYNC and PHASE-STREAMING signals
         g_fpga_rb_reg_mem->ctrl |=  0x00200000;                                                            // RX: FM detection by AFC increment streaming
         if (rx_car_osc_qrg_inc == 50) {
@@ -1070,6 +1083,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_PM: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: PM\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10560000;                                                            // RX: turn off RX RESET, RESYNC and PHASE-STREAMING signals
         g_fpga_rb_reg_mem->ctrl |=  0x00200000;                                                            // RX: PM detection by AFC increment streaming
         if (rx_car_osc_qrg_inc == 50) {
@@ -1083,6 +1097,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       case RB_RX_MODTYP_AMENV: {
         //fprintf(stderr, "INFO - fpga_rb_set_ctrl: setting FPGA for RX: AM-ENV\n");
 
+        fpga_rb_set_rx_modtyp(rx_modtyp & 0x0f);                                                           // power savings control: set RX modulation variant, main part of modulation-type
         g_fpga_rb_reg_mem->ctrl &= ~0x10560000;                                                            // RX: turn off RX RESET, RESYNC and PHASE-STREAMING signals
         g_fpga_rb_reg_mem->ctrl |=  0x00200000;                                                            // RX: AM-ENV detection by AFC increment streaming
         if (rx_car_osc_qrg_inc == 50) {
@@ -1097,11 +1112,13 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       default:
         fpga_rb_set_rx_car_osc_qrg__4mod_ssb_am_fm_pm(0.0);                                                // no need for oscillator to run
         fpga_rb_set_rx_car_osc_qrg_inc__4mod_ssb_am_fm_pm(50);                                             // no need for oscillator to scan
+        fpga_rb_set_rx_modtyp(RB_RX_MODTYP_OFF);                                                           // power savings control: shut down the receiver side
 
       }  // switch (rx_modtyp & 0x0f)
 
 
     } else {  // else if (rb_run)
+      //fprintf(stderr, "INFO - fpga_rb_set_ctrl: rb_run==false settings()\n");
       g_fpga_rb_reg_mem->ctrl &= ~0x10767076;                                                              // TX/RX: turn off all STREAMING, RESET and RESYNC signals
       g_fpga_rb_reg_mem->tx_muxin_src = 0x00000000;                                                        // TX_MUXIN input off
       fpga_rb_set_tx_amp_rf_gain_ofs__4mod_all(0.0, 0.0);                                                  // TX_AMP_RF gain/offset control
@@ -1114,8 +1131,6 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       fpga_rb_set_rx_car_osc_qrg_inc__4mod_ssb_am_fm_pm(50);                                               // RX_CAR_OSC frequency sweep increment, mid-range
       fpga_rb_set_rx_calc_afc_weaver__4mod_am_fm_pm(0.0);                                                  // RX_CAR_CALC_WEAVER frequency
       fpga_rb_set_rx_mod_osc_qrg__4mod_ssbweaver_am(0.0);                                                  // RX_MOD_OSC frequency
-
-      //fpga_rb_reset();                                                                                   // control: turn off all streams into TX_CAR_OSC and TX_CAR_OSC mixer
     }
 }
 

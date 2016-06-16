@@ -26,6 +26,17 @@
     <script src="../assets/jquery.browser.js"></script>
     <link href="./assets/popupstack.css" rel="stylesheet" type="text/css" />
     <title>My Red Pitaya</title>
+    <script type="text/javascript">
+      var url_arr = window.location.href.split("/");
+      var url = url_arr[0] + '//' + url_arr[2] + '/';
+      var shut_url = url_arr[0] + '//' + url_arr[2] + ':5688/';
+      var shutdown = function() {
+        var xmlHttp = new XMLHttpRequest();
+        xmlHttp.open("GET", shut_url, false);
+        xmlHttp.send(null);
+        return false;
+      };
+    </script>
 </head>
 
 <body class="demo">
@@ -41,6 +52,7 @@
             <ul class="paging" id="list-container">
             </ul>
         </div>
+	<div id="shutdown" style="text-align:right;"><a href="javascript:void(0)" title="Shut down RedPitaya safely - wait 10 secs after click before pulling the plug." onClick="shutdown();">Shutdown</a></div>
         <div id="footer">&nbsp;</div>
     </div>
     <div class="modal fade" id="ic_missing" tabindex="-1" role="dialog" aria-labelledby="bazaar_naLabel" aria-hidden="true">
