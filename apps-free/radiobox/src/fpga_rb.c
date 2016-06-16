@@ -585,9 +585,13 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
     int             tx_car_osc_qrg_inc = 50;
     int             rx_car_osc_qrg_inc = 50;
     uint32_t        adc_auto_ofs = 0x00000000;
+    uint32_t        agc_auto_on  = 0x00000000;
 
 #if 1
     adc_auto_ofs = 0x01000000;                                                                             // enable ADC automatic offset compensation
+#endif
+#if 1
+    agc_auto_on  = 0x02000000;                                                                             // enable AGC automatic gain correction(s)
 #endif
 
     //fprintf(stderr, "DEBUG - fpga_rb_set_ctrl: checking tx_qrg_sel = %d, rx_qrg_sel = %d, qrg_inc = %d\n", tx_qrg_sel, rx_qrg_sel, qrg_inc);
@@ -910,7 +914,7 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
 
       // -- 8< --
 
-      g_fpga_rb_reg_mem->ctrl |=  0x02000000;                                                              // control: AGC_AUTO_ON
+      g_fpga_rb_reg_mem->ctrl |= agc_auto_on;                                                              // control: AGC_AUTO_ON
 
       switch (rx_muxin_src) {
 

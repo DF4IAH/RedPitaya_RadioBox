@@ -412,6 +412,7 @@ typedef struct fpga_rb_reg_mem_s {
      *   value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
      *
      *   value = hF0  AC97 diagnostic LEDs.
+     *   value = hF1  RX AGC_MUXIN gain value
      *
      *   value = hF8  current status of the overdrive signals.
      *
@@ -1027,12 +1028,14 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t rx_mod_osc_ofs_hi;
 
 
-    /** @brief  Placeholder for addr: 0x40600150
+    /** @brief  R/O RB_RX_AGC_MUXIN_GAIN - RX_AGC_MUXIN gain value, bits 15..0 (addr: 0x40600150)
      *
-     * n/a
+     * bit h0F..h00: RX_AGC_MUXIN current value.
+     *
+     * bit h1F..h10: n/a
      *
      */
-    uint32_t reserved_150;
+    uint32_t rx_agc_muxin_gain;
 
     /** @brief  Placeholder for addr: 0x40600154
      *
