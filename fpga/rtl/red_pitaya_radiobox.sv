@@ -1597,9 +1597,9 @@ else if (clk_200khz) begin
    end
 else
    if (!rx_muxin_mix_out[36]) begin                                                                         // positive lobe
-      if (|rx_muxin_mix_out[35:23])
+      if (|rx_muxin_mix_out[35:22])
          agc_muxin_to_lo <= 1'b0;                                                                           // more than LO limit
-      if (|rx_muxin_mix_out[35:24])
+      if (|rx_muxin_mix_out[35:23])
          agc_muxin_to_hi <= 1'b1;                                                                           // more than HI limit
       end
 
@@ -1616,7 +1616,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_amplifier_dsp48 (
   .P                       ( rx_muxin_mix_out            )   // RX level adj. input       SIGSIG 37 bit
 );
 
-wire          [ 17: 0] rx_muxin_out = agc_auto_on ?  rx_muxin_mix_out[25: 8]:
+wire          [ 17: 0] rx_muxin_out = agc_auto_on ?  rx_muxin_mix_out[23: 6]:
                                                      rx_muxin_mix_out[30:13];
 
 assign rb_overdrive_rx_muxin = (!rx_muxin_mix_out[36] && (| rx_muxin_mix_out[35:28])) || (rx_muxin_mix_out[36] && !(& rx_muxin_mix_out[35:28]));
