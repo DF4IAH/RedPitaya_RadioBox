@@ -67,9 +67,12 @@ int rp_app_init(void)
     rp_default_calib_params(&g_rp_main_calib_params);
     double default_osc125mhz = g_rp_main_calib_params.base_osc125mhz_realhz;
     //fprintf(stderr, "INFO rp_app_init: default_osc125mhz = %lf\n", default_osc125mhz);
+#if 0
+    // ignore bad calibration data from the EEPROM
     if (rp_read_calib_params(&g_rp_main_calib_params) < 0) {
         //fprintf(stderr, "rp_read_calib_params() failed, using default parameters\n");
     }
+#endif
     if (!((uint32_t) g_rp_main_calib_params.base_osc125mhz_realhz)) {  // non-valid data
         //fprintf(stderr, "WARNING rp_app_init: non-valid osc125mhz data found, overwriting with default value\n");
         g_rp_main_calib_params.base_osc125mhz_realhz = default_osc125mhz;
