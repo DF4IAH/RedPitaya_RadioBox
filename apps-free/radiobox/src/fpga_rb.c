@@ -585,9 +585,13 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
     int             tx_car_osc_qrg_inc = 50;
     int             rx_car_osc_qrg_inc = 50;
     uint32_t        adc_auto_ofs = 0x00000000;
+    uint32_t        agc_auto_on  = 0x00000000;
 
 #if 1
     adc_auto_ofs = 0x01000000;                                                                             // enable ADC automatic offset compensation
+#endif
+#if 1
+    agc_auto_on  = 0x02000000;                                                                             // enable AGC automatic gain correction(s)
 #endif
 
     //fprintf(stderr, "DEBUG - fpga_rb_set_ctrl: checking tx_qrg_sel = %d, rx_qrg_sel = %d, qrg_inc = %d\n", tx_qrg_sel, rx_qrg_sel, qrg_inc);
@@ -659,8 +663,8 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       //        term_rfout1, rfout_frequency[0], rfout1_amp_gain,
       //        term_rfout2, rfout_frequency[1], rfout2_amp_gain);
 
-      fpga_rb_set_rfout1_gain_ofs(rfout1_amp_gain, 0.0);                                                   // RFOUT1_AMP    gain correction setting of the RF Output 1 line, DAC offset value
-      fpga_rb_set_rfout2_gain_ofs(rfout2_amp_gain, 0.0);                                                   // RFOUT2_AMP    gain correction setting of the RF Output 2 line, DAC offset value
+      fpga_rb_set_rfout1_gain_ofs(rfout1_amp_gain, calib_get_DAC_offset(&g_rp_main_calib_params, 0x20));   // RFOUT1_AMP    gain correction setting of the RF Output 1 line, DAC offset value
+      fpga_rb_set_rfout2_gain_ofs(rfout2_amp_gain, calib_get_DAC_offset(&g_rp_main_calib_params, 0x21));   // RFOUT2_AMP    gain correction setting of the RF Output 2 line, DAC offset value
 
       g_fpga_rb_reg_mem->src_con_pnt  = src_con_pnt;
       g_fpga_rb_reg_mem->src_con_pnt2 = src_con_pnt2;
@@ -909,6 +913,8 @@ void fpga_rb_set_ctrl(int rb_run, int tx_modsrc, int tx_modtyp, int rx_modtyp, i
       }  // (always)
 
       // -- 8< --
+
+      g_fpga_rb_reg_mem->ctrl |= agc_auto_on;                                                              // control: AGC_AUTO_ON
 
       switch (rx_muxin_src) {
 

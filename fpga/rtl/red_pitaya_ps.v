@@ -389,13 +389,7 @@ system_wrapper system_i (
   .DDR_we_n          (DDR_we_n         ),
   // FCLKs
   .FCLK_CLK0         (fclk_clk[0]      ),
-  .FCLK_CLK1         (fclk_clk[1]      ),
-  .FCLK_CLK2         (fclk_clk[2]      ),
-  .FCLK_CLK3         (fclk_clk[3]      ),
   .FCLK_RESET0_N     (fclk_rstn[0]     ),
-  .FCLK_RESET1_N     (fclk_rstn[1]     ),
-  .FCLK_RESET2_N     (fclk_rstn[2]     ),
-  .FCLK_RESET3_N     (fclk_rstn[3]     ),
   // MIO
   .FIXED_IO_mio      (FIXED_IO_mio     ),
   .FIXED_IO_ps_clk   (FIXED_IO_ps_clk  ),

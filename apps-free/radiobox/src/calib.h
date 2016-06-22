@@ -173,6 +173,24 @@ void calib_set_ADC_offset(rp_calib_params_t *calib_params, int adcChannel, int16
  */
 int16_t calib_get_ADC_offset(rp_calib_params_t *calib_params, int adcChannel);
 
+/**
+ * Initialize calibration parameters to default values.
+ *
+ * @param[out] calib_params  Pointer to target buffer to be accessed.
+ * @param[in]  dacChannel    DAC channel entry to be updated.
+ * @param[in]  dacOfs        offset value to be added to the DAC value to level out the offset.
+ */
+void calib_set_DAC_offset(rp_calib_params_t *calib_params, int dacChannel, int16_t dacOfs);
+
+/**
+ * Initialize calibration parameters to default values.
+ *
+ * @param[out] calib_params  Pointer to target buffer to be accessed.
+ * @param[in]  dacChannel    DAC channel entry to be retrieved.
+ * @retval     int16_t       offset value to be added to the DAC value to level out the offset.
+ */
+int16_t calib_get_DAC_offset(rp_calib_params_t *calib_params, int dacChannel);
+
 
 /** @} */
 

@@ -118,17 +118,23 @@ int rp_default_calib_params(rp_calib_params_t *calib_params)
     calib_params->fe_ch2_fs_g_hi        =  28101971;    /*  0.006543000 [V] @ 32 bit */                /* one step = 232.83064365e-12 V */
     calib_params->fe_ch1_fs_g_lo        = 625682246;    /*  0.145678000 [V] @ 32 bit */                /* one step = 232.83064365e-12 V */
     calib_params->fe_ch2_fs_g_lo        = 625682246;    /*  0.145678000 [V] @ 32 bit */                /* one step = 232.83064365e-12 V */
+#if 0
     calib_params->fe_ch1_dc_offs        =       585;    /*  0.023362 HI [V] @ 14 bit */                /* treated as signed value for 14 bit ADC value */
     calib_params->fe_ch2_dc_offs        =       585;    /*  0.520152 LO [V] @ 14 bit */                /* treated as signed value for 14 bit ADC value */
+#else
+    calib_params->fe_ch1_dc_offs        =         0;                                                   /* with the automatic ADC offset correction this value is obsolete  */
+    calib_params->fe_ch2_dc_offs        =         0;                                                   /* with the automatic ADC offset correction this value is obsolete  */
+#endif
 
     // DAC
     calib_params->be_ch1_fs             =  42949673;    /*  0.010000000 [V] @ 32 bit */                /* one step = 232.83064365e-12 V */
     calib_params->be_ch2_fs             =  42949673;    /*  0.010000000 [V] @ 32 bit */                /* one step = 232.83064365e-12 V */
-    calib_params->be_ch1_dc_offs        =     16044;    /* -0.010376 DAC[V] @ 15 bit */                /* treated as unsigned mid-range value for 15 bit DAC value - assumption: Ref-Voltage = 1.000 V */
-    calib_params->be_ch2_dc_offs        =     16044;    /* -0.010376 DAC[V] @ 15 bit */                /* treated as unsigned mid-range value for 15 bit DAC value - assumption: Ref-Voltage = 1.000 V */
+    calib_params->be_ch1_dc_offs        =      -920;    /* -0.014038 DAC[V] @ 16 bit */                /* treated as unsigned mid-range value for 16 bit DAC value - assumption: Ref-Voltage = 1.000 V */
+    calib_params->be_ch2_dc_offs        =      -895;    /* -0.013657 DAC[V] @ 16 bit */                /* treated as unsigned mid-range value for 16 bit DAC value - assumption: Ref-Voltage = 1.000 V */
 
     // internals
-    calib_params->base_osc125mhz_realhz =   125e+6f;    /* 125 000 000 [Hz] of the DAC clock */
+//  calib_params->base_osc125mhz_realhz = 125000000.0;  /* 125 000 000 [Hz] of the DAC clock -30.9 Hz */
+    calib_params->base_osc125mhz_realhz = 124999640.0;  /* 125 000 000 [Hz] of the DAC clock   0.0 Hz */
 
     return 0;
 }
@@ -200,6 +206,34 @@ int16_t calib_get_ADC_offset(rp_calib_params_t *calib_params, int adcChannel)
 
     case 0x03:
         return calib_params->be_xadc_vin4_dc_offs;
+
+    default:
+        return 0;
+    }
+}
+
+/*----------------------------------------------------------------------------*/
+void calib_set_DAC_offset(rp_calib_params_t *calib_params, int dacChannel, int16_t dacOfs)
+{
+    switch (dacChannel) {
+    case 0x20:
+        calib_params->be_ch1_dc_offs = -dacOfs;
+        break;
+
+    case 0x21:
+        calib_params->be_ch2_dc_offs = -dacOfs;
+        break;
+    }
+}
+
+int16_t calib_get_DAC_offset(rp_calib_params_t *calib_params, int dacChannel)
+{
+    switch (dacChannel) {
+    case 0x20:
+        return calib_params->be_ch1_dc_offs;
+
+    case 0x21:
+        return calib_params->be_ch2_dc_offs;
 
     default:
         return 0;
