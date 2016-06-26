@@ -588,9 +588,15 @@
                      - bit h1F..h10: n/a
 
 
-    00150  R/O  RX:  RB_RX_AGC_MUXIN_GAIN - RX_AGC_MUXIN gain value.
+    00150  R/O  RX:  RB_RX_AGC1_GAIN - RX_AGC1 MUXIN gain value.
                      bit 15..00, @ 200 kHz base frequency
-                     - bit h0F..h00: UNSIGNED 16 bit - RX_AGC_MUXIN current gain.
+                     - bit h0F..h00: UNSIGNED 16 bit - RX_AGC1 MUXIN current gain.
+                     - bit h1F..h10: n/a
+
+    00158  R/O  RX:  RB_RX_AGC3_GAIN - RX_AGC3 MOD-QMIX gain value.
+                     bit 09..00, @ 8 kHz base frequency
+                     - bit h05..h00: 1
+                     - bit h0F..h06: UNSIGNED 10 bit - RX_AGC3 MOD-QMIX current gain.
                      - bit h1F..h10: n/a
 
     0015C  R/W  RX:  RB_RX_EMENV_FILT_VARIANT - RX AM-Envelope filter variant.

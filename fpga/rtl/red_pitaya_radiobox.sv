@@ -179,9 +179,9 @@ enum {
     REG_RW_RB_RX_MOD_OSC_OFS_LO,                // h148: RB RX_MOD_OSC offset register                 LSB:        (Bit 31: 0)
     REG_RW_RB_RX_MOD_OSC_OFS_HI,                // h14C: RB RX_MOD_OSC offset register                 MSB: 16'b0, (Bit 47:32)
 
-    REG_RD_RB_RX_AGC_MUXIN_GAIN,                // h150: RB_RX_AGC_MUXIN_GAIN current MUXIN AGC gain       UNSIGNED 16 bit
-    //REG_RD_RB_RX_RSVD_H154,
-    //REG_RD_RB_RX_RSVD_H158,
+    REG_RD_RB_RX_AGC1_GAIN,                     // h150: RB_RX_AGC1_GAIN current MUXIN    AGC1 gain        UNSIGNED 16 bit
+    //REG_RD_RB_RX_AGC2_GAIN,                   // h154: RB_RX_AGC2_GAIN current IF-REGS  AGC2 gain        UNSIGNED 16 bit
+    REG_RD_RB_RX_AGC3_GAIN,                     // h158: RB_RX_AGC3_GAIN current MOD-QMIX AGC3 gain        UNSIGNED 16 bit
     REG_RW_RB_RX_EMENV_FILT_VARIANT,            // h15C: RB_RX_EMENV_FILT_VARIANT  wide, middle, narrow            (Bit  1: 0)
 
     REG_RW_RB_RX_MUXIN_SRC,                     // h160: RB audio signal RX MUXIN input selector:
@@ -500,7 +500,9 @@ wire unsigned [ 47: 0] rx_car_osc_inc         = { regs[REG_RW_RB_RX_CAR_OSC_INC_
 wire   signed [ 47: 0] rx_car_osc_ofs         = { regs[REG_RW_RB_RX_CAR_OSC_OFS_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_OFS_LO][31:0] };
 wire unsigned [ 47: 0] rx_car_osc_inc_scanner = { regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_LO][31:0] };
 
-wire unsigned [ 15: 0] rx_agc_muxin_gain      = regs[REG_RD_RB_RX_AGC_MUXIN_GAIN][15:0];
+wire unsigned [ 15: 0] rx_agc1_gain           = regs[REG_RD_RB_RX_AGC1_GAIN][15:0];
+//wire unsigned [ 15: 0] rx_agc2_gain         = regs[REG_RD_RB_RX_AGC2_GAIN][15:0];
+wire unsigned [ 15: 0] rx_agc3_gain           = regs[REG_RD_RB_RX_AGC3_GAIN][15:0];
 wire unsigned [  1: 0] rx_afc_amenv_filtvar   = regs[REG_RW_RB_RX_EMENV_FILT_VARIANT][1:0];
 
 wire   signed [ 31: 0] rx_afc_cordic_phs      = regs[REG_RD_RB_RX_AFC_CORDIC_PHS];
@@ -1587,7 +1589,7 @@ if (!rb_pwr_rx_CAR_clken) begin
    agc_muxin_to_hi <= 1'b0;
    end
 else if (clk_200khz) begin
-   regs[REG_RD_RB_RX_AGC_MUXIN_GAIN] <= { 16'b0, agc_muxin_gain };
+   regs[REG_RD_RB_RX_AGC1_GAIN] <= { 16'b0, agc_muxin_gain };
    if (agc_muxin_to_hi && (|agc_muxin_gain))                                                                // agc_muxin_gain > d0
       agc_muxin_gain = agc_muxin_gain - 1;                                                                  // turn down gain
    else if (agc_muxin_to_lo && !(&agc_muxin_gain))                                                          // gain < MAX
@@ -1603,7 +1605,7 @@ else
          agc_muxin_to_hi <= 1'b1;                                                                           // more than HI limit
       end
 
-rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_amplifier_dsp48 (
+rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_agc1_dsp48 (
   // global signals
   .CLK                     ( clk_adc_125mhz              ),  // global 125 MHz clock
   .CE                      ( rb_pwr_rx_CAR_clken         ),  // power down on request
@@ -1792,6 +1794,10 @@ rb_cic_5M_to_200k_18T18 i_rb_rx_car_Q2_cic (
   .m_axis_data_tdata       ( rx_car_cic2_q_out           ),  // RX_CAR_CIC2 output Q
   .m_axis_data_tvalid      ( rx_car_cic2_q_out_vld       )
 );
+
+
+//---------------------------------------------------------------------------------
+//  2nd RX AGC would come into here
 
 
 //---------------------------------------------------------------------------------
@@ -2146,9 +2152,75 @@ else if (clk_8khz) begin
 
 
 //---------------------------------------------------------------------------------
+//  3rd RX AGC
+
+reg           [  9: 0] agc3_gain  = 9'h07F;
+reg                    agc3_to_lo = 1'b1;
+reg                    agc3_to_hi = 1'b0;
+
+always @(posedge clk_adc_125mhz)
+if (!rb_pwr_rx_CAR_clken) begin
+   agc3_gain  <= 9'h07F;
+   agc3_to_lo <= 1'b1;
+   agc3_to_hi <= 1'b0;
+   end
+else if (clk_8khz) begin
+   regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[9:0], {6{1'b1}} };
+   if (agc3_to_hi && (|agc3_gain))                                                                          // agc_gain > d0
+      agc3_gain = agc3_gain - 1;                                                                            // turn down gain
+   else if (agc3_to_lo && !(&agc3_gain))                                                                    // gain < MAX
+      agc3_gain = agc3_gain + 1;                                                                            // turn up gain
+   agc3_to_lo <= 1'b1;
+   agc3_to_hi <= 1'b0;
+   end
+else
+   if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
+      if (|rx_mod_agc3_i_out[35:22])
+         agc3_to_lo <= 1'b0;                                                                                // more than LO limit
+      if (|rx_mod_agc3_i_out[35:23])
+         agc3_to_hi <= 1'b1;                                                                                // more than HI limit
+      end
+
+wire   signed [ 17: 0] rx_mod_agc3_i_in = { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };
+wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain, {6{1'b1}} };
+wire   signed [ 36: 0] rx_mod_agc3_i_out;
+
+rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_i_dsp48 (
+  // global signals
+  .CLK                     ( clk_adc_125mhz              ),  // global 125 MHz clock
+  .CE                      ( rb_pwr_rx_CAR_clken         ),  // power down on request
+
+  .A                       ( rx_mod_agc3_i_in            ),  // input signal I            SIGNED 18 bit
+  .D                       ( 18'b0                       ),  // unused                    SIGNED 18 bit
+  .B                       ( rx_mod_agc3_gain_i_in       ),  // RX amplifier gain         SIGNED 18 bit
+  .C                       ( 36'b0                       ),  // unused                    SIGNED 36 bit
+
+  .P                       ( rx_mod_agc3_i_out           )   // RX QMIX I input           SIGSIG 37 bit
+);
+
+wire   signed [ 17: 0] rx_mod_agc3_q_in = { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };
+wire   signed [ 17: 0] rx_mod_agc3_gain_q_in = { 2'b0, agc3_gain, {6{1'b1}} };
+wire   signed [ 36: 0] rx_mod_agc3_q_out;
+
+rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_q_dsp48 (
+  // global signals
+  .CLK                     ( clk_adc_125mhz              ),  // global 125 MHz clock
+  .CE                      ( rb_pwr_rx_CAR_clken         ),  // power down on request
+
+  .A                       ( rx_mod_agc3_q_in            ),  // input signal Q            SIGNED 18 bit
+  .D                       ( 18'b0                       ),  // unused                    SIGNED 18 bit
+  .B                       ( rx_mod_agc3_gain_q_in       ),  // RX amplifier gain         SIGNED 18 bit
+  .C                       ( 36'b0                       ),  // unused                    SIGNED 36 bit
+
+  .P                       ( rx_mod_agc3_q_out           )   // RX QMIX Q input           SIGSIG 37 bit
+);
+
+
+//---------------------------------------------------------------------------------
 //  RX_MOD_QMIX quadrature mixer for the base band
 
-wire [ 17: 0] rx_mod_qmix_i_in  = { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };  // signed expansion
+wire [ 17: 0] rx_mod_qmix_i_in  = agc_auto_on ?  rx_mod_agc3_i_out[23:6]                                    :
+                                                 { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };  // signed expansion
 wire [ 17: 0] rx_mod_qmix_i_hld = { {2{rx_mod_hld_i_data[15]}},   rx_mod_hld_i_data[15:0]   };
 wire [ 36: 0] rx_mod_qmix_i_out;
 
@@ -2165,7 +2237,8 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_qmix_I_dsp48 (
   .P                       ( rx_mod_qmix_i_out           )   // RX_MOD_QMIX I output:     SIGSIG 37 bit
 );
 
-wire [ 17: 0] rx_mod_qmix_q_in  = { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };  // signed expansion
+wire [ 17: 0] rx_mod_qmix_q_in  = agc_auto_on ?  rx_mod_agc3_q_out[23:6]                                    :
+                                                 { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };  // signed expansion
 wire [ 17: 0] rx_mod_qmix_q_hld = { {2{rx_mod_hld_q_data[15]}},   rx_mod_hld_q_data[15:0]   };  // signed expansion
 wire [ 36: 0] rx_mod_qmix_q_out;
 
@@ -4754,7 +4827,15 @@ else begin
       /* RX AGC MUXIN current gain */
       20'h00150: begin
          sys_ack   <= sys_en;
-         sys_rdata <= regs[REG_RD_RB_RX_AGC_MUXIN_GAIN];
+         sys_rdata <= regs[REG_RD_RB_RX_AGC1_GAIN];
+         end
+/*    20'h00154: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RD_RB_RX_AGC2_GAIN];
+         end  */
+      20'h00158: begin
+         sys_ack   <= sys_en;
+         sys_rdata <= regs[REG_RD_RB_RX_AGC3_GAIN];
          end
 
       /* RX filter variants */
