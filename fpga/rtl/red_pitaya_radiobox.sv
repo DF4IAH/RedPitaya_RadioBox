@@ -2154,13 +2154,13 @@ else if (clk_8khz) begin
 //---------------------------------------------------------------------------------
 //  3rd RX AGC
 
-reg           [  9: 0] agc3_gain  = 9'h07F;
+reg           [  9: 0] agc3_gain  = 10'h07F;
 reg                    agc3_to_lo = 1'b1;
 reg                    agc3_to_hi = 1'b0;
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_CAR_clken) begin
-   agc3_gain  <= 9'h07F;
+   agc3_gain  <= 10'h07F;
    agc3_to_lo <= 1'b1;
    agc3_to_hi <= 1'b0;
    end
@@ -2175,9 +2175,9 @@ else if (clk_8khz) begin
    end
 else
    if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_i_out[35:22])
+      if (|rx_mod_agc3_i_out[35:18])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
-      if (|rx_mod_agc3_i_out[35:23])
+      if (|rx_mod_agc3_i_out[35:19])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
       end
 
@@ -2219,7 +2219,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_q_dsp48 (
 //---------------------------------------------------------------------------------
 //  RX_MOD_QMIX quadrature mixer for the base band
 
-wire [ 17: 0] rx_mod_qmix_i_in  = agc_auto_on ?  rx_mod_agc3_i_out[23:6]                                    :
+wire [ 17: 0] rx_mod_qmix_i_in  = agc_auto_on ?  rx_mod_agc3_i_out[19:2]                                    :
                                                  { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };  // signed expansion
 wire [ 17: 0] rx_mod_qmix_i_hld = { {2{rx_mod_hld_i_data[15]}},   rx_mod_hld_i_data[15:0]   };
 wire [ 36: 0] rx_mod_qmix_i_out;
@@ -2237,7 +2237,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_qmix_I_dsp48 (
   .P                       ( rx_mod_qmix_i_out           )   // RX_MOD_QMIX I output:     SIGSIG 37 bit
 );
 
-wire [ 17: 0] rx_mod_qmix_q_in  = agc_auto_on ?  rx_mod_agc3_q_out[23:6]                                    :
+wire [ 17: 0] rx_mod_qmix_q_in  = agc_auto_on ?  rx_mod_agc3_q_out[19:2]                                    :
                                                  { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };  // signed expansion
 wire [ 17: 0] rx_mod_qmix_q_hld = { {2{rx_mod_hld_q_data[15]}},   rx_mod_hld_q_data[15:0]   };  // signed expansion
 wire [ 36: 0] rx_mod_qmix_q_out;
