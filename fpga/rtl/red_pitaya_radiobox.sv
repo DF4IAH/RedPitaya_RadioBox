@@ -2154,18 +2154,21 @@ else if (clk_8khz) begin
 //---------------------------------------------------------------------------------
 //  3rd RX AGC
 
-reg           [  9: 0] agc3_gain  = 10'h07F;
-reg                    agc3_to_lo = 1'b1;
-reg                    agc3_to_hi = 1'b0;
+reg unsigned  [  4: 0] agc3_clk_cnt = 'b0;
+reg           [ 14: 0] agc3_gain    = 15'h000f;
+reg                    agc3_to_lo   = 1'b1;
+reg                    agc3_to_hi   = 1'b0;
 
-always @(posedge clk_adc_125mhz)
+always @(posedge clk_adc_125mhz) begin
+regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[14:0], {1{1'b1}} };
 if (!rb_pwr_rx_MOD_rst_n) begin
-   agc3_gain  <= 10'h07F;
-   agc3_to_lo <= 1'b1;
-   agc3_to_hi <= 1'b0;
+   agc3_clk_cnt <= 'b0;
+   agc3_gain    <= 15'h000f;
+   agc3_to_lo   <= 1'b1;
+   agc3_to_hi   <= 1'b0;
    end
-else if (clk_8khz) begin
-   regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[9:0], {6{1'b1}} };
+else if (clk_8khz && agc3_clk_cnt[4]) begin
+   agc3_clk_cnt <= 'b0;
    if (agc3_to_hi && (|agc3_gain))                                                                          // agc_gain > d0
       agc3_gain = agc3_gain - 1;                                                                            // turn down gain
    else if (agc3_to_lo && !(&agc3_gain))                                                                    // gain < MAX
@@ -2173,13 +2176,16 @@ else if (clk_8khz) begin
    agc3_to_lo <= 1'b1;
    agc3_to_hi <= 1'b0;
    end
-else
+else if (clk_8khz) begin
+   agc3_clk_cnt <= agc3_clk_cnt + 1;
    if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_i_out[35:22])
+      if (|rx_mod_agc3_i_out[35:16])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
-      if (|rx_mod_agc3_i_out[35:23])
+      if (|rx_mod_agc3_i_out[35:19])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
       end
+   end
+end
 
 wire   signed [ 17: 0] rx_mod_agc3_i_in = { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };
 wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain, {6{1'b1}} };
