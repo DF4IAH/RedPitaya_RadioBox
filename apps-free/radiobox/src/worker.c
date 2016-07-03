@@ -46,6 +46,9 @@ extern rb_app_params_t*         g_rb_info_worker_params;
 /** @brief Holds mutex to access parameters from the worker thread to any other context */
 extern pthread_mutex_t          g_rb_info_worker_params_mutex;
 
+/** @brief The RadioBox memory layout of the FPGA registers. */
+extern fpga_rb_reg_mem_t*       g_fpga_rb_reg_mem;
+
 static pthread_mutex_t          s_worker_traces_mutex = PTHREAD_MUTEX_INITIALIZER;
 static float**                  s_worker_traces;
 static int                      s_worker_traces_dirty = 0;
@@ -144,6 +147,7 @@ void* worker_thread(void* args)
     rb_app_params_t* l_cb_in_copy_params  = NULL;
     worker_state_t l_state;
     int l_do_normal_state = 0;
+    int l_cnt = 0;
 
     //fprintf(stderr, "worker_thread: BEGIN\n");
 
@@ -224,6 +228,10 @@ void* worker_thread(void* args)
 
         } else if (l_state == worker_idle_state) {
             usleep(10000);  // request for a 10 ms delay
+            if (++l_cnt >= 100) {
+                l_cnt = 0;
+                fprintf(stderr, "INFO worker - RX_AGC1_GAIN = 0x%04x, RX_AGC3_GAIN = 0x%04x\n", g_fpga_rb_reg_mem->rx_agc1_gain, g_fpga_rb_reg_mem->rx_agc3_gain);
+            }
             continue;
 
         } else if (l_state == worker_normal_state) {
