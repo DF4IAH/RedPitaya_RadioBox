@@ -1028,14 +1028,14 @@ typedef struct fpga_rb_reg_mem_s {
     uint32_t rx_mod_osc_ofs_hi;
 
 
-    /** @brief  R/O RB_RX_AGC_MUXIN_GAIN - RX_AGC_MUXIN gain value, bits 15..0 (addr: 0x40600150)
+    /** @brief  R/O RB_RX_AGC1_GAIN - RX_AGC1 MUXIN gain value, bits 15..0 (addr: 0x40600150)
      *
-     * bit h0F..h00: RX_AGC_MUXIN current value.
+     * bit h0F..h00: RX_AGC1 gain current value.
      *
      * bit h1F..h10: n/a
      *
      */
-    uint32_t rx_agc_muxin_gain;
+    uint32_t rx_agc1_gain;
 
     /** @brief  Placeholder for addr: 0x40600154
      *
@@ -1044,12 +1044,16 @@ typedef struct fpga_rb_reg_mem_s {
      */
     uint32_t reserved_154;
 
-    /** @brief  Placeholder for addr: 0x40600158
+    /** @brief  R/O RB_RX_AGC3_GAIN - RX_AGC3 MOD-QMIX gain value, bits 9..0 (addr: 0x40600158)
      *
-     * n/a
+     * bit h06..h00: 1
+     *
+     * bit h0F..h06: RX_AGC3 gain current value.
+     *
+     * bit h1F..h10: n/a
      *
      */
-    uint32_t reserved_158;
+    uint32_t rx_agc3_gain;
 
 
     /** @brief  R/W RB_RX_EMENV_FILT_VARIANT -  bits  1..0 (addr: 0x4060015C)
