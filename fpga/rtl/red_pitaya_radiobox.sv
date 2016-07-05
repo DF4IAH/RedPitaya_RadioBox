@@ -2154,20 +2154,20 @@ else if (clk_8khz) begin
 //---------------------------------------------------------------------------------
 //  3rd RX AGC
 
-reg unsigned  [  4: 0] agc3_clk_cnt = 'b0;
-reg           [ 14: 0] agc3_gain    = 15'h000f;
+reg unsigned  [  6: 0] agc3_clk_cnt = 'b0;
+reg           [ 15: 0] agc3_gain    = 16'h0280;
 reg                    agc3_to_lo   = 1'b1;
 reg                    agc3_to_hi   = 1'b0;
 
 always @(posedge clk_adc_125mhz) begin
-regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[14:0], {1{1'b1}} };
+regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[15:0] };
 if (!rb_pwr_rx_MOD_rst_n) begin
    agc3_clk_cnt <= 'b0;
-   agc3_gain    <= 15'h000f;
+   agc3_gain    <= 16'h0280;
    agc3_to_lo   <= 1'b1;
    agc3_to_hi   <= 1'b0;
    end
-else if (clk_8khz && agc3_clk_cnt[4]) begin
+else if (clk_8khz && agc3_clk_cnt[6]) begin
    agc3_clk_cnt <= 'b0;
    if (agc3_to_hi && (|agc3_gain))                                                                          // agc_gain > d0
       agc3_gain = agc3_gain - 1;                                                                            // turn down gain
@@ -2179,7 +2179,7 @@ else if (clk_8khz && agc3_clk_cnt[4]) begin
 else if (clk_8khz) begin
    agc3_clk_cnt <= agc3_clk_cnt + 1;
    if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_i_out[35:16])
+      if (|rx_mod_agc3_i_out[35:17])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
       if (|rx_mod_agc3_i_out[35:19])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
@@ -2188,7 +2188,7 @@ else if (clk_8khz) begin
 end
 
 wire   signed [ 17: 0] rx_mod_agc3_i_in = { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };
-wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain, {6{1'b1}} };
+wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain };
 wire   signed [ 36: 0] rx_mod_agc3_i_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_i_dsp48 (
@@ -2205,7 +2205,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_i_dsp48 (
 );
 
 wire   signed [ 17: 0] rx_mod_agc3_q_in = { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };
-wire   signed [ 17: 0] rx_mod_agc3_gain_q_in = { 2'b0, agc3_gain, {6{1'b1}} };
+wire   signed [ 17: 0] rx_mod_agc3_gain_q_in = { 2'b0, agc3_gain };
 wire   signed [ 36: 0] rx_mod_agc3_q_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_q_dsp48 (
