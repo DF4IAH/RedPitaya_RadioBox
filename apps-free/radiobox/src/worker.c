@@ -230,7 +230,10 @@ void* worker_thread(void* args)
             usleep(10000);  // request for a 10 ms delay
             if (++l_cnt >= 100) {
                 l_cnt = 0;
-                fprintf(stderr, "INFO worker - RX_AGC1_GAIN = 0x%04x, RX_AGC3_GAIN = 0x%04x\n", g_fpga_rb_reg_mem->rx_agc1_gain, g_fpga_rb_reg_mem->rx_agc3_gain);
+                fprintf(stderr, "INFO worker - RX_AGC1_GAIN (input) = 0x%04x, RX_AGC2_GAIN (IF) = 0x%04x, RX_AGC3_GAIN (SSB) = 0x%04x\n",
+                        g_fpga_rb_reg_mem->rx_agc1_gain,
+                        g_fpga_rb_reg_mem->rx_agc2_gain,
+                        g_fpga_rb_reg_mem->rx_agc3_gain);
             }
             continue;
 
