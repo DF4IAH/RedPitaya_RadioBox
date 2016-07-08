@@ -1037,18 +1037,18 @@ typedef struct fpga_rb_reg_mem_s {
      */
     uint32_t rx_agc1_gain;
 
-    /** @brief  Placeholder for addr: 0x40600154
+    /** @brief  R/O RB_RX_AGC2_GAIN - RX_AGC2 IF gain value, bits 15..0 (addr: 0x40600154)
      *
-     * n/a
+     * bit h0F..h00: RX_AGC2 gain current value.
+     *
+     * bit h1F..h10: n/a
      *
      */
-    uint32_t reserved_154;
+    uint32_t rx_agc2_gain;
 
-    /** @brief  R/O RB_RX_AGC3_GAIN - RX_AGC3 MOD-QMIX gain value, bits 9..0 (addr: 0x40600158)
+    /** @brief  R/O RB_RX_AGC3_GAIN - RX_AGC3 MOD-QMIX gain value, bits 15..0 (addr: 0x40600158)
      *
-     * bit h06..h00: 1
-     *
-     * bit h0F..h06: RX_AGC3 gain current value.
+     * bit h0F..h00: RX_AGC3 gain current value.
      *
      * bit h1F..h10: n/a
      *
