@@ -2218,7 +2218,7 @@ else if (clk_8khz) begin
 //  3rd RX AGC (SSB section)
 
 reg unsigned  [  6: 0] agc3_clk_cnt = 'b0;
-reg           [ 15: 0] agc3_gain    = 16'h07FF;
+reg           [ 15: 0] agc3_gain    = 16'h13FF;
 reg                    agc3_to_lo   = 1'b1;
 reg                    agc3_to_hi   = 1'b0;
 
@@ -2226,7 +2226,7 @@ always @(posedge clk_adc_125mhz) begin
 regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[15:0] };
 if (!rb_pwr_rx_MOD_rst_n) begin
    agc3_clk_cnt <= 'b0;
-   agc3_gain    <= 16'h07FF;
+   agc3_gain    <= 16'h13FF;
    agc3_to_lo   <= 1'b1;
    agc3_to_hi   <= 1'b0;
    end
