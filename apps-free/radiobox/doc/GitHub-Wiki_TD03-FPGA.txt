@@ -255,7 +255,9 @@
                          value = hD5  ADC_AUTO_OFS_EXT_CH9  offset register monitor.
                          value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
                          value = hF0  AC97 diagnostic LEDs.
-                         value = hF1  RX AGC_MUXIN gain value
+                         value = hF1  RX AGC1 MUXIN gain value.
+                         value = hF2  RX AGC2 IF gain value.
+                         value = hF3  RX AGC3 SSB gain value.
                          value = hF8  current status of the overdrive signals.
                          value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
                      - bit h0F..h08: n/a
@@ -331,7 +333,9 @@
                          value = hD5  ADC_AUTO_OFS_EXT_CH9  offset register monitor.
                          value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
                          value = hF0  AC97 diagnostic LEDs.
-                         value = hF1  RX AGC_MUXIN gain value
+                         value = hF1  RX AGC1 MUXIN gain value.
+                         value = hF2  RX AGC2 IF gain value.
+                         value = hF3  RX AGC3 SSB gain value.
                          value = hF8  current status of the overdrive signals.
                          value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
 
@@ -402,19 +406,6 @@
                          value = h48  RX_MOD_FM output.
                          value = h49  RX_MOD_PM output.
                          value = h50  RX_AUDIO output.
-                         value = hC0  TX_CAR_OSC_INC frequency value.
-                         value = hC1  RX_CAR_OSC_INC frequency value.
-                         value = hD0  ADC_AUTO_OFS_RFIN1    offset register monitor.
-                         value = hD1  ADC_AUTO_OFS_RFIN2    offset register monitor.
-                         value = hD2  ADC_AUTO_OFS_EXT_CH0  offset register monitor.
-                         value = hD3  ADC_AUTO_OFS_EXT_CH8  offset register monitor.
-                         value = hD4  ADC_AUTO_OFS_EXT_CH1  offset register monitor.
-                         value = hD5  ADC_AUTO_OFS_EXT_CH9  offset register monitor.
-                         value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
-                         value = hF0  AC97 diagnostic LEDs.
-                         value = hF1  RX AGC_MUXIN gain value
-                         value = hF8  current status of the overdrive signals.
-                         value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
 
     00020  R/W  TX:  RB_TX_CAR_OSC_INC_LO - DDS TX_CAR_OSC, phase increment register.
                      bit 31..00 (LSB), @ 125 MHz base frequency
