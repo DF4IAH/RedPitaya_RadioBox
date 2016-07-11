@@ -1577,7 +1577,7 @@ rb_addsub_48M48 i_rb_rx_muxin_offset_bias_addsub (
 wire   signed [ 17: 0] rx_muxin_mix_in = agc_auto_on ?   rx_muxin_biased_out[47:30]                      :
                                                         (rx_muxin_biased_out[47:30] << rx_muxin_mix_log2);  // unsigned value: input booster for
                                                                                                             // factor: 1x .. 2^3=7 shift postions=128x (16 mV --> full-scale)
-reg           [ 13: 0] agc1_gain  = 14'h007F;
+reg           [ 13: 0] agc1_gain  = 14'h00FF;
 reg                    agc1_to_lo = 1'b1;
 reg                    agc1_to_hi = 1'b0;
 wire   signed [ 17: 0] rx_muxin_mix_gain_in = agc_auto_on ?  { 2'b0, agc1_gain,              2'b11 } :
@@ -1586,7 +1586,7 @@ wire   signed [ 36: 0] rx_muxin_mix_out;
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_CAR_clken) begin
-   agc1_gain  <= 14'h007F;
+   agc1_gain  <= 14'h00FF;
    agc1_to_lo <= 1'b1;
    agc1_to_hi <= 1'b0;
    end
@@ -2250,7 +2250,7 @@ else if (clk_8khz) begin
 //  3rd RX AGC (SSB section)
 
 reg unsigned  [  6: 0] agc3_clk_cnt = 'b0;
-reg           [ 15: 0] agc3_gain    = 16'h13FF;
+reg           [ 15: 0] agc3_gain    = 16'h0BFF;
 reg                    agc3_to_lo   = 1'b1;
 reg                    agc3_to_hi   = 1'b0;
 
@@ -2258,7 +2258,7 @@ always @(posedge clk_adc_125mhz) begin
 regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[15:0] };
 if (!rb_pwr_rx_MOD_rst_n) begin
    agc3_clk_cnt <= 'b0;
-   agc3_gain    <= 16'h13FF;
+   agc3_gain    <= 16'h0BFF;
    agc3_to_lo   <= 1'b1;
    agc3_to_hi   <= 1'b0;
    end
@@ -2274,28 +2274,28 @@ else if (clk_8khz && agc3_clk_cnt[6]) begin
 else if (clk_8khz) begin
    agc3_clk_cnt <= agc3_clk_cnt + 1;
    if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_i_out[35:20])
+      if (|rx_mod_agc3_i_out[35:19])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
-      if (|rx_mod_agc3_i_out[35:18])
+      if (|rx_mod_agc3_i_out[35:17])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    else begin                                                                                               // negative lobe
-      if (!(&rx_mod_agc3_i_out[35:20]))
+      if (!(&rx_mod_agc3_i_out[35:19]))
          agc3_to_hi <= 1'b1;                                                                                // abs() more than HI limit
-      if (!(&rx_mod_agc3_i_out[35:18]))
+      if (!(&rx_mod_agc3_i_out[35:17]))
          agc3_to_lo <= 1'b0;                                                                                // abs() more than LO limit
       end
 
    if (!rx_mod_agc3_q_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_q_out[35:20])
+      if (|rx_mod_agc3_q_out[35:19])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
-      if (|rx_mod_agc3_q_out[35:18])
+      if (|rx_mod_agc3_q_out[35:17])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    else begin                                                                                               // negative lobe
-      if (!(&rx_mod_agc3_q_out[35:20]))
+      if (!(&rx_mod_agc3_q_out[35:19]))
          agc3_to_hi <= 1'b1;                                                                                // abs() more than HI limit
-      if (!(&rx_mod_agc3_q_out[35:18]))
+      if (!(&rx_mod_agc3_q_out[35:17]))
          agc3_to_lo <= 1'b0;                                                                                // abs() more than LO limit
       end
    end
