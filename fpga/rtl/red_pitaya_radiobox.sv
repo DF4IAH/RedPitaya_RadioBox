@@ -1839,28 +1839,28 @@ else if (clk_200khz) begin
    end
 else begin
    if (!rx_if_agc2_i_out[36]) begin                                                                         // positive lobe
-      if (|rx_if_agc2_i_out[35:24])
-         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
       if (|rx_if_agc2_i_out[35:23])
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (|rx_if_agc2_i_out[35:21])
          agc2_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    else begin                                                                                               // negative lobe
-      if (!(&rx_if_agc2_i_out[35:24]))
-         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
       if (!(&rx_if_agc2_i_out[35:23]))
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (!(&rx_if_agc2_i_out[35:21]))
          agc2_to_lo <= 1'b0;                                                                                // more than LO limit
       end
 
    if (!rx_if_agc2_q_out[36]) begin                                                                         // positive lobe
-      if (|rx_if_agc2_q_out[35:24])
-         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
       if (|rx_if_agc2_q_out[35:23])
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (|rx_if_agc2_q_out[35:21])
          agc2_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    else begin                                                                                               // negative lobe
-      if (!(&rx_if_agc2_q_out[35:24]))
-         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
       if (!(&rx_if_agc2_q_out[35:23]))
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (!(&rx_if_agc2_q_out[35:21]))
          agc2_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    end
