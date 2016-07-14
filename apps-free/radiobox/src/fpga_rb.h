@@ -412,7 +412,9 @@ typedef struct fpga_rb_reg_mem_s {
      *   value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
      *
      *   value = hF0  AC97 diagnostic LEDs.
-     *   value = hF1  RX AGC_MUXIN gain value
+     *   value = hF1  RX AGC1 MUXIN gain value
+     *   value = hF2  RX AGC2 IF gain value
+     *   value = hF3  RX AGC3 SSB gain value
      *
      *   value = hF8  current status of the overdrive signals.
      *
@@ -493,8 +495,24 @@ typedef struct fpga_rb_reg_mem_s {
      *
      *   value = h50  RX_AUDIO output.
      *
-     *   value = hF8  TX_CAR_OSC_INC frequency value.
-     *   value = hF9  RX_CAR_OSC_INC frequency value.
+     *   value = hC0  TX_CAR_OSC_INC frequency value.
+     *   value = hC1  RX_CAR_OSC_INC frequency value.
+     *
+     *   value = hD0  ADC_AUTO_OFS_RFIN1    offset register monitor.
+     *   value = hD1  ADC_AUTO_OFS_RFIN2    offset register monitor.
+     *   value = hD2  ADC_AUTO_OFS_EXT_CH0  offset register monitor.
+     *   value = hD3  ADC_AUTO_OFS_EXT_CH8  offset register monitor.
+     *   value = hD4  ADC_AUTO_OFS_EXT_CH1  offset register monitor.
+     *   value = hD5  ADC_AUTO_OFS_EXT_CH9  offset register monitor.
+     *   value = hD6  ADC_AUTO_OFS_EXT_VpVn offset register monitor.
+     *
+     *   value = hF0  AC97 diagnostic LEDs.
+     *   value = hF1  RX AGC1 MUXIN gain value.
+     *   value = hF2  RX AGC2 IF gain value.
+     *   value = hF3  RX AGC3 SSB gain value.
+     *
+     *   value = hF8  current status of the overdrive signals.
+     *
      *   value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
      *
      */
@@ -579,86 +597,6 @@ typedef struct fpga_rb_reg_mem_s {
        *   value = h4A  RX_MOD_AMENV_OUT output.
        *
        *   value = h50  RX_AUDIO output.
-       *
-       *   value = hF8  TX_CAR_OSC_INC frequency value.
-       *   value = hF9  RX_CAR_OSC_INC frequency value.
-       *   value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
-       *
-       * bit h1F..h18: RFOUT2 source connection point
-       *   value = h00  silence.
-       *   value = h01  silence.
-       *
-       *   value = h04  TX_MUXIN_MIX in.
-       *   value = h05  TX_MOD_ADC in.
-       *   value = h06  TX_MOD_ADC out.
-       *
-       *   value = h08  TX_MOD_OSC_I output.
-       *   value = h09  TX_MOD_OSC_Q output.
-       *   value = h0A  TX_MOD_QMIX_I output at stage 1.
-       *   value = h0B  TX_MOD_QMIX_Q output at stage 1.
-       *   value = h0C  TX_MOD_QMIX_I output at stage 2.
-       *   value = h0D  TX_MOD_QMIX_Q output at stage 2.
-       *   value = h0E  TX_MOD_QMIX_I output at stage 3.
-       *   value = h0F  TX_MOD_QMIX_Q output at stage 3.
-       *
-       *   value = h10  TX_MOD_CIC I output.
-       *   value = h11  TX_MOD_CIC Q output.
-       *   value = h12  TX_MOD_FIR I output.
-       *   value = h13  TX_MOD_FIR Q output.
-       *   value = h14  TX_CAR_CIC_41M664 I output 41.664 MHz output.
-       *   value = h15  TX_CAR_CIC_41M664 Q output 41.664 MHz output.
-       *
-       *   value = h18  TX_CAR_OSC_I output.
-       *   value = h19  TX_CAR_OSC_Q output.
-       *   value = h1A  TX_CAR_QMIX_I output.
-       *   value = h1B  TX_CAR_QMIX_Q output.
-       *
-       *   value = h1C  TX_AMP_RF output.
-       *
-       *   value = h20  RB_SRC_CON_PNT_NUM_RX_MUXIN_MIX input.
-       *   value = h21  RB_SRC_CON_PNT_NUM_RX_MUXIN_MIX output.
-       *   value = h22  RX_CAR_OSC_I output.
-       *   value = h23  RX_CAR_OSC_Q output.
-       *   value = h24  RX_CAR_QMIX_I output.
-       *   value = h25  RX_CAR_QMIX_Q output.
-       *   value = h26  RX_CAR_5M_I output.
-       *   value = h27  RX_CAR_5M_Q output.
-       *   value = h28  RX_CAR_200K_I output.
-       *   value = h29  RX_CAR_200K_Q output.
-       *
-       *   value = h30  RX_MOD_8K_I output.
-       *   value = h31  RX_MOD_8K_Q output.
-       *   value = h32  RX_MOD_VB1_I output.
-       *   value = h33  RX_MOD_VB1_Q output.
-       *   value = h34  RX_MOD_OSC_I output.
-       *   value = h35  RX_MOD_OSC_Q output.
-       *   value = h36  RX_MOD_HLD_I output.
-       *   value = h37  RX_MOD_HLD_Q output.
-       *   value = h38  RX_MOD_QMIX_I output.
-       *   value = h39  RX_MOD_QMIX_Q output.
-       *   value = h3A  RX_MOD_VB2_I output.
-       *   value = h3B  RX_MOD_VB2_Q output.
-       *   value = h3C  RX_MOD_48K_I output.
-       *   value = h3D  RX_MOD_48K_Q output.
-       *   value = h3E  RX_MOD_SSB_AM_OUT output.
-       *
-       *   value = h40  RX_AFC_FIR1_I output.
-       *   value = h41  RX_AFC_FIR1_Q output.
-       *   value = h42  RX_AFC_CORDIC_MAG carrier magnitude value.
-       *   value = h43  RX_AFC_CORDIC_PHS carrier phase value.
-       *   value = h44  RX_AFC_CORDIC_PHS_PREV carrier phase value.
-       *   value = h45  RX_AFC_CORDIC_PHS_DIFF carrier phase value.
-       *   value = h46  RX_AFC_INC_REG increment deviation value.
-       *   value = h47  RX_SUM_INC_REG increment value.
-       *   value = h48  RX_MOD_FM output.
-       *   value = h49  RX_MOD_PM output.
-       *   value = h4A  RX_MOD_AMENV_OUT output.
-       *
-       *   value = h50  RX_AUDIO output.
-       *
-       *   value = hF8  TX_CAR_OSC_INC frequency value.
-       *   value = hF9  RX_CAR_OSC_INC frequency value.
-       *   value = hFF  current test vector @see red_pitaya_radiobox.sv for details.
        *
        */
       uint32_t src_con_pnt2;
@@ -1046,7 +984,7 @@ typedef struct fpga_rb_reg_mem_s {
      */
     uint32_t rx_agc2_gain;
 
-    /** @brief  R/O RB_RX_AGC3_GAIN - RX_AGC3 MOD-QMIX gain value, bits 15..0 (addr: 0x40600158)
+    /** @brief  R/O RB_RX_AGC3_GAIN - RX_AGC3 SSB gain value, bits 15..0 (addr: 0x40600158)
      *
      * bit h0F..h00: RX_AGC3 gain current value.
      *
