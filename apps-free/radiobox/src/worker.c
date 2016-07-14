@@ -147,7 +147,9 @@ void* worker_thread(void* args)
     rb_app_params_t* l_cb_in_copy_params  = NULL;
     worker_state_t l_state;
     int l_do_normal_state = 0;
+#if 0
     int l_cnt = 0;
+#endif
 
     //fprintf(stderr, "worker_thread: BEGIN\n");
 
@@ -228,6 +230,7 @@ void* worker_thread(void* args)
 
         } else if (l_state == worker_idle_state) {
             usleep(10000);  // request for a 10 ms delay
+#if 0
             if (++l_cnt >= 100) {
                 l_cnt = 0;
                 fprintf(stderr, "INFO worker - RX_AGC1_GAIN (input) = 0x%04x, RX_AGC2_GAIN (IF) = 0x%04x, RX_AGC3_GAIN (SSB) = 0x%04x\n",
@@ -235,6 +238,7 @@ void* worker_thread(void* args)
                         g_fpga_rb_reg_mem->rx_agc2_gain,
                         g_fpga_rb_reg_mem->rx_agc3_gain);
             }
+#endif
             continue;
 
         } else if (l_state == worker_normal_state) {
