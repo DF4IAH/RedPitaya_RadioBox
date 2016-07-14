@@ -410,7 +410,9 @@ enum {
     RB_SRC_CON_PNT_NUM_TEST_AC97                    = 240,// AC97 diagnostic LEDs
 
     RB_SRC_CON_PNT_NUM_TEST_OVERDRIVE               = 248,// overdrive signals
-    RB_SRC_CON_PNT_NUM_AGC_MUXIN,                         // RX AGC_MUXIN gain value
+    RB_SRC_CON_PNT_NUM_AGC1_MUXIN,                        // RX AGC1 MUXIN gain value
+    RB_SRC_CON_PNT_NUM_AGC2_IF,                           // RX AGC2 IF gain value
+    RB_SRC_CON_PNT_NUM_AGC3_SSB,                          // RX AGC3 SSB gain value
 
     RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT              = 255 // Test vector, look at assignments within this file
 
@@ -500,9 +502,9 @@ wire unsigned [ 47: 0] rx_car_osc_inc         = { regs[REG_RW_RB_RX_CAR_OSC_INC_
 wire   signed [ 47: 0] rx_car_osc_ofs         = { regs[REG_RW_RB_RX_CAR_OSC_OFS_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_OFS_LO][31:0] };
 wire unsigned [ 47: 0] rx_car_osc_inc_scanner = { regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_HI][15:0], regs[REG_RW_RB_RX_CAR_OSC_INC_SCNR_LO][31:0] };
 
-wire unsigned [ 15: 0] rx_agc1_gain           = regs[REG_RD_RB_RX_AGC1_GAIN][15:0];
-wire unsigned [ 15: 0] rx_agc2_gain           = regs[REG_RD_RB_RX_AGC2_GAIN][15:0];
-wire unsigned [ 15: 0] rx_agc3_gain           = regs[REG_RD_RB_RX_AGC3_GAIN][15:0];
+wire unsigned [ 13: 0] rx_agc1_gain           = regs[REG_RD_RB_RX_AGC1_GAIN];
+wire unsigned [ 15: 0] rx_agc2_gain           = regs[REG_RD_RB_RX_AGC2_GAIN];
+wire unsigned [  9: 0] rx_agc3_gain           = regs[REG_RD_RB_RX_AGC3_GAIN];
 wire unsigned [  1: 0] rx_afc_amenv_filtvar   = regs[REG_RW_RB_RX_EMENV_FILT_VARIANT][1:0];
 
 wire   signed [ 31: 0] rx_afc_cordic_phs      = regs[REG_RD_RB_RX_AFC_CORDIC_PHS];
@@ -1575,34 +1577,51 @@ rb_addsub_48M48 i_rb_rx_muxin_offset_bias_addsub (
 wire   signed [ 17: 0] rx_muxin_mix_in = agc_auto_on ?   rx_muxin_biased_out[47:30]                      :
                                                         (rx_muxin_biased_out[47:30] << rx_muxin_mix_log2);  // unsigned value: input booster for
                                                                                                             // factor: 1x .. 2^3=7 shift postions=128x (16 mV --> full-scale)
-reg           [ 13: 0] agc_muxin_gain  = 14'h007F;
-reg                    agc_muxin_to_lo = 1'b1;
-reg                    agc_muxin_to_hi = 1'b0;
-wire   signed [ 17: 0] rx_muxin_mix_gain_in = agc_auto_on ?  { 2'b0, agc_muxin_gain,         2'b11 } :
+reg           [ 13: 0] agc1_gain  = 14'h0FFF;
+reg                    agc1_to_lo = 1'b1;
+reg                    agc1_to_hi = 1'b0;
+reg                    agc1_to_vh = 1'b0;
+wire   signed [ 17: 0] rx_muxin_mix_gain_in = agc_auto_on ?  { 2'b0, agc1_gain,              2'b11 } :
                                                              { 2'b0, rx_muxin_mix_gain[15:0]       } ;
 wire   signed [ 36: 0] rx_muxin_mix_out;
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_CAR_clken) begin
-   agc_muxin_gain  <= 14'h007F;
-   agc_muxin_to_lo <= 1'b1;
-   agc_muxin_to_hi <= 1'b0;
+   agc1_gain  <= 14'h0FFF;
+   agc1_to_lo <= 1'b1;
+   agc1_to_hi <= 1'b0;
+   agc1_to_vh <= 1'b0;
    end
 else if (clk_200khz) begin
-   regs[REG_RD_RB_RX_AGC1_GAIN] <= { 16'b0, agc_muxin_gain, 2'b11 };
-   if (agc_muxin_to_hi && (|agc_muxin_gain))                                                                // agc_muxin_gain > d0
-      agc_muxin_gain = agc_muxin_gain - 1;                                                                  // turn down gain
-   else if (agc_muxin_to_lo && !(&agc_muxin_gain))                                                          // gain < MAX
-      agc_muxin_gain = agc_muxin_gain + 1;                                                                  // turn up gain
-   agc_muxin_to_lo <= 1'b1;
-   agc_muxin_to_hi <= 1'b0;
+   regs[REG_RD_RB_RX_AGC1_GAIN] <= { 16'b0, agc1_gain, 2'b11 };
+   if (agc1_to_vh && (agc1_gain >= 14'h0400))                                                               // agc1_gain >= d1024  (burst signals)
+      agc1_gain = agc1_gain - 14'h0400;                                                                     // turn down gain rapidly
+   else if (agc1_to_vh)
+      agc1_gain = 14'h0000;                                                                                 // turn down gain to minimum rapidly
+   else if (agc1_to_hi && (|agc1_gain))                                                                     // agc1_gain >= d1
+      agc1_gain = agc1_gain - 14'h0001;                                                                     // turn down gain
+   else if (agc1_to_lo && !(&agc1_gain))                                                                    // gain < MAX
+      agc1_gain = agc1_gain + 14'h0001;                                                                     // turn up gain
+   agc1_to_lo <= 1'b1;
+   agc1_to_hi <= 1'b0;
+   agc1_to_vh <= 1'b0;
    end
 else
    if (!rx_muxin_mix_out[36]) begin                                                                         // positive lobe
-      if (|rx_muxin_mix_out[35:20])
-         agc_muxin_to_hi <= 1'b1;                                                                           // more than HI limit
-      if (|rx_muxin_mix_out[35:19])
-         agc_muxin_to_lo <= 1'b0;                                                                           // more than LO limit
+      if (|rx_muxin_mix_out[35:23])
+         agc1_to_vh <= 1'b1;                                                                                // more than double of HI limit
+      if (|rx_muxin_mix_out[35:22])
+         agc1_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (|rx_muxin_mix_out[35:21])
+         agc1_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   else begin                                                                                               // negative lobe
+      if (!(&rx_muxin_mix_out[35:23]))
+         agc1_to_vh <= 1'b1;                                                                                // abs() more than double of HI limit
+      if (!(&rx_muxin_mix_out[35:22]))
+         agc1_to_hi <= 1'b1;                                                                                // abs() more than HI limit
+      if (!(&rx_muxin_mix_out[35:21]))
+         agc1_to_lo <= 1'b0;                                                                                // abs() more than LO limit
       end
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_agc1_dsp48 (
@@ -1618,7 +1637,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_muxin_agc1_dsp48 (
   .P                       ( rx_muxin_mix_out            )   // RX level adj. input       SIGSIG 37 bit
 );
 
-wire          [ 17: 0] rx_muxin_out = agc_auto_on ?  rx_muxin_mix_out[23: 6]:
+wire          [ 17: 0] rx_muxin_out = agc_auto_on ?  rx_muxin_mix_out[25: 8]:
                                                      rx_muxin_mix_out[30:13];
 
 assign rb_overdrive_rx_muxin = (!rx_muxin_mix_out[36] && (| rx_muxin_mix_out[35:28])) || (rx_muxin_mix_out[36] && !(& rx_muxin_mix_out[35:28]));
@@ -1799,35 +1818,54 @@ rb_cic_5M_to_200k_18T18 i_rb_rx_car_Q2_cic (
 //---------------------------------------------------------------------------------
 //  2nd RX AGC would come into here
 
-/*
-reg           [ 15: 0] agc2_gain  = 16'h07FF;
+reg           [ 15: 0] agc2_gain  = 16'h0FFF;
 reg                    agc2_to_lo = 1'b1;
 reg                    agc2_to_hi = 1'b0;
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_CAR_clken) begin
-   agc2_gain  <= 16'h07FF;
+   agc2_gain  <= 16'h0FFF;
    agc2_to_lo <= 1'b1;
    agc2_to_hi <= 1'b0;
    end
 else if (clk_200khz) begin
    regs[REG_RD_RB_RX_AGC2_GAIN] <= { 16'b0, agc2_gain };
-   if (agc2_to_hi && (|agc2_gain))                                                                          // agc2_gain > d0
-      agc2_gain = agc2_gain - 1;                                                                            // turn down gain
+   if (agc2_to_hi && (|agc2_gain))                                                                          // agc2_gain >= d1
+      agc2_gain = agc2_gain - 16'h0001;                                                                     // turn down gain
    else if (agc2_to_lo && !(&agc2_gain))                                                                    // agc2_gain < MAX
-      agc2_gain = agc2_gain + 1;                                                                            // turn up gain
+      agc2_gain = agc2_gain + 16'h0001;                                                                     // turn up gain
    agc2_to_lo <= 1'b1;
    agc2_to_hi <= 1'b0;
    end
-else
+else begin
    if (!rx_if_agc2_i_out[36]) begin                                                                         // positive lobe
-      if (|rx_if_agc2_i_out[35:21])
+      if (|rx_if_agc2_i_out[35:23])
          agc2_to_hi <= 1'b1;                                                                                // more than HI limit
-      if (|rx_if_agc2_i_out[35:20])
+      if (|rx_if_agc2_i_out[35:21])
+         agc2_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   else begin                                                                                               // negative lobe
+      if (!(&rx_if_agc2_i_out[35:23]))
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (!(&rx_if_agc2_i_out[35:21]))
          agc2_to_lo <= 1'b0;                                                                                // more than LO limit
       end
 
-wire   signed [ 17: 0] rx_if_agc2_i_in = { {2{rx_car_cic2_i_out[15]}}, rx_car_cic2_i_out[15:0] };
+   if (!rx_if_agc2_q_out[36]) begin                                                                         // positive lobe
+      if (|rx_if_agc2_q_out[35:23])
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (|rx_if_agc2_q_out[35:21])
+         agc2_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   else begin                                                                                               // negative lobe
+      if (!(&rx_if_agc2_q_out[35:23]))
+         agc2_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (!(&rx_if_agc2_q_out[35:21]))
+         agc2_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   end
+
+wire   signed [ 17: 0] rx_if_agc2_i_in = rx_car_cic2_i_out[17:0];
 wire   signed [ 17: 0] rx_if_agc2_gain_i_in = { 2'b0, agc2_gain };
 wire   signed [ 36: 0] rx_if_agc2_i_out;
 
@@ -1844,7 +1882,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_if_agc2_i_dsp48 (
   .P                       ( rx_if_agc2_i_out            )   // RX IF REGS I input        SIGSIG 37 bit
 );
 
-wire   signed [ 17: 0] rx_if_agc2_q_in = { {2{rx_car_cic2_q_out[15]}}, rx_car_cic2_q_out[15:0] };
+wire   signed [ 17: 0] rx_if_agc2_q_in = rx_car_cic2_q_out[17:0];
 wire   signed [ 17: 0] rx_if_agc2_gain_q_in = { 2'b0, agc2_gain };
 wire   signed [ 36: 0] rx_if_agc2_q_out;
 
@@ -1860,7 +1898,6 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_if_agc2_q_dsp48 (
 
   .P                       ( rx_if_agc2_q_out            )   // RX IF REGS Q input        SIGSIG 37 bit
 );
-*/
 
 
 //---------------------------------------------------------------------------------
@@ -1877,7 +1914,8 @@ if (!rb_pwr_rx_CAR_rst_n) begin                    // register input I
    rx_car_regs2_i_afc_new <= 1'b0;
    end
 else if (rx_car_cic2_i_out_vld) begin
-   rx_car_regs2_i_data    <= rx_car_cic2_i_out[17:0];
+   rx_car_regs2_i_data    <= agc_auto_on ?  rx_if_agc2_i_out[27:10] :
+                                            rx_car_cic2_i_out[17:0] ;
    rx_car_regs2_i_mod_new <= 1'b1;
    rx_car_regs2_i_afc_new <= 1'b1;
    end
@@ -1899,7 +1937,8 @@ if (!rb_pwr_rx_CAR_rst_n) begin                    // register input Q
    rx_car_regs2_q_afc_new <= 1'b0;
    end
 else if (rx_car_cic2_q_out_vld) begin
-   rx_car_regs2_q_data    <= rx_car_cic2_q_out[17:0];
+   rx_car_regs2_q_data    <= agc_auto_on ?  rx_if_agc2_q_out[27:10] :
+                                            rx_car_cic2_q_out[17:0] ;
    rx_car_regs2_q_mod_new <= 1'b1;
    rx_car_regs2_q_afc_new <= 1'b1;
    end
@@ -2116,8 +2155,8 @@ if (!rb_pwr_rx_MOD_rst_n) begin                    // register input I
    rx_mod_regs2_i_new  <= 1'b0;
    end
 else if (rx_mod_fir2_i_out_vld) begin
-   rx_mod_regs2_i_data <= rb_pwr_rx_AFC_en ?  rx_mod_fir2_i_out[31:16] :
-                                              rx_mod_fir2_i_out[33:18] ;  // drive by factor 4 when modulation is AM-Sync, FM, PM, AM-Env
+   rx_mod_regs2_i_data <= (rb_pwr_rx_AFC_en && !rb_pwr_rx_MOD_en) ?  rx_mod_fir2_i_out[31:16] :
+                                                                     rx_mod_fir2_i_out[33:18] ;  // drive by factor 4 when modulation is FM, PM, AM-Env
    rx_mod_regs2_i_new  <= 1'b1;
    end
 else if (rx_mod_regs2_i_out_vld)
@@ -2132,8 +2171,8 @@ if (!rb_pwr_rx_MOD_rst_n) begin                    // register input Q
    rx_mod_regs2_q_new  <= 1'b0;
    end
 else if (rx_mod_fir2_q_out_vld) begin
-   rx_mod_regs2_q_data <= rb_pwr_rx_AFC_en ?  rx_mod_fir2_q_out[31:16] :
-                                              rx_mod_fir2_q_out[33:18] ;  // drive by factor 4 when modulation is AM-Sync, FM, PM, AM-Env
+   rx_mod_regs2_q_data <= (rb_pwr_rx_AFC_en && !rb_pwr_rx_MOD_en) ?  rx_mod_fir2_q_out[31:16] :
+                                                                     rx_mod_fir2_q_out[33:18] ;  // drive by factor 4 when modulation is FM, PM, AM-Env
    rx_mod_regs2_q_new  <= 1'b1;
    end
 else if (rx_mod_regs2_q_out_vld)
@@ -2218,40 +2257,73 @@ else if (clk_8khz) begin
 //  3rd RX AGC (SSB section)
 
 reg unsigned  [  6: 0] agc3_clk_cnt = 'b0;
-reg           [ 15: 0] agc3_gain    = 16'h07FF;
+reg           [  9: 0] agc3_gain    = 10'h1FF;
 reg                    agc3_to_lo   = 1'b1;
 reg                    agc3_to_hi   = 1'b0;
+reg                    agc3_to_vh   = 1'b0;
 
 always @(posedge clk_adc_125mhz) begin
-regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[15:0] };
+regs[REG_RD_RB_RX_AGC3_GAIN] <= { 16'b0, agc3_gain[9:0], 6'b111111 };
 if (!rb_pwr_rx_MOD_rst_n) begin
    agc3_clk_cnt <= 'b0;
-   agc3_gain    <= 16'h07FF;
+   agc3_gain    <= 10'h1FF;
    agc3_to_lo   <= 1'b1;
    agc3_to_hi   <= 1'b0;
    end
 else if (clk_8khz && agc3_clk_cnt[6]) begin
    agc3_clk_cnt <= 'b0;
-   if (agc3_to_hi && (|agc3_gain))                                                                          // agc_gain > d0
-      agc3_gain = agc3_gain - 1;                                                                            // turn down gain
+   if (agc3_to_vh && (agc3_gain >= 10'h040))                                                                // agc_gain >= d64
+      agc3_gain = agc3_gain - 10'h040;                                                                      // turn down gain rapidly
+   else if (agc3_to_vh)
+      agc3_gain = 10'h000;                                                                                  // turn down gain to minimum rapidly
+   else if (agc3_to_hi && (|agc3_gain))                                                                     // agc_gain >= d1
+      agc3_gain = agc3_gain - 10'h001;                                                                      // turn down gain
    else if (agc3_to_lo && !(&agc3_gain))                                                                    // gain < MAX
-      agc3_gain = agc3_gain + 1;                                                                            // turn up gain
+      agc3_gain = agc3_gain + 10'h001;                                                                      // turn up gain
    agc3_to_lo <= 1'b1;
    agc3_to_hi <= 1'b0;
+   agc3_to_vh <= 1'b0;
    end
 else if (clk_8khz) begin
    agc3_clk_cnt <= agc3_clk_cnt + 1;
    if (!rx_mod_agc3_i_out[36]) begin                                                                        // positive lobe
-      if (|rx_mod_agc3_i_out[35:19])
+      if (|rx_mod_agc3_i_out[35:24])
+         agc3_to_vh <= 1'b1;                                                                                // more than double of HI limit
+      if (|rx_mod_agc3_i_out[35:23])
          agc3_to_hi <= 1'b1;                                                                                // more than HI limit
-      if (|rx_mod_agc3_i_out[35:17])
+      if (|rx_mod_agc3_i_out[35:21])
          agc3_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   else begin                                                                                               // negative lobe
+      if (!(&rx_mod_agc3_i_out[35:24]))
+         agc3_to_vh <= 1'b1;                                                                                // abs() more than double of HI limit
+      if (!(&rx_mod_agc3_i_out[35:23]))
+         agc3_to_hi <= 1'b1;                                                                                // abs() more than HI limit
+      if (!(&rx_mod_agc3_i_out[35:21]))
+         agc3_to_lo <= 1'b0;                                                                                // abs() more than LO limit
+      end
+
+   if (!rx_mod_agc3_q_out[36]) begin                                                                        // positive lobe
+      if (|rx_mod_agc3_q_out[35:24])
+         agc3_to_vh <= 1'b1;                                                                                // more than double of HI limit
+      if (|rx_mod_agc3_q_out[35:23])
+         agc3_to_hi <= 1'b1;                                                                                // more than HI limit
+      if (|rx_mod_agc3_q_out[35:21])
+         agc3_to_lo <= 1'b0;                                                                                // more than LO limit
+      end
+   else begin                                                                                               // negative lobe
+      if (!(&rx_mod_agc3_q_out[35:24]))
+         agc3_to_vh <= 1'b1;                                                                                // abs() more than double of HI limit
+      if (!(&rx_mod_agc3_q_out[35:23]))
+         agc3_to_hi <= 1'b1;                                                                                // abs() more than HI limit
+      if (!(&rx_mod_agc3_q_out[35:21]))
+         agc3_to_lo <= 1'b0;                                                                                // abs() more than LO limit
       end
    end
 end
 
 wire   signed [ 17: 0] rx_mod_agc3_i_in = { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };
-wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain };
+wire   signed [ 17: 0] rx_mod_agc3_gain_i_in = { 2'b0, agc3_gain, 6'b111111 };
 wire   signed [ 36: 0] rx_mod_agc3_i_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_i_dsp48 (
@@ -2268,7 +2340,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_i_dsp48 (
 );
 
 wire   signed [ 17: 0] rx_mod_agc3_q_in = { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };
-wire   signed [ 17: 0] rx_mod_agc3_gain_q_in = { 2'b0, agc3_gain };
+wire   signed [ 17: 0] rx_mod_agc3_gain_q_in = { 2'b0, agc3_gain, 6'b111111 };
 wire   signed [ 36: 0] rx_mod_agc3_q_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_q_dsp48 (
@@ -2288,9 +2360,9 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_agc3_q_dsp48 (
 //---------------------------------------------------------------------------------
 //  RX_MOD_QMIX quadrature mixer for the base band
 
-wire [ 17: 0] rx_mod_qmix_i_in  = agc_auto_on ?  rx_mod_agc3_i_out[23:6]                                    :
+wire [ 17: 0] rx_mod_qmix_i_in  = agc_auto_on ?  rx_mod_agc3_i_out[27:10]                                   :
                                                  { {2{rx_mod_regs2_i_data[15]}}, rx_mod_regs2_i_data[15:0] };  // signed expansion
-wire [ 17: 0] rx_mod_qmix_i_hld = { {2{rx_mod_hld_i_data[15]}},   rx_mod_hld_i_data[15:0]   };
+wire [ 17: 0] rx_mod_qmix_i_hld = { {2{rx_mod_hld_i_data[15]}}, rx_mod_hld_i_data[15:0]                    };  // signed expansion
 wire [ 36: 0] rx_mod_qmix_i_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_qmix_I_dsp48 (
@@ -2306,9 +2378,9 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_qmix_I_dsp48 (
   .P                       ( rx_mod_qmix_i_out           )   // RX_MOD_QMIX I output:     SIGSIG 37 bit
 );
 
-wire [ 17: 0] rx_mod_qmix_q_in  = agc_auto_on ?  rx_mod_agc3_q_out[23:6]                                    :
+wire [ 17: 0] rx_mod_qmix_q_in  = agc_auto_on ?  rx_mod_agc3_q_out[27:10]                                   :
                                                  { {2{rx_mod_regs2_q_data[15]}}, rx_mod_regs2_q_data[15:0] };  // signed expansion
-wire [ 17: 0] rx_mod_qmix_q_hld = { {2{rx_mod_hld_q_data[15]}},   rx_mod_hld_q_data[15:0]   };  // signed expansion
+wire [ 17: 0] rx_mod_qmix_q_hld = { {2{rx_mod_hld_q_data[15]}}, rx_mod_hld_q_data[15:0]                    };  // signed expansion
 wire [ 36: 0] rx_mod_qmix_q_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_qmix_Q_dsp48 (
@@ -2624,7 +2696,8 @@ if (!rb_pwr_rx_AFC_rst_n) begin
    rx_afc_fsm1_i_new <= 1'b0;
    end
 else if (rx_afc_fir_i_out_vld) begin
-   rx_afc_fir_i_reg  <= rx_afc_fir_i_out[32:15];
+   rx_afc_fir_i_reg  <= agc_auto_on ?  rx_afc_fir_i_out[34:17] :
+                                       rx_afc_fir_i_out[32:15] ;
    rx_afc_fsm1_i_new <= 1'b1;
    end
 else if (rx_afc_fsm1_ctr)
@@ -2639,7 +2712,8 @@ if (!rb_pwr_rx_AFC_rst_n) begin
    rx_afc_fsm1_q_new <= 1'b0;
    end
 else if (rx_afc_fir_q_out_vld) begin
-   rx_afc_fir_q_reg <= rx_afc_fir_q_out[32:15];
+   rx_afc_fir_q_reg  <= agc_auto_on ?  rx_afc_fir_q_out[34:17] :
+                                       rx_afc_fir_q_out[32:15] ;
    rx_afc_fsm1_q_new <= 1'b1;
    end
 else if (rx_afc_fsm1_ctr)
@@ -2715,9 +2789,8 @@ rb_cordic_T_WS_O_SR_18T18_NE_CR_EM_B i_rb_rx_afc_cordic (
   .m_axis_dout_tvalid      ( rx_afc_cordic_polar_out_vld )
 );
 
-wire unsigned [ 15: 0] rx_afc_cordic_polar_out_mag =   rx_afc_cordic_polar_out[16:1];
+wire   signed [ 15: 0] rx_afc_cordic_polar_out_mag = { rx_afc_cordic_polar_out[17],    rx_afc_cordic_polar_out[15:1] };
 wire   signed [ 15: 0] rx_afc_cordic_polar_out_phs = { rx_afc_cordic_polar_out[24+17], rx_afc_cordic_polar_out[24+14:24+0] };  // -0.999 .. +0.999 represents -180° .. +180°
-
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_AFC_rst_n) begin
@@ -2727,7 +2800,7 @@ if (!rb_pwr_rx_AFC_rst_n) begin
    end
 else if (rx_afc_cordic_dly_pulse) begin
    regs[REG_RD_RB_RX_AFC_CORDIC_PHS_PREV] <= regs[REG_RD_RB_RX_AFC_CORDIC_PHS];
-   regs[REG_RD_RB_RX_AFC_CORDIC_MAG]      <= { 16'b0, rx_afc_cordic_polar_out_mag[15:0] };
+   regs[REG_RD_RB_RX_AFC_CORDIC_MAG]      <= { {17{rx_afc_cordic_polar_out_mag[15]}}, rx_afc_cordic_polar_out_mag[14:0] };
    regs[REG_RD_RB_RX_AFC_CORDIC_PHS]      <= { {17{rx_afc_cordic_polar_out_phs[15]}}, rx_afc_cordic_polar_out_phs[14:0] };
    end
 
@@ -2928,7 +3001,7 @@ wire   signed [ 15: 0] rx_mod_pm_out = rx_mod_pm_mix_out[30:15];
 //  RX_MOD_AMENV envelope ouput - strategy: difference to mean value of the magnitude
 
 reg  unsigned [ 47: 0] rx_mod_amenv_accu         = 'b0;                                                     // mean value of magnitue = mean value of AM envelope
-wire unsigned [ 47: 0] rx_mod_amenv_s1_sig_in    = { 14'b0, rx_afc_cordic_polar_out_mag[15:0], 18'b0 };     // unsigned expansion - ready to sum up 2^13 samples
+wire unsigned [ 47: 0] rx_mod_amenv_s1_sig_in    = { {15{rx_afc_cordic_polar_out_mag[15]}}, rx_afc_cordic_polar_out_mag[14:0], 18'b0 };     // unsigned expansion - ready to sum up 2^13 samples
 wire unsigned [ 47: 0] rx_mod_amenv_s1_out;
 
 rb_addsub_48M48 i_rb_rx_mod_amenv_accu_s1_addsub (                                                          // mean value - signal integrator
@@ -2975,7 +3048,7 @@ else if (clk_200khz)
 
 assign regs[REG_RD_RB_RX_SIGNAL_STRENGTH] = rx_mod_amenv_mean[47:32];
 
-wire   signed [ 47: 0] rx_mod_amenv_sig_in    = { 2'b0, rx_afc_cordic_polar_out_mag[15:0], 29'b0 };
+wire   signed [ 47: 0] rx_mod_amenv_sig_in    = { {3{rx_afc_cordic_polar_out_mag[15]}}, rx_afc_cordic_polar_out_mag[14:0], 30'b0 };
 wire   signed [ 47: 0] rx_mod_amenv_mean_in   = { 2'b0, rx_mod_amenv_mean[47:2] };                          // 2^13 elements summed up, divide to get the average value
 wire   signed [ 47: 0] rx_mod_amenv_diff_out;
 
@@ -3007,7 +3080,7 @@ rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rx_mod_amenv_mixer_dsp48 (
   .P                       ( rx_mod_amenv_mix_out        )   // AM-ENV demod. output      SIGSIG 37 bit
 );
 
-wire   signed [ 15: 0] rx_mod_amenv_out = rx_mod_amenv_mix_out[30:15];
+wire   signed [ 15: 0] rx_mod_amenv_out = rx_mod_amenv_mix_out[29:14];
 
 
 // === RX_AUDIO section ===
@@ -3281,7 +3354,7 @@ else if (led_src_con_pnt && rb_reset_n) begin
 
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_MAG: begin
       if (!led_ctr)
-         rb_leds_data <= fct_mag(rx_afc_cordic_polar_out_mag[15:0] - 16'h8000);
+         rb_leds_data <= fct_mag(rx_afc_cordic_polar_out_mag[15:0]);
       end
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_PHS: begin
       if (!led_ctr)
@@ -3298,12 +3371,12 @@ else if (led_src_con_pnt && rb_reset_n) begin
 
    RB_SRC_CON_PNT_NUM_RX_AFC_INC_REG: begin
       if (!led_ctr)
-         rb_leds_data <= fct_mag({ regs[REG_RD_RB_RX_CAR_AFC_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:19] });
+         rb_leds_data <= fct_mag(regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:16]);
       end
 
    RB_SRC_CON_PNT_NUM_RX_SUM_INC_REG: begin
       if (!led_ctr)
-         rb_leds_data <= fct_mag({ regs[REG_RD_RB_RX_CAR_SUM_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:19] });
+         rb_leds_data <= fct_mag(regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:16]);
       end
 
    RB_SRC_CON_PNT_NUM_RX_MOD_FM_OUT: begin
@@ -3367,11 +3440,19 @@ else if (led_src_con_pnt && rb_reset_n) begin
    RB_SRC_CON_PNT_NUM_TEST_OVERDRIVE: begin
       if (!led_ctr)
          //                LED7                    LED6                    LED5                    LED4                       LED3                    LED2                       LED1                    LED0
-         rb_leds_data <= { agc_muxin_to_hi,        agc_muxin_to_lo,        rb_overdrive_rx_muxin,  rb_overdrive_rx_muxin_mon, rb_overdrive_tx_muxin,  rb_overdrive_tx_muxin_mon, agc_auto_on,            adc_auto_ofs };
+         rb_leds_data <= { agc1_to_hi,             agc1_to_lo,             rb_overdrive_rx_muxin,  rb_overdrive_rx_muxin_mon, rb_overdrive_tx_muxin,  rb_overdrive_tx_muxin_mon, agc_auto_on,            adc_auto_ofs };
       end
 
-   RB_SRC_CON_PNT_NUM_AGC_MUXIN: begin
-      rb_leds_data <= agc_muxin_gain[13:6];
+   RB_SRC_CON_PNT_NUM_AGC1_MUXIN: begin
+      rb_leds_data <= agc1_gain[13:6];
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC2_IF: begin
+      rb_leds_data <= agc2_gain[15:8];
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC3_SSB: begin
+      rb_leds_data <= agc3_gain[9:2];
       end
 
    RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
@@ -3573,7 +3654,7 @@ else if (rfout1_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_MAG: begin
-      rfout1_amp_in <= (rx_afc_cordic_polar_out_mag[15:0] - 16'h8000);
+      rfout1_amp_in <= rx_afc_cordic_polar_out_mag[15:0];
       end
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_PHS: begin
       rfout1_amp_in <= rx_afc_cordic_polar_out_phs[15:0];
@@ -3586,11 +3667,11 @@ else if (rfout1_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_INC_REG: begin
-      rfout1_amp_in <= { regs[REG_RD_RB_RX_CAR_AFC_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:19] };
+      rfout1_amp_in <= regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_SUM_INC_REG: begin
-      rfout1_amp_in <= { regs[REG_RD_RB_RX_CAR_SUM_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:19] };
+      rfout1_amp_in <= regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_MOD_FM_OUT: begin
@@ -3615,6 +3696,46 @@ else if (rfout1_src_con_pnt && rb_reset_n)
       rfout1_amp_in <= rx_car_osc_inc[36:21];
       end
 
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_RFIN1: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_RFIN1][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_RFIN2: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_RFIN2][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH0: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH0][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH8: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH8][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH1: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH1][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH9: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH9][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_VpVn: begin
+      rfout1_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_VpVn][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC1_MUXIN: begin
+      rfout1_amp_in <= { ~agc1_gain[13], agc1_gain[12:0], 2'b11 };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC2_IF: begin
+      rfout1_amp_in <= { ~agc2_gain[15], agc2_gain[14:0] };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC3_SSB: begin
+      rfout1_amp_in <= { ~agc3_gain[9], agc3_gain[8:0], 6'b111111 };
+      end
+
    RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
       // rfout1_amp_in <= { 1'b0, clk_200khz, 14'b0 };
       // rfout1_amp_in <= rx_mod_amenv_s1_out[43:28];
@@ -3635,9 +3756,9 @@ else                                                                            
 //---------------------------------------------------------------------------------
 //  RB RFOUT1_AMP signal gain correction for different termnation variants
 
-wire [ 17: 0] rfout1_amp_in18    = { {2{rfout1_amp_in[15]}}, rfout1_amp_in[15:0] };                         // signed expansion
+wire [ 17: 0] rfout1_amp_in18    = { {3{rfout1_amp_in[15]}}, rfout1_amp_in[14:0] };                         // signed expansion
 wire [ 17: 0] rfout1_amp_gain_in = { 2'b0, rfout1_amp_gain[15:0] };                                         // 8 int . 8 frac
-wire [ 35: 0] rfout1_amp_ofs_in  = { {12{rfout1_amp_ofs[15]}}, rfout1_amp_ofs[15:0], 8'b0 };                // signed register value, signed expansion
+wire [ 35: 0] rfout1_amp_ofs_in  = { {13{rfout1_amp_ofs[15]}}, rfout1_amp_ofs[14:0], 8'b0 };                // signed register value, signed expansion
 wire [ 36: 0] rfout1_amp_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rfout1_amp_dsp48 (
@@ -3834,7 +3955,7 @@ else if (rfout2_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_MAG: begin
-      rfout2_amp_in <= (rx_afc_cordic_polar_out_mag[15:0] - 16'h8000);
+      rfout2_amp_in <= rx_afc_cordic_polar_out_mag[15:0];
       end
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_PHS: begin
       rfout2_amp_in <= rx_afc_cordic_polar_out_phs[15:0];
@@ -3847,11 +3968,11 @@ else if (rfout2_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_INC_REG: begin
-      rfout2_amp_in <= { regs[REG_RD_RB_RX_CAR_AFC_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:19] };
+      rfout2_amp_in <= regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_SUM_INC_REG: begin
-      rfout2_amp_in <= { regs[REG_RD_RB_RX_CAR_SUM_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:19] };
+      rfout2_amp_in <= regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_MOD_FM_OUT: begin
@@ -3876,6 +3997,46 @@ else if (rfout2_src_con_pnt && rb_reset_n)
       rfout2_amp_in <= rx_car_osc_inc[36:21];
       end
 
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_RFIN1: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_RFIN1][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_RFIN2: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_RFIN2][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH0: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH0][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH8: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH8][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH1: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH1][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_CH9: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_EXT_CH9][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_ADC_AUTO_OFS_EXT_VpVn: begin
+      rfout2_amp_in <= { adc_offset[RB_ADC_AUTO_OFS_VpVn][7:0], 8'b0 };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC1_MUXIN: begin
+      rfout2_amp_in <= { ~agc1_gain[13], agc1_gain[12:0], 2'b11 };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC2_IF: begin
+      rfout2_amp_in <= { ~agc2_gain[15], agc2_gain[14:0] };
+      end
+
+   RB_SRC_CON_PNT_NUM_AGC3_SSB: begin
+      rfout2_amp_in <= { ~agc3_gain[9], agc3_gain[8:0], 6'b111111 };
+      end
+
    RB_SRC_CON_PNT_NUM_TEST_VECTOR_OUT: begin
       // rfout2_amp_in <= { 1'b0, rx_mod_cic1_chk_rst, 14'b0 };
       // rfout2_amp_in <= rx_mod_amenv_mix_in[15:0];
@@ -3895,9 +4056,9 @@ else                                                                            
 //---------------------------------------------------------------------------------
 //  RB RFOUT2_AMP signal gain correction for different termnation variants
 
-wire [ 17: 0] rfout2_amp_in18    = { {2{rfout2_amp_in[15]}}, rfout2_amp_in[15:0] };                         // signed expansion
+wire [ 17: 0] rfout2_amp_in18    = { {3{rfout2_amp_in[15]}}, rfout2_amp_in[14:0] };                         // signed expansion
 wire [ 17: 0] rfout2_amp_gain_in = { 2'b0, rfout2_amp_gain[15:0] };                                         // 8 int . 8 frac
-wire [ 35: 0] rfout2_amp_ofs_in  = { {12{rfout2_amp_ofs[15]}}, rfout2_amp_ofs[15:0], 8'b0 };                // signed register value, signed expansion
+wire [ 35: 0] rfout2_amp_ofs_in  = { {13{rfout2_amp_ofs[15]}}, rfout2_amp_ofs[14:0], 8'b0 };                // signed register value, signed expansion
 wire [ 36: 0] rfout2_amp_out;
 
 rb_dsp48_AaDmBaC_A18_D18_B18_C36_P37 i_rb_rfout2_amp_dsp48 (
@@ -4094,7 +4255,7 @@ else if (line_in1l_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_MAG: begin
-      rb_line_in1l_amp_in <= (rx_afc_cordic_polar_out_mag[15:0] - 16'h8000);
+      rb_line_in1l_amp_in <= (rx_afc_cordic_polar_out_mag[15:0]);
       end
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_PHS: begin
       rb_line_in1l_amp_in <= rx_afc_cordic_polar_out_phs[15:0];
@@ -4107,11 +4268,11 @@ else if (line_in1l_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_INC_REG: begin
-      rb_line_in1l_amp_in <= { regs[REG_RD_RB_RX_CAR_AFC_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:19] };
+      rb_line_in1l_amp_in <= regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_SUM_INC_REG: begin
-      rb_line_in1l_amp_in <= { regs[REG_RD_RB_RX_CAR_SUM_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:19] };
+      rb_line_in1l_amp_in <= regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_MOD_FM_OUT: begin
@@ -4332,7 +4493,7 @@ else if (line_in1r_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_MAG: begin
-      rb_line_in1r_amp_in <= (rx_afc_cordic_polar_out_mag[15:0] - 16'h8000);
+      rb_line_in1r_amp_in <= (rx_afc_cordic_polar_out_mag[15:0]);
       end
    RB_SRC_CON_PNT_NUM_RX_AFC_CORDIC_PHS: begin
       rb_line_in1r_amp_in <= rx_afc_cordic_polar_out_phs[15:0];
@@ -4345,11 +4506,11 @@ else if (line_in1r_src_con_pnt && rb_reset_n)
       end
 
    RB_SRC_CON_PNT_NUM_RX_AFC_INC_REG: begin
-      rb_line_in1r_amp_in <= { regs[REG_RD_RB_RX_CAR_AFC_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:19] };
+      rb_line_in1r_amp_in <= regs[REG_RD_RB_RX_CAR_AFC_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_SUM_INC_REG: begin
-      rb_line_in1r_amp_in <= { regs[REG_RD_RB_RX_CAR_SUM_INC_HI][2:0], regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:19] };
+      rb_line_in1r_amp_in <= regs[REG_RD_RB_RX_CAR_SUM_INC_LO][31:16];
       end
 
    RB_SRC_CON_PNT_NUM_RX_MOD_FM_OUT: begin
