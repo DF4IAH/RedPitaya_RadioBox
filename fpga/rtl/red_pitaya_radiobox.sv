@@ -103,7 +103,7 @@ module red_pitaya_radiobox #(
 
 //---------------------------------------------------------------------------------
 // current date of compilation
-localparam CURRENT_DATE = 32'h16070602;         // current date: 0xYYMMDDss - YY=year, MM=month, DD=day, ss=serial from 0x01 .. 0x09, 0x10, 0x11 .. 0x99
+localparam CURRENT_DATE = 32'h16071501;         // current date: 0xYYMMDDss - YY=year, MM=month, DD=day, ss=serial from 0x01 .. 0x09, 0x10, 0x11 .. 0x99
 
 
 //---------------------------------------------------------------------------------
@@ -1594,8 +1594,8 @@ if (!rb_pwr_rx_CAR_clken) begin
    end
 else if (clk_200khz) begin
    regs[REG_RD_RB_RX_AGC1_GAIN] <= { 16'b0, agc1_gain, 2'b11 };
-   if (agc1_to_vh && (agc1_gain >= 14'h0400))                                                               // agc1_gain >= d1024  (burst signals)
-      agc1_gain = agc1_gain - 14'h0400;                                                                     // turn down gain rapidly
+   if (agc1_to_vh && (agc1_gain >= 14'h0020))                                                               // agc1_gain >= d32  (burst signals)
+      agc1_gain = agc1_gain - 14'h0020;                                                                     // turn down gain rapidly
    else if (agc1_to_vh)
       agc1_gain = 14'h0000;                                                                                 // turn down gain to minimum rapidly
    else if (agc1_to_hi && (|agc1_gain))                                                                     // agc1_gain >= d1
@@ -1612,7 +1612,7 @@ else
          agc1_to_vh <= 1'b1;                                                                                // more than double of HI limit
       if (|rx_muxin_mix_out[35:22])
          agc1_to_hi <= 1'b1;                                                                                // more than HI limit
-      if (|rx_muxin_mix_out[35:21])
+      if (|rx_muxin_mix_out[35:20])
          agc1_to_lo <= 1'b0;                                                                                // more than LO limit
       end
    else begin                                                                                               // negative lobe
@@ -1620,7 +1620,7 @@ else
          agc1_to_vh <= 1'b1;                                                                                // abs() more than double of HI limit
       if (!(&rx_muxin_mix_out[35:22]))
          agc1_to_hi <= 1'b1;                                                                                // abs() more than HI limit
-      if (!(&rx_muxin_mix_out[35:21]))
+      if (!(&rx_muxin_mix_out[35:20]))
          agc1_to_lo <= 1'b0;                                                                                // abs() more than LO limit
       end
 
