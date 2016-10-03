@@ -258,6 +258,7 @@ CONFIG.FREQ_HZ {125000000} \
   set_property -dict [ list \
 CONFIG.FREQ_HZ {125000000} \
  ] $S_AXI_HP1_aclk
+  set dcm_locked [ create_bd_port -dir I dcm_locked ]
 
   # Create instance: axi_protocol_converter_0, and set properties
   set axi_protocol_converter_0 [ create_bd_cell -type ip -vlnv xilinx.com:ip:axi_protocol_converter:2.1 axi_protocol_converter_0 ]
@@ -1560,6 +1561,7 @@ CONFIG.IN1_WIDTH {15} \
   # Create port connections
   connect_bd_net -net GPIO_I_1 [get_bd_ports GPIO_I] [get_bd_pins processing_system7/GPIO_I]
   connect_bd_net -net IRQ_F2P_xlconcat_1 [get_bd_ports IRQ_F2P_xlconcat] [get_bd_pins xlconcat_0/In1]
+  connect_bd_net -net dcm_locked_1 [get_bd_ports dcm_locked] [get_bd_pins proc_sys_reset/dcm_locked]
   connect_bd_net -net m_axi_gp0_aclk_1 [get_bd_ports M_AXI_GP0_ACLK] [get_bd_pins processing_system7/M_AXI_GP0_ACLK]
   connect_bd_net -net proc_sys_reset_0_interconnect_aresetn [get_bd_pins axi_protocol_converter_0/aresetn] [get_bd_pins proc_sys_reset/interconnect_aresetn]
   connect_bd_net -net proc_sys_reset_0_peripheral_aresetn [get_bd_pins proc_sys_reset/peripheral_aresetn] [get_bd_pins xadc/s_axi_aresetn]
@@ -1589,14 +1591,14 @@ CONFIG.IN1_WIDTH {15} \
   regenerate_bd_layout -layout_string {
    guistr: "# # String gsaved with Nlview 6.5.12  2016-01-29 bk=1.3547 VDI=39 GEI=35 GUI=JA:1.6
 #  -string -flagsOSRD
-preplace port M_AXIS_GP1_xadc_aclk -pg 1 -y 270 -defaultsOSRD
 preplace port FCLK_CLK3 -pg 1 -y 390 -defaultsOSRD
+preplace port M_AXIS_GP1_xadc_aclk -pg 1 -y 270 -defaultsOSRD
 preplace port S_AXI_HP1 -pg 1 -y 260 -defaultsOSRD
 preplace port DDR -pg 1 -y 170 -defaultsOSRD
 preplace port Vp_Vn -pg 1 -y 730 -defaultsOSRD
 preplace port Vaux0 -pg 1 -y 770 -defaultsOSRD
-preplace port M_AXI_GP0_ACLK -pg 1 -y 100 -defaultsOSRD
 preplace port FCLK_RESET0_N -pg 1 -y 410 -defaultsOSRD
+preplace port M_AXI_GP0_ACLK -pg 1 -y 100 -defaultsOSRD
 preplace port Vaux1 -pg 1 -y 790 -defaultsOSRD
 preplace port S_AXI_HP0_aclk -pg 1 -y 160 -defaultsOSRD
 preplace port M_AXI_GP0 -pg 1 -y 230 -defaultsOSRD
@@ -1605,6 +1607,7 @@ preplace port S_AXI_HP1_aclk -pg 1 -y 240 -defaultsOSRD
 preplace port FCLK_RESET3_N -pg 1 -y 470 -defaultsOSRD
 preplace port FIXED_IO -pg 1 -y 190 -defaultsOSRD
 preplace port FCLK_RESET2_N -pg 1 -y 450 -defaultsOSRD
+preplace port dcm_locked -pg 1 -y 650 -defaultsOSRD
 preplace port FCLK_CLK0 -pg 1 -y 250 -defaultsOSRD
 preplace port FCLK_CLK1 -pg 1 -y 350 -defaultsOSRD
 preplace port Vaux8 -pg 1 -y 830 -defaultsOSRD
@@ -1622,40 +1625,41 @@ preplace inst xlconcat_0 -pg 1 -lvl 3 -y 400 -defaultsOSRD
 preplace inst processing_system7 -pg 1 -lvl 4 -y 280 -defaultsOSRD
 preplace inst xadc -pg 1 -lvl 4 -y 750 -defaultsOSRD
 preplace inst proc_sys_reset -pg 1 -lvl 2 -y 600 -defaultsOSRD
-preplace netloc processing_system7_0_ddr 1 4 1 NJ
 preplace netloc Vaux0_1 1 0 4 NJ 710 NJ 710 NJ 710 NJ
-preplace netloc processing_system7_0_fclk_reset3_n 1 1 4 210 510 NJ 510 NJ 520 1330
+preplace netloc processing_system7_0_ddr 1 4 1 NJ
+preplace netloc processing_system7_0_fclk_reset3_n 1 1 4 210 510 NJ 510 NJ 520 1340
 preplace netloc IRQ_F2P_xlconcat_1 1 0 3 NJ 410 NJ 410 NJ
 preplace netloc s_axi_hp0_1 1 0 4 NJ 180 NJ 180 NJ 180 NJ
-preplace netloc GPIO_I_1 1 0 5 NJ -10 NJ -10 NJ -10 NJ -10 1330
+preplace netloc GPIO_I_1 1 0 5 NJ -10 NJ -10 NJ -10 NJ -10 1340
 preplace netloc processing_system7_GPIO_O 1 4 1 NJ
 preplace netloc processing_system7_0_fclk_reset2_n 1 4 1 NJ
 preplace netloc processing_system7_0_M_AXI_GP0 1 4 1 NJ
 preplace netloc xlconstant_dout 1 1 1 NJ
-preplace netloc xadc_ip2intc_irpt 1 2 3 570 30 NJ 30 1310
+preplace netloc xadc_ip2intc_irpt 1 2 3 580 30 NJ 30 1320
 preplace netloc processing_system7_0_fclk_reset1_n 1 4 1 NJ
-preplace netloc processing_system7_0_M_AXI_GP1 1 2 3 560 10 NJ 10 1320
 preplace netloc Vp_Vn_1 1 0 4 NJ 690 NJ 690 NJ 690 NJ
+preplace netloc processing_system7_0_M_AXI_GP1 1 2 3 570 10 NJ 10 1330
+preplace netloc dcm_locked_1 1 0 2 NJ 650 200
 preplace netloc s_axi_hp0_aclk 1 0 4 NJ 160 NJ 160 NJ 160 NJ
 preplace netloc s_axi_hp1_1 1 0 4 NJ 260 NJ 260 NJ 260 NJ
 preplace netloc processing_system7_FCLK_CLK3 1 4 1 NJ
-preplace netloc proc_sys_reset_0_interconnect_aresetn 1 2 1 560
-preplace netloc axi_protocol_converter_0_M_AXI 1 3 1 830
+preplace netloc proc_sys_reset_0_interconnect_aresetn 1 2 1 570
 preplace netloc Vaux8_1 1 0 4 NJ 750 NJ 750 NJ 750 NJ
-preplace netloc xlconcat_0_dout 1 3 1 830
+preplace netloc axi_protocol_converter_0_M_AXI 1 3 1 840
+preplace netloc xlconcat_0_dout 1 3 1 840
 preplace netloc processing_system7_GPIO_T 1 4 1 NJ
 preplace netloc s_axi_hp1_aclk 1 0 4 NJ 240 NJ 240 NJ 240 NJ
 preplace netloc processing_system7_0_fclk_reset0_n 1 4 1 NJ
-preplace netloc processing_system7_0_fixed_io 1 4 1 NJ
 preplace netloc Vaux9_1 1 0 4 NJ 770 NJ 770 NJ 770 NJ
-preplace netloc processing_system7_0_fclk_clk0 1 1 4 200 490 550 490 840 40 1340
-preplace netloc proc_sys_reset_0_peripheral_aresetn 1 2 2 NJ 680 830
+preplace netloc processing_system7_0_fixed_io 1 4 1 NJ
+preplace netloc processing_system7_0_fclk_clk0 1 1 4 200 490 560 490 850 40 1350
+preplace netloc proc_sys_reset_0_peripheral_aresetn 1 2 2 NJ 680 840
 preplace netloc Vaux1_1 1 0 4 NJ 730 NJ 730 NJ 730 NJ
 preplace netloc processing_system7_0_fclk_clk1 1 4 1 NJ
 preplace netloc m_axi_gp0_aclk_1 1 0 4 NJ 100 NJ 100 NJ 100 NJ
 preplace netloc xadc_M_AXIS 1 4 1 NJ
 preplace netloc processing_system7_0_fclk_clk2 1 4 1 NJ
-levelinfo -pg 1 0 130 380 700 1090 1360 -top -30 -bot 930
+levelinfo -pg 1 0 130 390 710 1100 1370 -top -30 -bot 930
 ",
 }
 
@@ -1673,4 +1677,6 @@ levelinfo -pg 1 0 130 380 700 1090 1360 -top -30 -bot 930
 
 create_root_design ""
 
+
+common::send_msg_id "BD_TCL-1000" "WARNING" "This Tcl script was generated from a block design that has not been validated. It is possible that design <$design_name> may result in errors during validation."
 
