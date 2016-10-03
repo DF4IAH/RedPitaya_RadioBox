@@ -45,6 +45,9 @@ read_verilog                      ./project/redpitaya.srcs/sources_1/bd/system/h
 add_files                         ../../$path_rtl
 add_files                         $path_rtl
 
+add_files -quiet                  [get_files $path_ip/*.xci]
+add_files -quiet                  [get_files $path_ip/*.xcix]
+ 
 add_files -fileset constrs_1      $path_sdc/red_pitaya.xdc
 
 import_files -force
