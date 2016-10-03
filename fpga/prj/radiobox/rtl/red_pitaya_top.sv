@@ -497,61 +497,18 @@ red_pitaya_scope i_scope (
 //---------------------------------------------------------------------------------
 //  2: DAC arbitrary signal generator
 
-/*
 // unused system bus slave ports
 assign sys_rdata[2*32+:32] = 32'h0;
 assign sys_err  [2       ] =  1'b0;
 assign sys_ack  [2       ] =  1'b1;
-*/
-
-red_pitaya_asg i_asg (
-   // DAC
-  .dac_a_o         (  asg_a                      ),  // CH 1
-  .dac_b_o         (  asg_b                      ),  // CH 2
-  .dac_clk_i       (  adc_clk                    ),  // clock
-  .dac_rstn_i      (  adc_rstn                   ),  // reset - active low
-  .trig_a_i        (  exp_p_in[0]                ),
-  .trig_b_i        (  exp_p_in[0]                ),
-  .trig_out_o      (  trig_asg_out               ),
-  // System bus
-  .sys_addr        (  sys_addr                   ),  // address
-  .sys_wdata       (  sys_wdata                  ),  // write data
-  .sys_sel         (  sys_sel                    ),  // write byte select
-  .sys_wen         (  sys_wen[2]                 ),  // write enable
-  .sys_ren         (  sys_ren[2]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 2*32+31: 2*32]  ),  // read data
-  .sys_err         (  sys_err[2]                 ),  // error indicator
-  .sys_ack         (  sys_ack[2]                 )   // acknowledge signal
-);
 
 //---------------------------------------------------------------------------------
 //  3: MIMO PID controller
 
-/*
 // unused system bus slave ports
 assign sys_rdata[3*32+:32] = 32'h0;
 assign sys_err  [3       ] =  1'b0;
 assign sys_ack  [3       ] =  1'b1;
-*/
-
-red_pitaya_pid i_pid (
-   // signals
-  .clk_i           (  adc_clk                    ),  // clock
-  .rstn_i          (  adc_rstn                   ),  // reset - active low
-  .dat_a_i         (  adc_a                      ),  // in 1
-  .dat_b_i         (  adc_b                      ),  // in 2
-  .dat_a_o         (  pid_a                      ),  // out 1
-  .dat_b_o         (  pid_b                      ),  // out 2
-  // System bus
-  .sys_addr        (  sys_addr                   ),  // address
-  .sys_wdata       (  sys_wdata                  ),  // write data
-  .sys_sel         (  sys_sel                    ),  // write byte select
-  .sys_wen         (  sys_wen[3]                 ),  // write enable
-  .sys_ren         (  sys_ren[3]                 ),  // read enable
-  .sys_rdata       (  sys_rdata[ 3*32+31: 3*32]  ),  // read data
-  .sys_err         (  sys_err[3]                 ),  // error indicator
-  .sys_ack         (  sys_ack[3]                 )   // acknowledge signal
-);
 
 //---------------------------------------------------------------------------------
 //  4: Analog mixed signals
