@@ -84,9 +84,9 @@ module red_pitaya_scope #(
    input                 axi1_wrdy_i     ,  // system write ready
   
    // System bus
-   input      [ 32-1: 0] sys_addr      ,  // bus saddress
+   input      [ 20-1: 0] sys_addr      ,  // bus saddress
    input      [ 32-1: 0] sys_wdata     ,  // bus write data
-   input      [  4-1: 0] sys_sel       ,  // bus write byte select
+// input      [  4-1: 0] sys_sel       ,  // bus write byte select
    input                 sys_wen       ,  // bus write enable
    input                 sys_ren       ,  // bus read enable
    output reg [ 32-1: 0] sys_rdata     ,  // bus read data

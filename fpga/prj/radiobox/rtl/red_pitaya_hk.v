@@ -46,7 +46,7 @@ module red_pitaya_hk #(
   output reg [DWE-1:0] exp_n_dat_o,  //
   output reg [DWE-1:0] exp_n_dir_o,  //
   // System bus
-  input      [ 32-1:0] sys_addr   ,  // bus address
+  input      [ 23-1:0] sys_addr   ,  // bus address
   input      [ 32-1:0] sys_wdata  ,  // bus write data
   input      [  4-1:0] sys_sel    ,  // bus write byte select
   input                sys_wen    ,  // bus write enable

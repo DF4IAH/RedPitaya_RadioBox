@@ -63,9 +63,9 @@ module red_pitaya_ac97ctrl #(
    output       [  7: 0] ac97_leds_o     ,      // DEBUGGING: diagnose LEDs
 
    // System bus - slave
-   input        [ 31: 0] sys_addr        ,      // bus saddress
-   input        [ 31: 0] sys_wdata       ,      // bus write data
-   input        [  3: 0] sys_sel         ,      // bus write byte select
+   input        [ 19: 0] sys_addr        ,      // bus address
+   input        [ 15: 0] sys_wdata       ,      // bus write data
+// input        [  3: 0] sys_sel         ,      // bus write byte select
    input                 sys_wen         ,      // bus write enable
    input                 sys_ren         ,      // bus read enable
    output reg   [ 31: 0] sys_rdata       ,      // bus read data

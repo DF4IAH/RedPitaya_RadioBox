@@ -82,9 +82,9 @@ module red_pitaya_radiobox #(
    input                 ac97_irq_rec_i  ,      // monitor IRQ line for recording stream
 
    // System bus - slave
-   input        [ 31: 0] sys_addr        ,      // bus saddress
+   input        [ 19: 0] sys_addr        ,      // bus saddress
    input        [ 31: 0] sys_wdata       ,      // bus write data
-   input        [  3: 0] sys_sel         ,      // bus write byte select
+// input        [  3: 0] sys_sel         ,      // bus write byte select
    input                 sys_wen         ,      // bus write enable
    input                 sys_ren         ,      // bus read enable
    output reg   [ 31: 0] sys_rdata       ,      // bus read data
@@ -2790,7 +2790,7 @@ rb_cordic_T_WS_O_SR_18T18_NE_CR_EM_B i_rb_rx_afc_cordic (
 );
 
 wire   signed [ 15: 0] rx_afc_cordic_polar_out_mag = { rx_afc_cordic_polar_out[17],    rx_afc_cordic_polar_out[15:1] };
-wire   signed [ 15: 0] rx_afc_cordic_polar_out_phs = { rx_afc_cordic_polar_out[24+17], rx_afc_cordic_polar_out[24+14:24+0] };  // -0.999 .. +0.999 represents -180° .. +180°
+wire   signed [ 15: 0] rx_afc_cordic_polar_out_phs = { rx_afc_cordic_polar_out[24+17], rx_afc_cordic_polar_out[24+14:24+0] };  // -0.999 .. +0.999 represents -180ï¿½ .. +180ï¿½
 
 always @(posedge clk_adc_125mhz)
 if (!rb_pwr_rx_AFC_rst_n) begin

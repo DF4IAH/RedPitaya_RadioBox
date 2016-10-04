@@ -381,8 +381,8 @@ assign adc_b = digital_loop ? dac_b : {adc_dat_b[14-1], ~adc_dat_b[14-2:0]};
 ////////////////////////////////////////////////////////////////////////////////
 
 // Sumation of ASG and PID signal perform saturation before sending to DAC 
-assign dac_a_sum = asg_a + pid_a;
-assign dac_b_sum = asg_b + pid_b;
+assign dac_a_sum = 'b0;
+assign dac_b_sum = 'b0;
 
 // saturation
 assign dac_a = (^dac_a_sum[15-1:15-2]) ? {dac_a_sum[15-1], {13{~dac_a_sum[15-1]}}} : dac_a_sum[14-1:0];
@@ -433,7 +433,7 @@ red_pitaya_hk i_hk (
   .exp_n_dat_o     (  exp_n_out                  ),
   .exp_n_dir_o     (  exp_n_dir                  ),
    // System bus
-  .sys_addr        (  sys_addr                   ),  // address
+  .sys_addr        (  sys_addr[22:0]             ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
   .sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[0]                 ),  // write enable
@@ -478,9 +478,9 @@ red_pitaya_scope i_scope (
   .axi0_werr_i   (axi0_werr  ),  .axi1_werr_i   (axi1_werr  ),
   .axi0_wrdy_i   (axi0_wrdy  ),  .axi1_wrdy_i   (axi1_wrdy  ),
   // System bus
-  .sys_addr        (  sys_addr                   ),  // address
+  .sys_addr        (  sys_addr[19:0]             ),  // address
   .sys_wdata       (  sys_wdata                  ),  // write data
-  .sys_sel         (  sys_sel                    ),  // write byte select
+//.sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[1]                 ),  // write enable
   .sys_ren         (  sys_ren[1]                 ),  // read enable
   .sys_rdata       (  sys_rdata[ 1*32+31: 1*32]  ),  // read data
@@ -530,9 +530,9 @@ red_pitaya_ams i_ams (
   .dac_c_o         (  pwm_cfg_c                  ),
   .dac_d_o         (  pwm_cfg_d                  ),
    // System bus
-  .sys_addr        (  sys_addr                   ),  // address
-  .sys_wdata       (  sys_wdata                  ),  // write data
-  .sys_sel         (  sys_sel                    ),  // write byte select
+  .sys_addr        (  sys_addr[19:0]             ),  // address
+  .sys_wdata       (  sys_wdata[23:0]            ),  // write data
+//.sys_sel         (  sys_sel                    ),  // write byte select
   .sys_wen         (  sys_wen[4]                 ),  // write enable
   .sys_ren         (  sys_ren[4]                 ),  // read enable
   .sys_rdata       (  sys_rdata[ 4*32+31: 4*32]  ),  // read data
@@ -594,9 +594,9 @@ red_pitaya_radiobox i_radiobox (
   .ac97_irq_rec_i  ( ac97_irq_rec                ),  // monitor IRQ line for recording stream
 
   // System bus
-  .sys_addr        ( sys_addr                    ),  // address
+  .sys_addr        ( sys_addr[19:0]              ),  // address
   .sys_wdata       ( sys_wdata                   ),  // write data
-  .sys_sel         ( sys_sel                     ),  // write byte select
+//.sys_sel         ( sys_sel                     ),  // write byte select
   .sys_wen         ( sys_wen[6]                  ),  // write enable
   .sys_ren         ( sys_ren[6]                  ),  // read enable
   .sys_rdata       ( sys_rdata[ 6*32+:32]        ),  // read data
@@ -632,9 +632,9 @@ red_pitaya_ac97ctrl i_ac97ctrl (
   .ac97_leds_o     ( ac97_leds                   ),  // AC97 diagnostic LEDs
 
   // System bus
-  .sys_addr        ( sys_addr                    ),  // address
-  .sys_wdata       ( sys_wdata                   ),  // write data
-  .sys_sel         ( sys_sel                     ),  // write byte select
+  .sys_addr        ( sys_addr[19:0]              ),  // address
+  .sys_wdata       ( sys_wdata[15:0]             ),  // write data
+//.sys_sel         ( sys_sel                     ),  // write byte select
   .sys_wen         ( sys_wen[7]                  ),  // write enable
   .sys_ren         ( sys_ren[7]                  ),  // read enable
   .sys_rdata       ( sys_rdata[ 7*32+:32]        ),  // read data
