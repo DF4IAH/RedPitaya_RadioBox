@@ -175,12 +175,6 @@ wire  signed [15-1:0] dac_a_sum, dac_b_sum;
 wire     [ 2*16-1: 0] ac97_line_in;                                                                         // [15:0] = LEFT, [31:16] = RIGHT
 wire     [ 2*16-1: 0] ac97_line_out;                                                                        // [15:0] = LEFT, [31:16] = RIGHT
 
-// ASG
-wire  signed [14-1:0] asg_a    , asg_b    ;
-
-// PID
-wire  signed [14-1:0] pid_a    , pid_b    ;
-
 // configuration
 wire                  digital_loop;
 
@@ -471,7 +465,7 @@ red_pitaya_scope i_scope (
   .adc_clk_i       (  adc_clk                    ),  // clock
   .adc_rstn_i      (  adc_rstn                   ),  // reset - active low
   .trig_ext_i      (  exp_p_in[0]                ),  // external trigger
-  .trig_asg_i      (  trig_asg_out               ),  // ASG trigger
+  .trig_asg_i      (  1'b0                       ),  // ASG trigger
   // AXI0 master                 // AXI1 master
   .axi0_clk_o    (axi0_clk   ),  .axi1_clk_o    (axi1_clk   ),
   .axi0_rstn_o   (axi0_rstn  ),  .axi1_rstn_o   (axi1_rstn  ),
