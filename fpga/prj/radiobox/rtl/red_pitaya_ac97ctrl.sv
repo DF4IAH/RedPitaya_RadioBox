@@ -279,6 +279,9 @@ ac97ctrl_16x32_sr_fifo i_ac97ctrl_play_fifo (
   .dout                    ( ac97ctrl_play_fifo_read     ),  // 16 bit play sample data to be poped from the FIFO
   .rd_en                   ( ac97ctrl_play_fifo_pop      ),  // pop data
 
+  .full                    (                             ),
+  .empty                   (                             ),
+
   .data_count              ( ac97ctrl_play_fifo_ctr      )   // content counter
 );
 
@@ -303,6 +306,9 @@ ac97ctrl_16x32_sr_fifo i_ac97ctrl_rec_fifo (
 
   .dout                    ( ac97ctrl_rec_fifo_read      ),  // 16 bit play sample data to be poped from the FIFO
   .rd_en                   ( ac97ctrl_rec_fifo_pop       ),  // pop data
+
+  .full                    (                             ),
+  .empty                   (                             ),
 
   .data_count              ( ac97ctrl_rec_fifo_ctr       )   // content counter
 );
