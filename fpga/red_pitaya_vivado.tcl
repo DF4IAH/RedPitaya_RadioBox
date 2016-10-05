@@ -77,6 +77,11 @@ set_property generic "GITH=160'h$gith" [current_fileset]
 # write checkpoint design
 ################################################################################
 
+file mkdir project/redpitaya.srcs/sources_1/ip
+set coe_files [glob -nocomplain -dir $path_ip *.coe]
+foreach f $coe_files {
+	file copy $f project/redpitaya.srcs/sources_1/ip/
+}
 synth_ip [get_ips rb_* ac97ctrl_*]
 
 #synth_design -top red_pitaya_top
