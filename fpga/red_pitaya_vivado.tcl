@@ -77,7 +77,7 @@ set_property generic "GITH=160'h$gith" [current_fileset]
 # write checkpoint design
 ################################################################################
 
-generate_target all [get_ips rb_* ac97ctrl_*]
+synth_ip [get_ips rb_* ac97ctrl_*]
 
 #synth_design -top red_pitaya_top
 synth_design -top red_pitaya_top -flatten_hierarchy none -bufg 16 -keep_equivalent_registers
